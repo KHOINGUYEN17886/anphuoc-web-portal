@@ -79,22 +79,22 @@ def index():
     default_date = get_report_date().strftime('%Y-%m-%d')
     return render_template('index.html', default_date=default_date)
 
-@app.route('/api/regions', methods=['GET'])
-def get_regions():
+@app.route('/api/asms', methods=['GET'])
+def get_asms():
     try:
-        rows = query_db("SELECT DISTINCT region FROM tb_stores WHERE region IS NOT NULL AND region != '' ORDER BY region")
-        regions = [r['region'] for r in rows]
-        return jsonify({'ok': True, 'regions': regions})
+        rows = query_db("SELECT DISTINCT asm_name FROM tb_stores WHERE asm_name IS NOT NULL AND asm_name != '' ORDER BY asm_name")
+        asms = [r['asm_name'] for r in rows]
+        return jsonify({'ok': True, 'asms': asms})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
 
 @app.route('/api/stores', methods=['GET'])
 def get_stores():
-    region = request.args.get('region')
-    if not region:
-        return jsonify({'ok': False, 'error': 'Region is required'})
+    asm = request.args.get('asm')
+    if not asm:
+        return jsonify({'ok': False, 'error': 'ASM is required'})
     try:
-        rows = query_db("SELECT store_code, store_name, brand, asm_name FROM tb_stores WHERE region = ? ORDER BY store_name", (region,))
+        rows = query_db("SELECT store_code, store_name, brand, asm_name FROM tb_stores WHERE asm_name = ? ORDER BY store_name", (asm,))
         return jsonify({'ok': True, 'stores': rows})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
