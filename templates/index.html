@@ -126,9 +126,14 @@
             <div id="tab-weekly-content" class="space-y-6">
                 <!-- Date Picker & Edit Warning Banner -->
                 <div class="bg-slate-800/20 border border-slate-700/50 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
-                    <div class="flex items-center gap-2">
-                        <label class="text-xs font-bold text-slate-300 uppercase">Ngày khóa báo cáo (Thứ 6):</label>
-                        <input id="input-report-date" type="date" value="{{ default_date }}" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-gold">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="flex items-center gap-2">
+                            <label class="text-xs font-bold text-slate-300 uppercase">Ngày khóa báo cáo (Thứ 6):</label>
+                            <input id="input-report-date" type="date" value="{{ default_date }}" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-gold">
+                        </div>
+                        <div id="lbl-week-range" class="text-xs text-gold/90 font-medium bg-gold/5 border border-gold/15 px-3 py-1.5 rounded-lg">
+                            📅 Đang tính toán tuần báo cáo...
+                        </div>
                     </div>
                     <div id="edit-mode-banner" class="hidden text-xs bg-amber-500/10 text-amber-500 border border-amber-500/20 px-3 py-1.5 rounded-lg font-semibold">
                         🔄 Đang xem/sửa dữ liệu đã nộp cũ
@@ -820,10 +825,33 @@
             await generateDailyTrafficInputs();
         });
 
+        function updateWeekRangeDisplay() {
+            const dateVal = inputReportDate.value;
+            if (!dateVal) return;
+            const parts = dateVal.split('-');
+            const Friday = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            const Saturday = new Date(Friday);
+            Saturday.setDate(Friday.getDate() - 6);
+            
+            const formatDate = (d) => {
+                const day = String(d.getDate()).padStart(2, '0');
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const year = d.getFullYear();
+                return `${day}/${month}/${year}`;
+            };
+            
+            const lbl = document.getElementById('lbl-week-range');
+            if (lbl) {
+                lbl.innerHTML = `📅 Tuần báo cáo: từ <strong>Thứ Bảy ${formatDate(Saturday)}</strong> đến <strong>Thứ Sáu ${formatDate(Friday)}</strong>`;
+            }
+        }
+
         // LOAD EXISTING OPERATIONAL WEEKLY DATA (EDIT FUNCTION)
         async function loadWeeklyReportData() {
             if (!currentStore) return;
             const dateVal = inputReportDate.value;
+            
+            updateWeekRangeDisplay();
             
             contractsContainer.innerHTML = '';
             unsignedContainer.innerHTML = '';
