@@ -67,10 +67,6 @@ def query_db(query, args=(), one=False):
 # Get reporting date (Friday of the current week)
 def get_report_date():
     today = date.today()
-    # weekday: Monday is 0, Friday is 4, Sunday is 6
-    # We want the Friday of the current week.
-    # If today is Sat (5) or Sun (6), we might refer to the Friday that just passed (today - (today.weekday() - 4))
-    # If today is Mon-Fri, Friday is today + (4 - today.weekday())
     offset = 4 - today.weekday()
     return today + timedelta(days=offset)
 
@@ -122,6 +118,125 @@ def validate_pin():
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
 
+# ──────────────────────────────────────────────────────────────────────────────
+# NEW API: DAILY TRAFFIC ENDPOINTS
+# ──────────────────────────────────────────────────────────────────────────────
+@app.route('/api/get_daily_traffic', methods=['GET'])
+def get_daily_traffic():
+    store_code = request.args.get('store_code')
+    year = request.args.get('year')
+    month = request.args.get('month')
+    pin = request.args.get('pin')
+    
+    if not store_code or not year or not month or not pin:
+        return jsonify({'ok': False, 'error': 'Thiếu tham số bắt buộc'})
+        
+    try:
+        # Validate PIN
+        store = query_db("SELECT * FROM tb_stores WHERE store_code = ? AND passcode = ?", (store_code, pin), one=True)
+        if not store and pin != '1234':
+            return jsonify({'ok': False, 'error': 'Mã PIN không đúng'})
+            
+        # Query daily traffic for this store and month
+        prefix = f"{year}-{int(month):02d}-%"
+        rows = query_db("SELECT traffic_date, traffic_val FROM tb_traffic WHERE store_code = ? AND traffic_date LIKE ?", (store_code, prefix))
+        
+        traffic_map = {r['traffic_date']: r['traffic_val'] for r in rows}
+        return jsonify({'ok': True, 'traffic': traffic_map})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)})
+
+@app.route('/api/submit_daily_traffic', methods=['POST'])
+def submit_daily_traffic():
+    data = request.json or {}
+    store_code = data.get('store_code')
+    pin = data.get('pin')
+    traffic_data = data.get('traffic_data', {})
+    
+    if not store_code or not pin:
+        return jsonify({'ok': False, 'error': 'Thiếu store_code hoặc pin'})
+        
+    try:
+        # Validate PIN
+        store = query_db("SELECT * FROM tb_stores WHERE store_code = ? AND passcode = ?", (store_code, pin), one=True)
+        if not store and pin != '1234':
+            return jsonify({'ok': False, 'error': 'Mã PIN không đúng'})
+            
+        # Upsert each day
+        for date_str, val_str in traffic_data.items():
+            if val_str is None or str(val_str).strip() == '':
+                # Delete record if cleared
+                execute_db("DELETE FROM tb_traffic WHERE store_code = ? AND traffic_date = ?", (store_code, date_str))
+            else:
+                try:
+                    val = int(val_str)
+                    if val < 0:
+                        continue
+                    if DATABASE_URL:
+                        execute_db("""
+                        INSERT INTO tb_traffic (store_code, traffic_date, traffic_val)
+                        VALUES (?, ?, ?)
+                        ON CONFLICT (store_code, traffic_date) DO UPDATE SET traffic_val = EXCLUDED.traffic_val
+                        """, (store_code, date_str, val))
+                    else:
+                        execute_db("""
+                        INSERT OR REPLACE INTO tb_traffic (store_code, traffic_date, traffic_val)
+                        VALUES (?, ?, ?)
+                        """, (store_code, date_str, val))
+                except ValueError:
+                    continue
+                    
+        return jsonify({'ok': True, 'message': 'Đã cập nhật Traffic thành công!'})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)})
+
+# ──────────────────────────────────────────────────────────────────────────────
+# NEW API: OPERATIONAL DETAILS (EDIT MECHANISM)
+# ──────────────────────────────────────────────────────────────────────────────
+@app.route('/api/get_operational_report', methods=['GET'])
+def get_operational_report():
+    store_code = request.args.get('store_code')
+    report_date = request.args.get('report_date')
+    pin = request.args.get('pin')
+    
+    if not store_code or not report_date or not pin:
+        return jsonify({'ok': False, 'error': 'Thiếu tham số bắt buộc'})
+        
+    try:
+        store = query_db("SELECT * FROM tb_stores WHERE store_code = ? AND passcode = ?", (store_code, pin), one=True)
+        if not store and pin != '1234':
+            return jsonify({'ok': False, 'error': 'Mã PIN không đúng'})
+            
+        # Query contracts (Section 3.1)
+        contracts = query_db("SELECT contract_value, product_category, quantity, deposit_paid, installment_2, status, reason FROM tb_contracts WHERE store_code = ? AND report_date = ?", (store_code, report_date))
+        
+        # Query unsigned contracts (Section 3.2)
+        unsigned = query_db("SELECT prev_year_value, expected_signing_time, product_category, quantity, status, reason FROM tb_unsigned_contracts WHERE store_code = ? AND report_date = ?", (store_code, report_date))
+        
+        # Query operational details (Section 4.1 - 4.4)
+        details = query_db("SELECT * FROM tb_operational_details WHERE store_code = ? AND report_date = ?", (store_code, report_date), one=True)
+        
+        # Query support requests (Section 4.5)
+        support = query_db("SELECT category, priority, issue_item, deadline, person_in_charge FROM tb_support_requests WHERE store_code = ? AND report_date = ?", (store_code, report_date))
+        
+        # Get traffic for this specific Friday (report_date) if nộp in weekly
+        traffic_row = query_db("SELECT traffic_val FROM tb_traffic WHERE store_code = ? AND traffic_date = ?", (store_code, report_date), one=True)
+        traffic_val = traffic_row['traffic_val'] if traffic_row else ''
+        
+        return jsonify({
+            'ok': True,
+            'traffic': traffic_val,
+            'contracts': contracts,
+            'unsigned_contracts': unsigned,
+            'details': details or {},
+            'support_requests': support
+        })
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)})
+
+# ──────────────────────────────────────────────────────────────────────────────
+# SUBMIT & EXPORT ENHANCEMENTS (INCLUDES PART 4 & 5)
+# ──────────────────────────────────────────────────────────────────────────────
 @app.route('/api/submit', methods=['POST'])
 def submit_data():
     data = request.json or {}
@@ -131,6 +246,8 @@ def submit_data():
     traffic_val = data.get('traffic')
     contracts = data.get('contracts', [])
     unsigned_contracts = data.get('unsigned_contracts', [])
+    details = data.get('details', {})
+    support_requests = data.get('support_requests', [])
     
     if not store_code or not report_date:
         return jsonify({'ok': False, 'error': 'Store code and report date are required'})
@@ -141,12 +258,17 @@ def submit_data():
         if not store and pin != '1234':
             return jsonify({'ok': False, 'error': 'Mã PIN không hợp lệ'})
             
-        # 2. Save Traffic (Update if exists, else Insert)
-        if traffic_val is not None:
-            # Clean old traffic for this date & store
-            execute_db("DELETE FROM tb_traffic WHERE store_code = ? AND report_date = ?", (store_code, report_date))
-            execute_db("INSERT INTO tb_traffic (store_code, report_date, traffic_val) VALUES (?, ?, ?)", 
-                       (store_code, report_date, int(traffic_val)))
+        # 2. Save Traffic (Save for report_date as daily record)
+        if traffic_val is not None and str(traffic_val).strip() != '':
+            execute_db("DELETE FROM tb_traffic WHERE store_code = ? AND traffic_date = ?", (store_code, report_date))
+            if DATABASE_URL:
+                execute_db("""
+                INSERT INTO tb_traffic (store_code, traffic_date, traffic_val) VALUES (?, ?, ?)
+                ON CONFLICT (store_code, traffic_date) DO UPDATE SET traffic_val = EXCLUDED.traffic_val
+                """, (store_code, report_date, int(traffic_val)))
+            else:
+                execute_db("INSERT OR REPLACE INTO tb_traffic (store_code, traffic_date, traffic_val) VALUES (?, ?, ?)", 
+                           (store_code, report_date, int(traffic_val)))
             
         # 3. Save Contracts (Section 3.1)
         execute_db("DELETE FROM tb_contracts WHERE store_code = ? AND report_date = ?", (store_code, report_date))
@@ -183,6 +305,51 @@ def submit_data():
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """, (store_code, report_date, val, time_str, cat, qty, status, reason))
                 
+        # 5. Save Operational Details (Section 4.1 - 4.4)
+        execute_db("DELETE FROM tb_operational_details WHERE store_code = ? AND report_date = ?", (store_code, report_date))
+        execute_db("""
+        INSERT INTO tb_operational_details (
+            store_code, report_date, 
+            op_open_close_status, op_open_close_note,
+            op_uniform_status, op_uniform_note,
+            op_greet_status, op_greet_note,
+            op_feedback_status, op_feedback_note,
+            op_other_status, op_other_note,
+            hr_target, hr_actual, hr_guard,
+            hr_resigned_note, hr_leave_note, hr_absent_note,
+            inv_stock_status, inv_info_goods, inv_return_warehouse, inv_proposal,
+            market_product_feedback, market_missing_products, market_competitors, market_other_feedback
+        ) VALUES (
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        )
+        """, (
+            store_code, report_date,
+            details.get('op_open_close_status', 'Đạt'), details.get('op_open_close_note', ''),
+            details.get('op_uniform_status', 'Đạt'), details.get('op_uniform_note', ''),
+            details.get('op_greet_status', 'Đạt'), details.get('op_greet_note', ''),
+            details.get('op_feedback_status', 'Đạt'), details.get('op_feedback_note', ''),
+            details.get('op_other_status', 'Đạt'), details.get('op_other_note', ''),
+            int(details.get('hr_target', 0) or 0), int(details.get('hr_actual', 0) or 0), int(details.get('hr_guard', 0) or 0),
+            details.get('hr_resigned_note', ''), details.get('hr_leave_note', ''), details.get('hr_absent_note', ''),
+            details.get('inv_stock_status', ''), details.get('inv_info_goods', ''), details.get('inv_return_warehouse', ''), details.get('inv_proposal', ''),
+            details.get('market_product_feedback', ''), details.get('market_missing_products', ''), details.get('market_competitors', ''), details.get('market_other_feedback', '')
+        ))
+        
+        # 6. Save Support Requests (Section 4.5)
+        execute_db("DELETE FROM tb_support_requests WHERE store_code = ? AND report_date = ?", (store_code, report_date))
+        for sr in support_requests:
+            cat = str(sr.get('category', '')).strip()
+            pri = str(sr.get('priority', 'Trung bình')).strip()
+            item = str(sr.get('issue_item', '')).strip()
+            dl = str(sr.get('deadline', '')).strip()
+            pic = str(sr.get('person_in_charge', 'QLKD / ASM')).strip()
+            
+            if item:
+                execute_db("""
+                INSERT INTO tb_support_requests (store_code, report_date, category, priority, issue_item, deadline, person_in_charge)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (store_code, report_date, cat, pri, item, dl, pic))
+                
         return jsonify({'ok': True, 'message': 'Nộp báo cáo thành công!'})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
@@ -199,16 +366,30 @@ def export_data():
         return jsonify({'ok': False, 'error': 'report_date is required'})
         
     try:
-        traffic = query_db("SELECT store_code, traffic_val FROM tb_traffic WHERE report_date = ?", (report_date,))
+        # Pull daily traffic records for the week ending on report_date (Saturday to Friday)
+        # We also pull all daily traffic for this month to calculate MTD
+        rep_dt = datetime.strptime(report_date, '%Y-%m-%d').date()
+        week_start = rep_dt - timedelta(days=6)
+        month_start = rep_dt.replace(day=1)
+        
+        daily_traffic = query_db("""
+            SELECT store_code, traffic_date, traffic_val FROM tb_traffic 
+            WHERE traffic_date >= ? AND traffic_date <= ?
+        """, (month_start.strftime('%Y-%m-%d'), report_date))
+        
         contracts = query_db("SELECT store_code, contract_value, product_category, quantity, deposit_paid, installment_2, status, reason FROM tb_contracts WHERE report_date = ?", (report_date,))
         unsigned = query_db("SELECT store_code, prev_year_value, expected_signing_time, product_category, quantity, status, reason FROM tb_unsigned_contracts WHERE report_date = ?", (report_date,))
+        details = query_db("SELECT * FROM tb_operational_details WHERE report_date = ?", (report_date,))
+        support = query_db("SELECT store_code, category, priority, issue_item, deadline, person_in_charge FROM tb_support_requests WHERE report_date = ?", (report_date,))
         
         return jsonify({
             'ok': True,
             'report_date': report_date,
-            'traffic': traffic,
+            'daily_traffic': daily_traffic,
             'contracts': contracts,
-            'unsigned_contracts': unsigned
+            'unsigned_contracts': unsigned,
+            'operational_details': details,
+            'support_requests': support
         })
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
@@ -219,8 +400,8 @@ def get_submission_status():
     try:
         # Get all stores
         stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores ORDER BY region, store_name")
-        # Get submitted traffic stores
-        submitted = query_db("SELECT DISTINCT store_code FROM tb_traffic WHERE report_date = ?", (report_date,))
+        # Get submitted operational details
+        submitted = query_db("SELECT DISTINCT store_code FROM tb_operational_details WHERE report_date = ?", (report_date,))
         sub_set = {s['store_code'] for s in submitted}
         
         results = []
@@ -234,6 +415,71 @@ def get_submission_status():
             })
             
         return jsonify({'ok': True, 'report_date': report_date, 'status': results})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)})
+
+# ──────────────────────────────────────────────────────────────────────────────
+# NEW API: ASM TRAFFIC REMINDERS SUMMARY
+# ──────────────────────────────────────────────────────────────────────────────
+@app.route('/api/asm_traffic_summary', methods=['GET'])
+def get_asm_traffic_summary():
+    asm = request.args.get('asm')
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    if not asm or not start_date_str or not end_date_str:
+        return jsonify({'ok': False, 'error': 'Thiếu tham số bắt buộc'})
+        
+    try:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        
+        # Limit end_date to yesterday
+        yesterday = date.today() - timedelta(days=1)
+        if end_date > yesterday:
+            end_date = yesterday
+            
+        # Get list of all dates in range
+        delta = end_date - start_date
+        all_dates = [(start_date + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(delta.days + 1)]
+        
+        # Get all stores for this ASM
+        stores = query_db("SELECT store_code, store_name FROM tb_stores WHERE asm_name = ? ORDER BY store_name", (asm,))
+        
+        # Get all traffic entries in range
+        rows = query_db("""
+            SELECT store_code, traffic_date FROM tb_traffic 
+            WHERE traffic_date >= ? AND traffic_date <= ?
+        """, (start_date_str, end_date_str))
+        
+        # Map store_code -> set of filled dates
+        filled_map = {}
+        for r in rows:
+            code = r['store_code']
+            dt = r['traffic_date']
+            if code not in filled_map:
+                filled_map[code] = set()
+            filled_map[code].add(dt)
+            
+        results = []
+        for s in stores:
+            code = s['store_code']
+            name = s['store_name']
+            filled = filled_map.get(code, set())
+            
+            missing_dates = [d for d in all_dates if d not in filled]
+            # Convert YYYY-MM-DD to DD/MM
+            missing_formatted = [datetime.strptime(d, '%Y-%m-%d').strftime('%d/%m') for d in missing_dates]
+            
+            results.append({
+                'store_code': code,
+                'store_name': name,
+                'total_filled': len(filled),
+                'total_required': len(all_dates),
+                'missing_dates': missing_formatted
+            })
+            
+        return jsonify({'ok': True, 'summary': results})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
 

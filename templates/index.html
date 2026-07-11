@@ -31,7 +31,6 @@
             background-color: #0F172A;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
-        /* Custom scrollbar */
         ::-webkit-scrollbar {
             width: 6px;
         }
@@ -67,7 +66,7 @@
     <!-- Main Content Container -->
     <main class="flex-grow max-w-4xl w-full mx-auto px-4 py-6">
 
-        <!-- 1. LOGIN / LOGIN AREA -->
+        <!-- 1. LOGIN SECTION -->
         <section id="login-section" class="max-w-md mx-auto my-10 bg-slate-800/50 border border-slate-700/60 rounded-2xl p-6 shadow-xl backdrop-blur-md">
             <h2 class="text-xl font-bold mb-6 text-center text-white border-b border-slate-700/60 pb-3">Đăng Nhập Cửa Hàng</h2>
             
@@ -88,7 +87,7 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">Mã PIN Cửa Hàng</label>
-                    <input id="input-pin" type="password" maxlength="4" placeholder="Mã PIN 4 số (mặc định 1234)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-gold transition-colors text-center font-mono tracking-widest text-lg">
+                    <input id="input-pin" type="password" maxlength="4" placeholder="Mã PIN 4 số" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-gold transition-colors text-center font-mono tracking-widest text-lg">
                 </div>
 
                 <div class="pt-2">
@@ -99,7 +98,7 @@
             </div>
         </section>
 
-        <!-- 2. DATA ENTRY PANEL (Hidden initially) -->
+        <!-- 2. DATA ENTRY PANEL -->
         <section id="form-section" class="hidden space-y-6">
             <!-- Active Store Banner -->
             <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -108,30 +107,44 @@
                     <h3 id="lbl-active-store" class="text-xl font-bold text-white">...</h3>
                     <p id="lbl-store-meta" class="text-xs text-slate-400">...</p>
                 </div>
-                <div class="flex items-center gap-3">
-                    <div>
-                        <label class="block text-[10px] uppercase text-slate-400 font-bold mb-1">Ngày Báo Cáo (T6)</label>
-                        <input id="input-report-date" type="date" value="{{ default_date }}" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-gold">
-                    </div>
-                    <button id="btn-logout" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-3 py-2 rounded-lg font-semibold text-slate-300 self-end transition-all">
-                        Đăng xuất
-                    </button>
-                </div>
+                <button id="btn-logout" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-3 py-2 rounded-lg font-semibold text-slate-300 transition-all self-start md:self-auto">
+                    Đăng xuất
+                </button>
             </div>
 
-            <!-- Form Body -->
-            <div class="space-y-6">
-                
-                <!-- SECTION A: TRAFFIC -->
+            <!-- Tab Navigation -->
+            <div class="flex border-b border-slate-700">
+                <button id="tab-weekly-btn" class="py-2.5 px-6 font-bold text-sm border-b-2 border-gold text-gold focus:outline-none transition-all">
+                    ✍️ Báo Cáo Tuần (Thứ 6)
+                </button>
+                <button id="tab-daily-btn" class="py-2.5 px-6 font-bold text-sm text-slate-400 hover:text-white focus:outline-none transition-all">
+                    👣 Nhập Traffic Hàng Ngày
+                </button>
+            </div>
+
+            <!-- TAB 1: WEEKLY REPORT FORM -->
+            <div id="tab-weekly-content" class="space-y-6">
+                <!-- Date Picker & Edit Warning Banner -->
+                <div class="bg-slate-800/20 border border-slate-700/50 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs font-bold text-slate-300 uppercase">Ngày khóa báo cáo (Thứ 6):</label>
+                        <input id="input-report-date" type="date" value="{{ default_date }}" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-gold">
+                    </div>
+                    <div id="edit-mode-banner" class="hidden text-xs bg-amber-500/10 text-amber-500 border border-amber-500/20 px-3 py-1.5 rounded-lg font-semibold">
+                        🔄 Đang xem/sửa dữ liệu đã nộp cũ
+                    </div>
+                </div>
+
+                <!-- SECTION A: TRAFFIC OVERRIDE -->
                 <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 shadow-lg">
                     <div class="flex items-center gap-2 mb-4 border-b border-slate-700/60 pb-3">
                         <span class="text-lg">👣</span>
-                        <h4 class="font-bold text-white">LƯỢT KHÁCH GHÉ CỬA HÀNG (TRAFFIC / FOOTFALL)</h4>
+                        <h4 class="font-bold text-white uppercase">Lượt khách ghé cửa hàng (Traffic tuần)</h4>
                     </div>
                     <div class="max-w-xs">
-                        <label class="block text-xs font-semibold text-slate-400 mb-1.5">Số lượt khách vào CH tuần này</label>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1.5">Traffic nộp nhanh cả tuần (Nếu chưa nhập lẻ ngày)</label>
                         <input id="input-traffic" type="number" min="0" placeholder="Nhập số lượt khách" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-gold transition-colors text-lg font-bold">
-                        <p class="text-[10px] text-slate-500 mt-1">Lấy từ camera đếm khách (footfall count) tại cửa hàng.</p>
+                        <p class="text-[10px] text-slate-500 mt-1">Khuyên dùng: Hãy nhập lẻ hàng ngày ở Tab 2 để hệ thống tự cộng tổng chính xác.</p>
                     </div>
                 </div>
 
@@ -140,19 +153,15 @@
                     <div class="flex items-center justify-between border-b border-slate-700/60 pb-3 mb-4">
                         <div class="flex items-center gap-2">
                             <span class="text-lg">✍️</span>
-                            <h4 class="font-bold text-white uppercase">Tiến độ đàm phán hợp đồng hiện tại</h4>
+                            <h4 class="font-bold text-white uppercase">Tiến độ đàm phán hợp đồng hiện tại (3.1)</h4>
                         </div>
-                        <button id="btn-add-contract" class="bg-gold/10 hover:bg-gold/25 border border-gold/40 text-gold text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1">
-                            <span>+</span> Thêm Hợp Đồng
+                        <button id="btn-add-contract" class="bg-gold/10 hover:bg-gold/25 border border-gold/40 text-gold text-xs font-bold px-3 py-1.5 rounded-lg transition-all">
+                            + Thêm HĐ Mới
                         </button>
                     </div>
-                    
-                    <div id="contracts-container" class="space-y-4">
-                        <!-- Dynamic Contracts Rows injected here -->
-                    </div>
-                    
+                    <div id="contracts-container" class="space-y-4"></div>
                     <div id="contracts-empty" class="text-center py-6 text-slate-500 text-xs italic">
-                        Không có hợp đồng nào đang đàm phán tuần này. Nhấn "+ Thêm Hợp Đồng" nếu có.
+                        Không có hợp đồng nào đang đàm phán tuần này.
                     </div>
                 </div>
 
@@ -161,19 +170,180 @@
                     <div class="flex items-center justify-between border-b border-slate-700/60 pb-3 mb-4">
                         <div class="flex items-center gap-2">
                             <span class="text-lg">⏳</span>
-                            <h4 class="font-bold text-white uppercase">Hợp đồng cùng kỳ năm trước chưa ký kết</h4>
+                            <h4 class="font-bold text-white uppercase">Hợp đồng cùng kỳ chưa tái ký (3.2)</h4>
                         </div>
-                        <button id="btn-add-unsigned" class="bg-gold/10 hover:bg-gold/25 border border-gold/40 text-gold text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1">
-                            <span>+</span> Thêm HĐ
+                        <button id="btn-add-unsigned" class="bg-gold/10 hover:bg-gold/25 border border-gold/40 text-gold text-xs font-bold px-3 py-1.5 rounded-lg transition-all">
+                            + Thêm HĐ Cũ
                         </button>
                     </div>
+                    <div id="unsigned-container" class="space-y-4"></div>
+                    <div id="unsigned-empty" class="text-center py-6 text-slate-500 text-xs italic">
+                        Không có hợp đồng cùng kỳ năm trước chậm ký.
+                    </div>
+                </div>
 
-                    <div id="unsigned-container" class="space-y-4">
-                        <!-- Dynamic Unsigned Rows injected here -->
+                <!-- SECTION D: OPERATIONAL, HR, MERCHANDISE & MARKET (Section 4.1 - 4.4) -->
+                <!-- Accordion style collapsible sections -->
+                <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 shadow-lg space-y-4">
+                    <div class="flex items-center gap-2 border-b border-slate-700/60 pb-3 mb-2">
+                        <span class="text-lg">⚙️</span>
+                        <h4 class="font-bold text-white uppercase">Phần 4: Vận Hành - Nhân Sự - Hàng Hóa - Thị Trường</h4>
                     </div>
 
-                    <div id="unsigned-empty" class="text-center py-6 text-slate-500 text-xs italic">
-                        Không có dữ liệu theo dõi hợp đồng cũ. Nhấn "+ Thêm HĐ" nếu cần báo cáo hợp đồng năm ngoái chậm ký.
+                    <!-- 4.1. Operational Checklist -->
+                    <div class="border border-slate-700/50 rounded-xl p-4 bg-slate-900/30 space-y-4">
+                        <h5 class="text-xs font-bold text-gold uppercase tracking-wide border-b border-slate-800 pb-1.5">4.1. Đánh giá vận hành cửa hàng</h5>
+                        
+                        <!-- 5 Items -->
+                        <div class="space-y-4 divide-y divide-slate-800">
+                            <!-- Item 1 -->
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-2">
+                                <span class="text-xs font-semibold text-slate-200">1. Mở / đóng cửa đúng quy định</span>
+                                <div class="flex items-center gap-2">
+                                    <select id="op-open-status" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs focus:border-gold">
+                                        <option value="Đạt">Đạt</option>
+                                        <option value="Không đạt">Không đạt</option>
+                                    </select>
+                                    <input id="op-open-note" type="text" placeholder="Số lần, lý do vi phạm..." class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1 text-xs text-slate-200 w-48 md:w-64 focus:border-gold">
+                                </div>
+                            </div>
+                            <!-- Item 2 -->
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-3">
+                                <span class="text-xs font-semibold text-slate-200">2. Tác phong / Đồng phục</span>
+                                <div class="flex items-center gap-2">
+                                    <select id="op-uniform-status" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs focus:border-gold">
+                                        <option value="Đạt">Đạt</option>
+                                        <option value="Không đạt">Không đạt</option>
+                                    </select>
+                                    <input id="op-uniform-note" type="text" placeholder="Tên NV, lỗi vi phạm..." class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1 text-xs text-slate-200 w-48 md:w-64 focus:border-gold">
+                                </div>
+                            </div>
+                            <!-- Item 3 -->
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-3">
+                                <span class="text-xs font-semibold text-slate-200">3. Mở cửa đón / tiễn khách</span>
+                                <div class="flex items-center gap-2">
+                                    <select id="op-greet-status" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs focus:border-gold">
+                                        <option value="Đạt">Đạt</option>
+                                        <option value="Không đạt">Không đạt</option>
+                                    </select>
+                                    <input id="op-greet-note" type="text" placeholder="Ghi chú chi tiết..." class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1 text-xs text-slate-200 w-48 md:w-64 focus:border-gold">
+                                </div>
+                            </div>
+                            <!-- Item 4 -->
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-3">
+                                <span class="text-xs font-semibold text-slate-200">4. Khách hàng góp ý / Phàn nàn</span>
+                                <div class="flex items-center gap-2">
+                                    <select id="op-feedback-status" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs focus:border-gold">
+                                        <option value="Đạt">Đạt</option>
+                                        <option value="Không đạt">Không đạt</option>
+                                    </select>
+                                    <input id="op-feedback-note" type="text" placeholder="Nội dung góp ý..." class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1 text-xs text-slate-200 w-48 md:w-64 focus:border-gold">
+                                </div>
+                            </div>
+                            <!-- Item 5 -->
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-3">
+                                <span class="text-xs font-semibold text-slate-200">5. Vi phạm QĐVH khác</span>
+                                <div class="flex items-center gap-2">
+                                    <select id="op-other-status" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs focus:border-gold">
+                                        <option value="Đạt">Đạt</option>
+                                        <option value="Không đạt">Không đạt</option>
+                                    </select>
+                                    <input id="op-other-note" type="text" placeholder="Lỗi vi phạm khác..." class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1 text-xs text-slate-200 w-48 md:w-64 focus:border-gold">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4.2. HR Section -->
+                    <div class="border border-slate-700/50 rounded-xl p-4 bg-slate-900/30 space-y-4">
+                        <h5 class="text-xs font-bold text-gold uppercase tracking-wide border-b border-slate-800 pb-1.5">4.2. Tình hình nhân sự tại CH</h5>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Định biên nhân sự</label>
+                                <input id="hr-target" type="number" min="0" placeholder="Số lượng đích" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:border-gold">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">SL NV Thực tế (gồm cả TS/Phep)</label>
+                                <input id="hr-actual" type="number" min="0" placeholder="Số lượng thực tế" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:border-gold">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">SL Nhân viên Bảo vệ</label>
+                                <input id="hr-guard" type="number" min="0" placeholder="SL bảo vệ" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:border-gold">
+                            </div>
+                        </div>
+                        <div class="space-y-3 pt-2 border-t border-slate-800">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Thông tin nhân viên nghỉ việc (nếu có)</label>
+                                <textarea id="hr-resigned-note" rows="2" placeholder="Ghi rõ: Họ Tên - MSNV - Chức vụ - Ngày nghỉ - Nguyên nhân..." class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 focus:border-gold"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Thông tin nhân viên nghỉ phép trong tuần (nếu có)</label>
+                                <textarea id="hr-leave-note" rows="2" placeholder="Ghi rõ: Họ tên - Ngày phép (từ... đến...) - Lý do..." class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 focus:border-gold"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Thông tin nghỉ không phép (nếu có)</label>
+                                <textarea id="hr-absent-note" rows="1" placeholder="Họ tên, MSNV, thời gian nghỉ..." class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 focus:border-gold"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4.3. Inventory Section -->
+                    <div class="border border-slate-700/50 rounded-xl p-4 bg-slate-900/30 space-y-3">
+                        <h5 class="text-xs font-bold text-gold uppercase tracking-wide border-b border-slate-800 pb-1.5">4.3. Tình hình hàng hóa</h5>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">1. Hàng hóa (Nhóm hàng thừa - thiếu, chủng loại, SL...)</label>
+                            <textarea id="inv-stock-status" rows="2" placeholder="Ví dụ: Thiếu sơ mi nam size 39, thừa quần tây size 31..." class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 focus:border-gold"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">2. Hàng thông tin (SL tiếp nhận, lỗi hàng tồn đọng chưa giải quyết...)</label>
+                            <textarea id="inv-info-goods" rows="2" placeholder="Ghi rõ hàng của KH hay của CH, mã hàng, lỗi cụ thể..." class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 focus:border-gold"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">3. Hàng trả kho (Số lượng chưa chuyển về công ty, hàng thu hồi...)</label>
+                            <textarea id="inv-return-warehouse" rows="2" placeholder="Ghi rõ còn bao nhiêu hàng chưa trả kho..." class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 focus:border-gold"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">4. Đề xuất bổ sung hàng (nếu có)</label>
+                            <textarea id="inv-proposal" rows="1" placeholder="Nêu rõ mã hàng, nhóm hàng cần bổ sung gấp..." class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 focus:border-gold"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- 4.4. Market Section -->
+                    <div class="border border-slate-700/50 rounded-xl p-4 bg-slate-900/30 space-y-3">
+                        <h5 class="text-xs font-bold text-gold uppercase tracking-wide border-b border-slate-800 pb-1.5">4.4. Ý kiến khách hàng & Thị trường</h5>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Ý kiến/Góp ý của KH về sản phẩm (cụ thể đến tên/mã sp)</label>
+                            <textarea id="market-product-feedback" rows="2" placeholder="KH chê phom dáng, chất vải hoặc phàn nàn đường chỉ..." class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 focus:border-gold"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Sản phẩm KH tìm mua nhưng công ty chưa có</label>
+                            <textarea id="market-missing-products" rows="1" placeholder="Ví dụ: Vớ thể thao cao cổ, nẹp cà vạt bản nhỏ..." class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 focus:border-gold"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Thông tin đối thủ cạnh tranh gần CH (CTKM, mức giá, sp cạnh tranh...)</label>
+                            <textarea id="market-competitors" rows="2" placeholder="Đối thủ cách 100m đang giảm giá 50% hàng hè..." class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 focus:border-gold"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Ý kiến khác của Cửa hàng trưởng</label>
+                            <textarea id="market-other-feedback" rows="1" placeholder="Các kiến nghị khác..." class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 focus:border-gold"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION E: SUPPORT REQUESTS (Section 4.5) -->
+                <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 shadow-lg">
+                    <div class="flex items-center justify-between border-b border-slate-700/60 pb-3 mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg">📢</span>
+                            <h4 class="font-bold text-white uppercase">Vấn đề tồn đọng cần hỗ trợ (4.5)</h4>
+                        </div>
+                        <button id="btn-add-support" class="bg-gold/10 hover:bg-gold/25 border border-gold/40 text-gold text-xs font-bold px-3 py-1.5 rounded-lg transition-all">
+                            + Thêm Kiến Nghị
+                        </button>
+                    </div>
+                    <div id="support-container" class="space-y-4"></div>
+                    <div id="support-empty" class="text-center py-6 text-slate-500 text-xs italic">
+                        Không có vấn đề tồn đọng nào cần hỗ trợ tuần này.
                     </div>
                 </div>
 
@@ -183,7 +353,53 @@
                         <span>🚀</span> NỘP BÁO CÁO VẬN HÀNH TUẦN
                     </button>
                 </div>
+            </div>
 
+            <!-- TAB 2: DAILY TRAFFIC FORM -->
+            <div id="tab-daily-content" class="hidden space-y-6">
+                <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 shadow-lg">
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-700/60 pb-3 mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg">📆</span>
+                            <h4 class="font-bold text-white uppercase">Nhập Traffic Hàng Ngày</h4>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <select id="select-traffic-year" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs">
+                                <option value="2026">2026</option>
+                                <option value="2025">2025</option>
+                            </select>
+                            <select id="select-traffic-month" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs">
+                                <option value="1">Tháng 1</option>
+                                <option value="2">Tháng 2</option>
+                                <option value="3">Tháng 3</option>
+                                <option value="4">Tháng 4</option>
+                                <option value="5">Tháng 5</option>
+                                <option value="6">Tháng 6</option>
+                                <option value="7">Tháng 7</option>
+                                <option value="8">Tháng 8</option>
+                                <option value="9">Tháng 9</option>
+                                <option value="10">Tháng 10</option>
+                                <option value="11">Tháng 11</option>
+                                <option value="12">Tháng 12</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <p class="text-xs text-slate-400 mb-4">
+                        💡 Điền số lượt khách vào cửa hàng của từng ngày (để trống nếu là ngày nghỉ lễ hoặc chưa có số liệu). Dữ liệu ca tối muộn có thể nhập bù vào sáng ngày hôm sau.
+                    </p>
+
+                    <!-- Daily Inputs Grid -->
+                    <div id="daily-traffic-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[400px] overflow-y-auto p-1">
+                        <!-- Dynamic day inputs will be generated here -->
+                    </div>
+
+                    <div class="pt-6 border-t border-slate-800 mt-6">
+                        <button id="btn-save-daily-traffic" class="w-full bg-gold hover:bg-gold-dark text-slate-900 font-bold py-3 rounded-xl transition-all shadow-lg text-sm tracking-wide">
+                            💾 LƯU SỐ LIỆU TRAFFIC CẢ THÁNG
+                        </button>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -192,19 +408,30 @@
             <div class="flex items-center justify-between bg-slate-900/60 border border-slate-800 rounded-2xl p-4">
                 <div>
                     <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                        📊 Tiến Độ Nộp Báo Cáo Cửa Hàng
+                        📊 Báo Cáo Theo Dõi Dành Cho ASM
                     </h3>
-                    <p class="text-xs text-slate-400">Danh sách tổng hợp 184 cửa hàng theo tuần</p>
+                    <p class="text-xs text-slate-400">Xem tiến độ nộp bài và nhắc nhở nộp thiếu</p>
                 </div>
                 <button id="btn-status-back" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-4 py-2 rounded-xl transition-all text-slate-300 font-bold">
                     ⬅ Quay Lại
                 </button>
             </div>
 
-            <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 shadow-lg space-y-4">
+            <!-- Tab switcher inside status page -->
+            <div class="flex border-b border-slate-800 bg-slate-900/20 px-4 pt-2 rounded-t-xl">
+                <button id="status-tab-weekly-btn" class="py-2.5 px-4 font-bold text-xs border-b-2 border-gold text-gold mr-2">
+                    Báo cáo tuần 3.1 & 4
+                </button>
+                <button id="status-tab-daily-btn" class="py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white">
+                    Tiến độ Traffic hàng ngày
+                </button>
+            </div>
+
+            <!-- ASM Tab 1: Weekly Submission Status -->
+            <div id="status-tab-weekly-content" class="bg-slate-800/40 border border-slate-700/50 rounded-b-2xl p-5 shadow-lg space-y-4">
                 <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-700/60 pb-3">
                     <div class="flex items-center gap-2">
-                        <label class="text-xs font-semibold text-slate-400">Chọn Tuần Báo Cáo:</label>
+                        <label class="text-xs font-semibold text-slate-400">Tuần Báo Cáo:</label>
                         <input id="status-report-date" type="date" value="{{ default_date }}" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200">
                     </div>
                     <div class="flex items-center gap-3 text-xs">
@@ -220,12 +447,43 @@
                                 <th class="py-2.5 px-3">Cụm</th>
                                 <th class="py-2.5 px-3">Tên Cửa Hàng</th>
                                 <th class="py-2.5 px-3">ASM Quản Lý</th>
-                                <th class="py-2.5 px-3 text-center">Trạng Thái</th>
+                                <th class="py-2.5 px-3 text-center">Trạng Thế</th>
                             </tr>
                         </thead>
-                        <tbody id="status-table-body" class="divide-y divide-slate-800">
-                            <!-- Injected status list -->
-                        </tbody>
+                        <tbody id="status-table-body" class="divide-y divide-slate-800"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ASM Tab 2: Daily Traffic Reminder -->
+            <div id="status-tab-daily-content" class="hidden bg-slate-800/40 border border-slate-700/50 rounded-b-2xl p-5 shadow-lg space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-700/60 pb-3">
+                    <div class="flex flex-wrap items-center gap-3 text-xs">
+                        <div>
+                            <label class="block text-[10px] text-slate-400 font-bold uppercase mb-1">Từ ngày</label>
+                            <input id="status-traffic-start" type="date" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-slate-400 font-bold uppercase mb-1">Đến hết hôm qua</label>
+                            <input id="status-traffic-end" type="date" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200">
+                        </div>
+                    </div>
+                    <button id="btn-refresh-traffic-status" class="bg-gold text-slate-900 font-bold px-4 py-2 rounded-xl text-xs hover:bg-gold-dark">
+                        🔄 Cập Nhật Lại
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="border-b border-slate-700 text-slate-400 font-semibold">
+                                <th class="py-2.5 px-3">Cửa Hàng</th>
+                                <th class="py-2.5 px-3 text-center">Đã Nhập</th>
+                                <th class="py-2.5 px-3 text-center">Tỷ Lệ</th>
+                                <th class="py-2.5 px-3">Các ngày bị thiếu (Chỉ hiện tối đa 10 ngày)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="status-traffic-table-body" class="divide-y divide-slate-800"></tbody>
                     </table>
                 </div>
             </div>
@@ -250,7 +508,7 @@
         </div>
     </div>
 
-    <!-- Template for Contract Card -->
+    <!-- Template for Contract Card (3.1) -->
     <template id="tmpl-contract-card">
         <div class="contract-card bg-slate-900/50 border border-slate-700/60 rounded-xl p-4 relative space-y-3">
             <button class="btn-remove-row absolute top-2 right-2 text-slate-500 hover:text-rose-500 text-sm font-bold w-6 h-6 rounded-full flex items-center justify-center border border-slate-800 hover:border-rose-500/20 bg-slate-900 transition-all">
@@ -297,7 +555,7 @@
         </div>
     </template>
 
-    <!-- Template for Unsigned Contract Card -->
+    <!-- Template for Unsigned Contract Card (3.2) -->
     <template id="tmpl-unsigned-card">
         <div class="unsigned-card bg-slate-900/50 border border-slate-700/60 rounded-xl p-4 relative space-y-3">
             <button class="btn-remove-row absolute top-2 right-2 text-slate-500 hover:text-rose-500 text-sm font-bold w-6 h-6 rounded-full flex items-center justify-center border border-slate-800 hover:border-rose-500/20 bg-slate-900 transition-all">
@@ -339,6 +597,43 @@
         </div>
     </template>
 
+    <!-- Template for Support Request Row (4.5) -->
+    <template id="tmpl-support-card">
+        <div class="support-card bg-slate-900/50 border border-slate-700/60 rounded-xl p-4 relative space-y-3">
+            <button class="btn-remove-row absolute top-2 right-2 text-slate-500 hover:text-rose-500 text-sm font-bold w-6 h-6 rounded-full flex items-center justify-center border border-slate-800 hover:border-rose-500/20 bg-slate-900 transition-all">
+                &times;
+            </button>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Phân Nhóm</label>
+                    <select class="val-support-category w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:border-gold">
+                        <option value="DOANH THU">Doanh Thu / Tăng Trưởng</option>
+                        <option value="KHÁCH HÀNG">Khách Hàng</option>
+                        <option value="HÀNG HÓA">Hàng Hóa</option>
+                        <option value="NHÂN SỰ">Nhân Sự</option>
+                        <option value="VẬN HÀNH">Vận Hành</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Mức Độ Ưu Tiên</label>
+                    <select class="val-support-priority w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:border-gold">
+                        <option value="Trung bình">Trung bình</option>
+                        <option value="Thấp">Thấp</option>
+                        <option value="Cao">Cao</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Thời hạn hoàn thành (nếu có)</label>
+                    <input type="text" class="val-support-deadline w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:border-gold" placeholder="Ví dụ: 15/07/2026">
+                </div>
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Hạng mục / Nội dung cần cấp trên hỗ trợ</label>
+                <input type="text" class="val-support-item w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:border-gold" placeholder="Ghi cụ thể sự việc, đề xuất hỗ trợ...">
+            </div>
+        </div>
+    </template>
+
     <!-- JS Logic -->
     <script>
         // DOM Elements
@@ -354,25 +649,49 @@
         const lblActiveStore = document.getElementById('lbl-active-store');
         const lblStoreMeta = document.getElementById('lbl-store-meta');
         const inputReportDate = document.getElementById('input-report-date');
+        const editModeBanner = document.getElementById('edit-mode-banner');
         const inputTraffic = document.getElementById('input-traffic');
         const btnLogout = document.getElementById('btn-logout');
         
+        const tabWeeklyBtn = document.getElementById('tab-weekly-btn');
+        const tabDailyBtn = document.getElementById('tab-daily-btn');
+        const tabWeeklyContent = document.getElementById('tab-weekly-content');
+        const tabDailyContent = document.getElementById('tab-daily-content');
+        
+        const selectTrafficYear = document.getElementById('select-traffic-year');
+        const selectTrafficMonth = document.getElementById('select-traffic-month');
+        const dailyTrafficGrid = document.getElementById('daily-traffic-grid');
+        const btnSaveDailyTraffic = document.getElementById('btn-save-daily-traffic');
+        
         const contractsContainer = document.getElementById('contracts-container');
         const unsignedContainer = document.getElementById('unsigned-container');
+        const supportContainer = document.getElementById('support-container');
         
         const contractsEmpty = document.getElementById('contracts-empty');
         const unsignedEmpty = document.getElementById('unsigned-empty');
+        const supportEmpty = document.getElementById('support-empty');
         
         const btnAddContract = document.getElementById('btn-add-contract');
         const btnAddUnsigned = document.getElementById('btn-add-unsigned');
+        const btnAddSupport = document.getElementById('btn-add-support');
         const btnSubmit = document.getElementById('btn-submit');
         
         const btnStatusView = document.getElementById('btn-status-view');
         const btnStatusBack = document.getElementById('btn-status-back');
+        const statusTabWeeklyBtn = document.getElementById('status-tab-weekly-btn');
+        const statusTabDailyBtn = document.getElementById('status-tab-daily-btn');
+        const statusTabWeeklyContent = document.getElementById('status-tab-weekly-content');
+        const statusTabDailyContent = document.getElementById('status-tab-daily-content');
+        
         const statusReportDate = document.getElementById('status-report-date');
         const statusTableBody = document.getElementById('status-table-body');
         const countSubmitted = document.getElementById('count-submitted');
         const countPending = document.getElementById('count-pending');
+        
+        const statusTrafficStart = document.getElementById('status-traffic-start');
+        const statusTrafficEnd = document.getElementById('status-traffic-end');
+        const statusTrafficTableBody = document.getElementById('status-traffic-table-body');
+        const btnRefreshTrafficStatus = document.getElementById('btn-refresh-traffic-status');
         
         const toastModal = document.getElementById('toast-modal');
         const toastTitle = document.getElementById('toast-title');
@@ -383,7 +702,7 @@
         // Active session state
         let currentStore = null;
 
-        // Init ASMs
+        // Init ASMs List
         async function loadASMs() {
             try {
                 const res = await fetch('/api/asms');
@@ -449,7 +768,6 @@
                 const data = await res.json();
                 
                 if (data.ok && data.valid) {
-                    // Save session
                     const selectedOpt = storeSelect.options[storeSelect.selectedIndex];
                     currentStore = {
                         code: storeCode,
@@ -459,19 +777,14 @@
                         pin: pin
                     };
                     
-                    // Update header display
                     lblActiveStore.innerText = currentStore.name;
-                    lblStoreMeta.innerText = `Mã: ${currentStore.code} | Thương hiệu: ${currentStore.brand} | ASM quản lý: ${currentStore.asm}`;
+                    lblStoreMeta.innerText = `Mã: ${currentStore.code} | ASM quản lý: ${currentStore.asm}`;
                     
-                    // Switch screen
                     loginSec.classList.add('hidden');
                     formSec.classList.remove('hidden');
                     
-                    // Reset containers
-                    contractsContainer.innerHTML = '';
-                    unsignedContainer.innerHTML = '';
-                    inputTraffic.value = '';
-                    toggleEmptyStates();
+                    // Trigger load data for current selected date
+                    await loadWeeklyReportData();
                 } else {
                     showToast("❌ Sai mã PIN", data.error || "Mã PIN không đúng, vui lòng kiểm tra lại.", "❌");
                 }
@@ -480,59 +793,314 @@
             }
         });
 
-        // Add Contract Row
-        btnAddContract.addEventListener('click', () => {
+        // TAB SWITCHERS
+        tabWeeklyBtn.addEventListener('click', () => {
+            tabWeeklyBtn.className = "py-2.5 px-6 font-bold text-sm border-b-2 border-gold text-gold focus:outline-none transition-all";
+            tabDailyBtn.className = "py-2.5 px-6 font-bold text-sm text-slate-400 hover:text-white focus:outline-none transition-all";
+            tabWeeklyContent.classList.remove('hidden');
+            tabDailyContent.classList.add('hidden');
+        });
+
+        tabDailyBtn.addEventListener('click', async () => {
+            tabDailyBtn.className = "py-2.5 px-6 font-bold text-sm border-b-2 border-gold text-gold focus:outline-none transition-all";
+            tabWeeklyBtn.className = "py-2.5 px-6 font-bold text-sm text-slate-400 hover:text-white focus:outline-none transition-all";
+            tabDailyContent.classList.remove('hidden');
+            tabWeeklyContent.classList.add('hidden');
+            
+            // Set default month/year selector to current
+            const now = new Date();
+            selectTrafficYear.value = now.getFullYear();
+            selectTrafficMonth.value = now.getMonth() + 1;
+            
+            await generateDailyTrafficInputs();
+        });
+
+        // LOAD EXISTING OPERATIONAL WEEKLY DATA (EDIT FUNCTION)
+        async function loadWeeklyReportData() {
+            if (!currentStore) return;
+            const dateVal = inputReportDate.value;
+            
+            contractsContainer.innerHTML = '';
+            unsignedContainer.innerHTML = '';
+            supportContainer.innerHTML = '';
+            inputTraffic.value = '';
+            resetPart4Fields();
+            
+            try {
+                const res = await fetch(`/api/get_operational_report?store_code=${currentStore.code}&report_date=${dateVal}&pin=${currentStore.pin}`);
+                const data = await res.json();
+                
+                if (data.ok) {
+                    if (data.contracts.length > 0 || data.unsigned_contracts.length > 0 || data.details.store_code || data.traffic !== '') {
+                        // Pre-populate data exists -> Switch to Edit Mode
+                        editModeBanner.classList.remove('hidden');
+                        btnSubmit.innerHTML = "🔄 CẬP NHẬT BÁO CÁO TUẦN";
+                        
+                        // Traffic
+                        inputTraffic.value = data.traffic;
+                        
+                        // Contracts (3.1)
+                        data.contracts.forEach(c => {
+                            addContractRow(c);
+                        });
+                        
+                        // Unsigned Contracts (3.2)
+                        data.unsigned_contracts.forEach(uc => {
+                            addUnsignedRow(uc);
+                        });
+                        
+                        // Part 4 Details (4.1 - 4.4)
+                        if (data.details) {
+                            const d = data.details;
+                            document.getElementById('op-open-status').value = d.op_open_close_status || 'Đạt';
+                            document.getElementById('op-open-note').value = d.op_open_close_note || '';
+                            document.getElementById('op-uniform-status').value = d.op_uniform_status || 'Đạt';
+                            document.getElementById('op-uniform-note').value = d.op_uniform_note || '';
+                            document.getElementById('op-greet-status').value = d.op_greet_status || 'Đạt';
+                            document.getElementById('op-greet-note').value = d.op_greet_note || '';
+                            document.getElementById('op-feedback-status').value = d.op_feedback_status || 'Đạt';
+                            document.getElementById('op-feedback-note').value = d.op_feedback_note || '';
+                            document.getElementById('op-other-status').value = d.op_other_status || 'Đạt';
+                            document.getElementById('op-other-note').value = d.op_other_note || '';
+                            
+                            document.getElementById('hr-target').value = d.hr_target || 0;
+                            document.getElementById('hr-actual').value = d.hr_actual || 0;
+                            document.getElementById('hr-guard').value = d.hr_guard || 0;
+                            document.getElementById('hr-resigned-note').value = d.hr_resigned_note || '';
+                            document.getElementById('hr-leave-note').value = d.hr_leave_note || '';
+                            document.getElementById('hr-absent-note').value = d.hr_absent_note || '';
+                            
+                            document.getElementById('inv-stock-status').value = d.inv_stock_status || '';
+                            document.getElementById('inv-info-goods').value = d.inv_info_goods || '';
+                            document.getElementById('inv-return-warehouse').value = d.inv_return_warehouse || '';
+                            document.getElementById('inv-proposal').value = d.inv_proposal || '';
+                            
+                            document.getElementById('market-product-feedback').value = d.market_product_feedback || '';
+                            document.getElementById('market-missing-products').value = d.market_missing_products || '';
+                            document.getElementById('market-competitors').value = d.market_competitors || '';
+                            document.getElementById('market-other-feedback').value = d.market_other_feedback || '';
+                        }
+                        
+                        // Support requests (4.5)
+                        data.support_requests.forEach(sr => {
+                            addSupportRow(sr);
+                        });
+                    } else {
+                        // New Submission Mode
+                        editModeBanner.classList.add('hidden');
+                        btnSubmit.innerHTML = "<span>🚀</span> NỘP BÁO CÁO VẬN HÀNH TUẦN";
+                    }
+                }
+                toggleEmptyStates();
+            } catch (err) {
+                console.error("Lỗi load dữ liệu tuần cũ:", err);
+            }
+        }
+        
+        inputReportDate.addEventListener('change', loadWeeklyReportData);
+
+        function resetPart4Fields() {
+            document.getElementById('op-open-status').value = 'Đạt';
+            document.getElementById('op-open-note').value = '';
+            document.getElementById('op-uniform-status').value = 'Đạt';
+            document.getElementById('op-uniform-note').value = '';
+            document.getElementById('op-greet-status').value = 'Đạt';
+            document.getElementById('op-greet-note').value = '';
+            document.getElementById('op-feedback-status').value = 'Đạt';
+            document.getElementById('op-feedback-note').value = '';
+            document.getElementById('op-other-status').value = 'Đạt';
+            document.getElementById('op-other-note').value = '';
+            
+            document.getElementById('hr-target').value = '';
+            document.getElementById('hr-actual').value = '';
+            document.getElementById('hr-guard').value = '';
+            document.getElementById('hr-resigned-note').value = '';
+            document.getElementById('hr-leave-note').value = '';
+            document.getElementById('hr-absent-note').value = '';
+            
+            document.getElementById('inv-stock-status').value = '';
+            document.getElementById('inv-info-goods').value = '';
+            document.getElementById('inv-return-warehouse').value = '';
+            document.getElementById('inv-proposal').value = '';
+            
+            document.getElementById('market-product-feedback').value = '';
+            document.getElementById('market-missing-products').value = '';
+            document.getElementById('market-competitors').value = '';
+            document.getElementById('market-other-feedback').value = '';
+        }
+
+        // GENERATE DAILY TRAFFIC GRID
+        async function generateDailyTrafficInputs() {
+            if (!currentStore) return;
+            
+            const year = selectTrafficYear.value;
+            const month = selectTrafficMonth.value;
+            
+            dailyTrafficGrid.innerHTML = '<div class="col-span-full text-center py-6 text-slate-500">Đang tải lịch sử traffic...</div>';
+            
+            try {
+                const res = await fetch(`/api/get_daily_traffic?store_code=${currentStore.code}&year=${year}&month=${month}&pin=${currentStore.pin}`);
+                const data = await res.json();
+                
+                if (data.ok) {
+                    dailyTrafficGrid.innerHTML = '';
+                    
+                    const numDays = new Date(year, month, 0).getDate();
+                    for (let day = 1; day <= numDays; day++) {
+                        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                        const val = data.traffic[dateStr] !== undefined ? data.traffic[dateStr] : '';
+                        const bgClass = val !== '' ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-slate-900/60 border-slate-700';
+                        
+                        dailyTrafficGrid.innerHTML += `
+                            <div class="p-3 border rounded-xl flex flex-col justify-between gap-1.5 transition-all ${bgClass}">
+                                <span class="text-[10px] font-bold text-slate-400">${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}</span>
+                                <input type="number" min="0" data-date="${dateStr}" value="${val}" placeholder="Trống" class="daily-traffic-input w-full bg-slate-800/80 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-bold focus:outline-none focus:border-gold">
+                            </div>
+                        `;
+                    }
+                    
+                    // Add listeners to change border color on edit
+                    const inputs = dailyTrafficGrid.querySelectorAll('.daily-traffic-input');
+                    inputs.forEach(inp => {
+                        inp.addEventListener('input', (e) => {
+                            const parent = e.target.closest('.p-3');
+                            parent.className = "p-3 border rounded-xl flex flex-col justify-between gap-1.5 transition-all bg-amber-500/5 border-amber-500/50";
+                        });
+                    });
+                }
+            } catch (err) {
+                dailyTrafficGrid.innerHTML = '<div class="col-span-full text-center py-6 text-rose-400">Không thể tải dữ liệu.</div>';
+            }
+        }
+
+        selectTrafficYear.addEventListener('change', generateDailyTrafficInputs);
+        selectTrafficMonth.addEventListener('change', generateDailyTrafficInputs);
+
+        // SAVE DAILY TRAFFIC IN BULK
+        btnSaveDailyTraffic.addEventListener('click', async () => {
+            if (!currentStore) return;
+            
+            const inputs = dailyTrafficGrid.querySelectorAll('.daily-traffic-input');
+            const traffic_data = {};
+            
+            inputs.forEach(inp => {
+                const dateStr = inp.getAttribute('data-date');
+                const val = inp.value.trim();
+                traffic_data[dateStr] = val;
+            });
+            
+            btnSaveDailyTraffic.disabled = true;
+            btnSaveDailyTraffic.innerText = "⌛ ĐANG LƯU DỮ LIỆU...";
+            
+            try {
+                const res = await fetch('/api/submit_daily_traffic', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        store_code: currentStore.code,
+                        pin: currentStore.pin,
+                        traffic_data: traffic_data
+                    })
+                });
+                const data = await res.json();
+                
+                if (data.ok) {
+                    showToast("✅ Thành Công!", "Lịch sử traffic tháng đã được cập nhật.", "✅");
+                    await generateDailyTrafficInputs();
+                } else {
+                    showToast("❌ Thất Bại", data.error || "Có lỗi xảy ra.", "❌");
+                }
+            } catch (err) {
+                showToast("❌ Lỗi Mạng", "Không thể kết nối đến máy chủ.", "❌");
+            } finally {
+                btnSaveDailyTraffic.disabled = false;
+                btnSaveDailyTraffic.innerText = "💾 LƯU SỐ LIỆU TRAFFIC CẢ THÁNG";
+            }
+        });
+
+        // DYNAMIC ROWS HELPERS
+        function addContractRow(data = {}) {
             const tmpl = document.getElementById('tmpl-contract-card');
             const clone = tmpl.content.cloneNode(true);
             
-            // Add click listener to remove button
+            if (data.contract_value) {
+                clone.querySelector('.val-contract').value = data.contract_value;
+                clone.querySelector('.val-category').value = data.product_category;
+                clone.querySelector('.val-quantity').value = data.quantity;
+                clone.querySelector('.val-deposit').value = data.deposit_paid;
+                clone.querySelector('.val-inst2').value = data.installment_2;
+                clone.querySelector('.val-status').value = data.status;
+                clone.querySelector('.val-reason').value = data.reason;
+            }
+            
             clone.querySelector('.btn-remove-row').addEventListener('click', (e) => {
                 e.target.closest('.contract-card').remove();
                 toggleEmptyStates();
             });
-            
             contractsContainer.appendChild(clone);
             toggleEmptyStates();
-        });
+        }
 
-        // Add Unsigned Contract Row
-        btnAddUnsigned.addEventListener('click', () => {
+        function addUnsignedRow(data = {}) {
             const tmpl = document.getElementById('tmpl-unsigned-card');
             const clone = tmpl.content.cloneNode(true);
+            
+            if (data.prev_year_value) {
+                clone.querySelector('.val-prev-value').value = data.prev_year_value;
+                clone.querySelector('.val-expected-time').value = data.expected_signing_time;
+                clone.querySelector('.val-unsigned-category').value = data.product_category;
+                clone.querySelector('.val-unsigned-qty').value = data.quantity;
+                clone.querySelector('.val-unsigned-status').value = data.status;
+                clone.querySelector('.val-unsigned-reason').value = data.reason;
+            }
             
             clone.querySelector('.btn-remove-row').addEventListener('click', (e) => {
                 e.target.closest('.unsigned-card').remove();
                 toggleEmptyStates();
             });
-            
             unsignedContainer.appendChild(clone);
             toggleEmptyStates();
-        });
+        }
 
-        // Toggle Empty Row Labels
+        function addSupportRow(data = {}) {
+            const tmpl = document.getElementById('tmpl-support-card');
+            const clone = tmpl.content.cloneNode(true);
+            
+            if (data.category) {
+                clone.querySelector('.val-support-category').value = data.category;
+                clone.querySelector('.val-support-priority').value = data.priority;
+                clone.querySelector('.val-support-item').value = data.issue_item;
+                clone.querySelector('.val-support-deadline').value = data.deadline;
+            }
+            
+            clone.querySelector('.btn-remove-row').addEventListener('click', (e) => {
+                e.target.closest('.support-card').remove();
+                toggleEmptyStates();
+            });
+            supportContainer.appendChild(clone);
+            toggleEmptyStates();
+        }
+
+        btnAddContract.addEventListener('click', () => addContractRow());
+        btnAddUnsigned.addEventListener('click', () => addUnsignedRow());
+        btnAddSupport.addEventListener('click', () => addSupportRow());
+
         function toggleEmptyStates() {
             const numContracts = contractsContainer.querySelectorAll('.contract-card').length;
             const numUnsigned = unsignedContainer.querySelectorAll('.unsigned-card').length;
+            const numSupport = supportContainer.querySelectorAll('.support-card').length;
             
             contractsEmpty.style.display = numContracts === 0 ? 'block' : 'none';
             unsignedEmpty.style.display = numUnsigned === 0 ? 'block' : 'none';
+            supportEmpty.style.display = numSupport === 0 ? 'block' : 'none';
         }
 
-        // Submit Data to Backend
+        // SUBMIT WEEKLY REPORT (Tab 1)
         btnSubmit.addEventListener('click', async () => {
             if (!currentStore) return;
             
             const trafficVal = inputTraffic.value.trim();
             const reportDate = inputReportDate.value;
-            
-            if (!trafficVal) {
-                showToast("⚠️ Thiếu Thông Tin", "Vui lòng điền số lượt khách vào cửa hàng (Traffic) tuần này.", "⚠️");
-                return;
-            }
-            if (parseInt(trafficVal) < 0) {
-                showToast("⚠️ Số Liệu Sai", "Lượt khách không được là số âm.", "⚠️");
-                return;
-            }
 
             // Gather Current Contracts
             const contracts = [];
@@ -547,19 +1115,10 @@
                 const reason = card.querySelector('.val-reason').value.trim();
                 
                 if (!contract_value || !product_category) {
-                    showToast("⚠️ Lỗi Nhập Liệu", "Hợp đồng mới yêu cầu điền đầy đủ Giá Trị và Chủng Loại hàng.", "⚠️");
+                    showToast("⚠️ Lỗi Nhập Liệu", "Hợp đồng yêu cầu điền đầy đủ Giá Trị và Chủng Loại.", "⚠️");
                     return;
                 }
-                
-                contracts.push({
-                    contract_value,
-                    product_category,
-                    quantity: quantity || 0,
-                    deposit_paid,
-                    installment_2,
-                    status,
-                    reason
-                });
+                contracts.push({ contract_value, product_category, quantity, deposit_paid, installment_2, status, reason });
             }
 
             // Gather Unsigned Contracts
@@ -574,18 +1133,57 @@
                 const reason = card.querySelector('.val-unsigned-reason').value.trim();
                 
                 if (!prev_year_value) {
-                    showToast("⚠️ Lỗi Nhập Liệu", "Hợp đồng cũ chưa ký cần có giá trị của năm ngoái.", "⚠️");
+                    showToast("⚠️ Lỗi Nhập Liệu", "Hợp đồng cũ chưa ký cần có giá trị.", "⚠️");
                     return;
                 }
+                unsigned_contracts.push({ prev_year_value, expected_signing_time, product_category, quantity, status, reason });
+            }
+
+            // Gather Part 4 Details (4.1 - 4.4)
+            const details = {
+                op_open_close_status: document.getElementById('op-open-status').value,
+                op_open_close_note: document.getElementById('op-open-note').value.trim(),
+                op_uniform_status: document.getElementById('op-uniform-status').value,
+                op_uniform_note: document.getElementById('op-uniform-note').value.trim(),
+                op_greet_status: document.getElementById('op-greet-status').value,
+                op_greet_note: document.getElementById('op-greet-note').value.trim(),
+                op_feedback_status: document.getElementById('op-feedback-status').value,
+                op_feedback_note: document.getElementById('op-feedback-note').value.trim(),
+                op_other_status: document.getElementById('op-other-status').value,
+                op_other_note: document.getElementById('op-other-note').value.trim(),
                 
-                unsigned_contracts.push({
-                    prev_year_value,
-                    expected_signing_time,
-                    product_category,
-                    quantity: quantity || 0,
-                    status,
-                    reason
-                });
+                hr_target: document.getElementById('hr-target').value || 0,
+                hr_actual: document.getElementById('hr-actual').value || 0,
+                hr_guard: document.getElementById('hr-guard').value || 0,
+                hr_resigned_note: document.getElementById('hr-resigned-note').value.trim(),
+                hr_leave_note: document.getElementById('hr-leave-note').value.trim(),
+                hr_absent_note: document.getElementById('hr-absent-note').value.trim(),
+                
+                inv_stock_status: document.getElementById('inv-stock-status').value.trim(),
+                inv_info_goods: document.getElementById('inv-info-goods').value.trim(),
+                inv_return_warehouse: document.getElementById('inv-return-warehouse').value.trim(),
+                inv_proposal: document.getElementById('inv-proposal').value.trim(),
+                
+                market_product_feedback: document.getElementById('market-product-feedback').value.trim(),
+                market_missing_products: document.getElementById('market-missing-products').value.trim(),
+                market_competitors: document.getElementById('market-competitors').value.trim(),
+                market_other_feedback: document.getElementById('market-other-feedback').value.trim(),
+            };
+
+            // Gather Support Requests (4.5)
+            const support_requests = [];
+            const srCards = supportContainer.querySelectorAll('.support-card');
+            for (let card of srCards) {
+                const category = card.querySelector('.val-support-category').value;
+                const priority = card.querySelector('.val-support-priority').value;
+                const issue_item = card.querySelector('.val-support-item').value.trim();
+                const deadline = card.querySelector('.val-support-deadline').value.trim();
+                
+                if (!issue_item) {
+                    showToast("⚠️ Thiếu Thông Tin", "Hạng mục hỗ trợ không được bỏ trống.", "⚠️");
+                    return;
+                }
+                support_requests.push({ category, priority, issue_item, deadline });
             }
 
             btnSubmit.disabled = true;
@@ -601,24 +1199,21 @@
                         report_date: reportDate,
                         traffic: trafficVal,
                         contracts: contracts,
-                        unsigned_contracts: unsigned_contracts
+                        unsigned_contracts: unsigned_contracts,
+                        details: details,
+                        support_requests: support_requests
                     })
                 });
                 
                 const data = await res.json();
-                
                 if (data.ok) {
-                    showToast("✅ Thành Công!", "Báo cáo vận hành tuần của bạn đã được ghi nhận và đồng bộ lên hệ thống.", "✅");
-                    // Reset fields
-                    inputTraffic.value = '';
-                    contractsContainer.innerHTML = '';
-                    unsignedContainer.innerHTML = '';
-                    toggleEmptyStates();
+                    showToast("✅ Thành Công!", "Báo cáo vận hành tuần đã được lưu và đồng bộ.", "✅");
+                    await loadWeeklyReportData();
                 } else {
-                    showToast("❌ Thất Bại", data.error || "Gửi báo cáo lỗi, vui lòng thử lại.", "❌");
+                    showToast("❌ Thất Bại", data.error || "Lỗi lưu báo cáo.", "❌");
                 }
             } catch (err) {
-                showToast("❌ Lỗi Mạng", "Không thể gửi dữ liệu lên máy chủ đám mây.", "❌");
+                showToast("❌ Lỗi Mạng", "Không thể kết nối đến máy chủ.", "❌");
             } finally {
                 btnSubmit.disabled = false;
                 btnSubmit.innerHTML = "<span>🚀</span> NỘP BÁO CÁO VẬN HÀNH TUẦN";
@@ -633,7 +1228,6 @@
             loginSec.classList.remove('hidden');
         });
 
-        // Toast Modal Handler
         function showToast(title, message, icon) {
             toastTitle.innerText = title;
             toastMessage.innerText = message;
@@ -645,11 +1239,23 @@
             toastModal.classList.add('hidden');
         });
 
-        // ASM Dashboard View
+        // ASM DASHBOARD CONTROLS
         btnStatusView.addEventListener('click', async () => {
             loginSec.classList.add('hidden');
             formSec.classList.add('hidden');
             statusSec.classList.remove('hidden');
+            
+            // Set default date range for daily traffic summary: current month to yesterday
+            const today = new Date();
+            const yest = new Date(today);
+            yest.setDate(today.getDate() - 1);
+            
+            const firstDayOfMonthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+            const yesterdayStr = `${yest.getFullYear()}-${String(yest.getMonth() + 1).padStart(2, '0')}-${String(yest.getDate()).padStart(2, '0')}`;
+            
+            statusTrafficStart.value = firstDayOfMonthStr;
+            statusTrafficEnd.value = yesterdayStr;
+            
             await loadSubmissionStatus();
         });
 
@@ -662,14 +1268,29 @@
             }
         });
 
-        statusReportDate.addEventListener('change', async () => {
-            await loadSubmissionStatus();
+        statusTabWeeklyBtn.addEventListener('click', () => {
+            statusTabWeeklyBtn.className = "py-2.5 px-4 font-bold text-xs border-b-2 border-gold text-gold mr-2";
+            statusTabDailyBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white";
+            statusTabWeeklyContent.classList.remove('hidden');
+            statusTabDailyContent.classList.add('hidden');
         });
 
-        // Load submission list
+        statusTabDailyBtn.addEventListener('click', async () => {
+            statusTabDailyBtn.className = "py-2.5 px-4 font-bold text-xs border-b-2 border-gold text-gold mr-2";
+            statusTabWeeklyBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white";
+            statusTabDailyContent.classList.remove('hidden');
+            statusTabWeeklyContent.classList.add('hidden');
+            
+            await loadDailyTrafficSummary();
+        });
+
+        statusReportDate.addEventListener('change', loadSubmissionStatus);
+        btnRefreshTrafficStatus.addEventListener('click', loadDailyTrafficSummary);
+
+        // ASM Tab 1 load
         async function loadSubmissionStatus() {
             const dateVal = statusReportDate.value;
-            statusTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-slate-500">Đang tải trạng thái nộp bài...</td></tr>';
+            statusTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-slate-500">Đang tải trạng thái...</td></tr>';
             
             try {
                 const res = await fetch(`/api/submission_status?report_date=${dateVal}`);
@@ -686,8 +1307,6 @@
                             : '<span class="px-2.5 py-1 bg-rose-500/10 text-rose-500 rounded-full font-bold border border-rose-500/20">CHƯA NỘP</span>';
                         
                         if (s.submitted) subCount++; else pendCount++;
-
-                        // Skip head office "BGD" for cleaner display
                         if (s.store_code === 'BGD') return;
 
                         statusTableBody.innerHTML += `
@@ -699,21 +1318,57 @@
                             </tr>
                         `;
                     });
-                    
                     countSubmitted.innerText = subCount;
                     countPending.innerText = pendCount;
-                    
-                    if (statusTableBody.innerHTML === '') {
-                        statusTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-slate-500">Không có cửa hàng nào được tải.</td></tr>';
-                    }
                 }
             } catch (err) {
-                console.error("Lỗi tải tiến độ:", err);
-                statusTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-rose-400">Không thể kết nối đến máy chủ.</td></tr>';
+                statusTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-rose-400">Lỗi kết nối.</td></tr>';
             }
         }
 
-        // On Load
+        // ASM Tab 2 load
+        async function loadDailyTrafficSummary() {
+            const asm = regSelect.value || "Tiên"; // Fallback to Tiên if no ASM selected
+            const start = statusTrafficStart.value;
+            const end = statusTrafficEnd.value;
+            
+            statusTrafficTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-slate-500">Đang tính toán tiến độ...</td></tr>';
+            
+            try {
+                const res = await fetch(`/api/asm_traffic_summary?asm=${encodeURIComponent(asm)}&start_date=${start}&end_date=${end}`);
+                const data = await res.json();
+                
+                if (data.ok) {
+                    statusTrafficTableBody.innerHTML = '';
+                    data.summary.forEach(s => {
+                        const ratio = s.total_required > 0 ? Math.round((s.total_filled / s.total_required) * 100) : 0;
+                        const pctClass = ratio >= 90 ? 'text-emerald-500' : (ratio >= 60 ? 'text-amber-500' : 'text-rose-500');
+                        
+                        // Limit display of missing dates to 10 items
+                        const maxShow = 10;
+                        let missingStr = s.missing_dates.slice(0, maxShow).join(', ');
+                        if (s.missing_dates.length > maxShow) {
+                            missingStr += `, và ${s.missing_dates.length - maxShow} ngày khác...`;
+                        }
+                        if (s.missing_dates.length === 0) {
+                            missingStr = '<span class="text-emerald-500 font-bold">✅ ĐÃ ĐỦ SỐ LIỆU</span>';
+                        }
+                        
+                        statusTrafficTableBody.innerHTML += `
+                            <tr class="hover:bg-slate-800/30 transition-colors">
+                                <td class="py-3 px-3 text-white font-semibold">${s.store_name}</td>
+                                <td class="py-3 px-3 text-center text-slate-300 font-medium">${s.total_filled}/${s.total_required} ngày</td>
+                                <td class="py-3 px-3 text-center font-bold ${pctClass}">${ratio}%</td>
+                                <td class="py-3 px-3 text-rose-400 font-mono text-[10px] whitespace-normal break-words">${missingStr}</td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (err) {
+                statusTrafficTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-rose-400">Lỗi kết nối API.</td></tr>';
+            }
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             loadASMs();
         });
