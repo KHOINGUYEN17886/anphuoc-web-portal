@@ -777,6 +777,11 @@
                         pin: pin
                     };
                     
+                    // Save to localStorage to prevent selecting wrong store next time
+                    localStorage.setItem('ap_asm', currentStore.asm);
+                    localStorage.setItem('ap_store_code', currentStore.code);
+                    localStorage.setItem('ap_pin', currentStore.pin);
+                    
                     lblActiveStore.innerText = currentStore.name;
                     lblStoreMeta.innerText = `Mã: ${currentStore.code} | ASM quản lý: ${currentStore.asm}`;
                     
@@ -1222,6 +1227,9 @@
 
         // Logout
         btnLogout.addEventListener('click', () => {
+            localStorage.removeItem('ap_asm');
+            localStorage.removeItem('ap_store_code');
+            localStorage.removeItem('ap_pin');
             currentStore = null;
             pinInput.value = '';
             formSec.classList.add('hidden');
@@ -1369,8 +1377,34 @@
             }
         }
 
-        window.addEventListener('DOMContentLoaded', () => {
-            loadASMs();
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadASMs();
+            
+            // Auto login if credentials exist in localStorage
+            const savedAsm = localStorage.getItem('ap_asm');
+            const savedStoreCode = localStorage.getItem('ap_store_code');
+            const savedPin = localStorage.getItem('ap_pin');
+            
+            if (savedAsm && savedStoreCode && savedPin) {
+                // Pre-select ASM
+                regSelect.value = savedAsm;
+                regSelect.dispatchEvent(new Event('change'));
+                
+                // Wait for store list to populate
+                let attempts = 0;
+                const checkStoresLoaded = setInterval(async () => {
+                    attempts++;
+                    if (storeSelect.options.length > 1 || attempts > 20) {
+                        clearInterval(checkStoresLoaded);
+                        if (storeSelect.options.length > 1) {
+                            storeSelect.value = savedStoreCode;
+                            pinInput.value = savedPin;
+                            // Trigger click login
+                            btnLogin.click();
+                        }
+                    }
+                }, 100);
+            }
         });
     </script>
 </body>
