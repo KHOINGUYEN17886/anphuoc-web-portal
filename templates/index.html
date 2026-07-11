@@ -73,16 +73,16 @@
             
             <div class="space-y-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">Cụm / Khu Vực</label>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">Quản lý kinh doanh phụ trách (ASM)</label>
                     <select id="select-region" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-gold transition-colors">
-                        <option value="">-- Đang tải cụm... --</option>
+                        <option value="">-- Đang tải danh sách ASM... --</option>
                     </select>
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">Cửa Hàng</label>
                     <select id="select-store" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-gold transition-colors disabled:opacity-50" disabled>
-                        <option value="">-- Chọn cụm trước --</option>
+                        <option value="">-- Chọn ASM trước --</option>
                     </select>
                 </div>
 
@@ -383,27 +383,27 @@
         // Active session state
         let currentStore = null;
 
-        // Init Regions
-        async function loadRegions() {
+        // Init ASMs
+        async function loadASMs() {
             try {
-                const res = await fetch('/api/regions');
+                const res = await fetch('/api/asms');
                 const data = await res.json();
                 if (data.ok) {
-                    regSelect.innerHTML = '<option value="">-- Chọn Cụm --</option>';
-                    data.regions.forEach(r => {
-                        regSelect.innerHTML += `<option value="${r}">${r}</option>`;
+                    regSelect.innerHTML = '<option value="">-- Chọn Quản lý (ASM) --</option>';
+                    data.asms.forEach(asm => {
+                        regSelect.innerHTML += `<option value="${asm}">${asm}</option>`;
                     });
                 }
             } catch (err) {
-                console.error("Lỗi load cụm:", err);
+                console.error("Lỗi load ASM:", err);
             }
         }
 
-        // Region change handler
+        // ASM change handler
         regSelect.addEventListener('change', async () => {
-            const reg = regSelect.value;
-            if (!reg) {
-                storeSelect.innerHTML = '<option value="">-- Chọn cụm trước --</option>';
+            const asm = regSelect.value;
+            if (!asm) {
+                storeSelect.innerHTML = '<option value="">-- Chọn ASM trước --</option>';
                 storeSelect.disabled = true;
                 return;
             }
@@ -412,12 +412,12 @@
             storeSelect.disabled = true;
             
             try {
-                const res = await fetch(`/api/stores?region=${encodeURIComponent(reg)}`);
+                const res = await fetch(`/api/stores?asm=${encodeURIComponent(asm)}`);
                 const data = await res.json();
                 if (data.ok) {
                     storeSelect.innerHTML = '<option value="">-- Chọn Cửa Hàng --</option>';
                     data.stores.forEach(s => {
-                        storeSelect.innerHTML += `<option value="${s.store_code}" data-name="${s.store_name}" data-brand="${s.brand}" data-asm="${s.asm_name}">${s.store_name} (${s.brand})</option>`;
+                        storeSelect.innerHTML += `<option value="${s.store_code}" data-name="${s.store_name}" data-brand="${s.brand}" data-asm="${s.asm_name}">${s.store_name}</option>`;
                     });
                     storeSelect.disabled = false;
                 }
@@ -715,7 +715,7 @@
 
         // On Load
         window.addEventListener('DOMContentLoaded', () => {
-            loadRegions();
+            loadASMs();
         });
     </script>
 </body>
