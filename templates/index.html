@@ -57,7 +57,7 @@
                     <p class="text-xs text-slate-400">Thu thập số liệu vận hành & hợp đồng</p>
                 </div>
             </div>
-            <div id="btn-status-view" class="text-xs text-gold border border-gold/30 hover:bg-gold/10 px-3 py-1.5 rounded-full cursor-pointer transition-all">
+            <div id="btn-status-view" class="hidden text-xs text-gold border border-gold/30 hover:bg-gold/10 px-3 py-1.5 rounded-full cursor-pointer transition-all">
                 📊 Bảng Theo Dõi ASM
             </div>
         </div>
@@ -144,12 +144,21 @@
                 <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 shadow-lg">
                     <div class="flex items-center gap-2 mb-4 border-b border-slate-700/60 pb-3">
                         <span class="text-lg">👣</span>
-                        <h4 class="font-bold text-white uppercase">Lượt khách ghé cửa hàng (Traffic tuần)</h4>
+                        <h4 class="font-bold text-white uppercase">Lượt khách ghé cửa hàng & Bill tuần</h4>
                     </div>
-                    <div class="max-w-xs">
-                        <label class="block text-xs font-semibold text-slate-400 mb-1.5">Traffic nộp nhanh cả tuần (Nếu chưa nhập lẻ ngày)</label>
-                        <input id="input-traffic" type="number" min="0" placeholder="Nhập số lượt khách" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-gold transition-colors text-lg font-bold">
-                        <p class="text-[10px] text-slate-500 mt-1">Khuyên dùng: Hãy nhập lẻ hàng ngày ở Tab 2 để hệ thống tự cộng tổng chính xác.</p>
+                    <div class="max-w-md">
+                        <div class="flex gap-4 mb-2">
+                            <div class="flex-1">
+                                <label class="block text-xs font-semibold text-slate-400 mb-1.5">Traffic nộp nhanh cả tuần (Nếu chưa nhập lẻ ngày)</label>
+                                <input id="input-traffic" type="number" min="0" placeholder="Nhập số lượt khách" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-gold transition-colors text-lg font-bold">
+                            </div>
+                            <div class="flex-1">
+                                <label class="block text-xs font-semibold text-slate-400 mb-1.5">Số Bill bán lẻ cả tuần (Để tính CR)</label>
+                                <input id="input-bills" type="number" min="0" placeholder="Nhập số bill bán lẻ" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-gold transition-colors text-lg font-bold">
+                            </div>
+                        </div>
+                        <div id="weekly-cr-alert" class="text-[11px] font-bold mt-2 px-3 py-2 rounded-xl border hidden animate-pulse"></div>
+                        <p class="text-[10px] text-slate-500 mt-1">Khuyên dùng: Hãy nhập lẻ hàng ngày ở Tab 2 để hệ thống tự cộng tổng và kiểm tra CR chính xác hơn.</p>
                     </div>
                 </div>
 
@@ -738,8 +747,8 @@
             try {
                 const res = await fetch(`/api/stores?asm=${encodeURIComponent(asm)}`);
                 const data = await res.json();
-                if (data.ok) {
-                    storeSelect.innerHTML = '<option value="">-- Chọn Cửa Hàng --</option>';
+                    storeSelect.innerHTML = `<option value="">-- Chọn Cửa Hàng --</option>
+                                             <option value="ASM_${asm}" data-name="Quản lý (ASM) ${asm}" data-brand="ASM" data-asm="${asm}">🔑 [Đăng nhập quyền ASM ${asm}]</option>`;
                     data.stores.forEach(s => {
                         storeSelect.innerHTML += `<option value="${s.store_code}" data-name="${s.store_name}" data-brand="${s.brand}" data-asm="${s.asm_name}">${s.store_name}</option>`;
                     });
@@ -779,22 +788,40 @@
                         name: selectedOpt.getAttribute('data-name'),
                         brand: selectedOpt.getAttribute('data-brand'),
                         asm: selectedOpt.getAttribute('data-asm'),
-                        pin: pin
+                        pin: pin,
+                        role: data.role || 'store'
                     };
                     
-                    // Save to localStorage to prevent selecting wrong store next time
+                    // Save to localStorage
                     localStorage.setItem('ap_asm', currentStore.asm);
                     localStorage.setItem('ap_store_code', currentStore.code);
                     localStorage.setItem('ap_pin', currentStore.pin);
-                    
-                    lblActiveStore.innerText = currentStore.name;
-                    lblStoreMeta.innerText = `Mã: ${currentStore.code} | ASM quản lý: ${currentStore.asm}`;
+                    localStorage.setItem('ap_role', currentStore.role);
                     
                     loginSec.classList.add('hidden');
-                    formSec.classList.remove('hidden');
                     
-                    // Trigger load data for current selected date
-                    await loadWeeklyReportData();
+                    if (currentStore.role === 'asm') {
+                        lblActiveStore.innerText = currentStore.name;
+                        lblStoreMeta.innerText = `Chức danh: ASM quản lý cụm | Vùng phụ trách: ${currentStore.asm}`;
+                        statusSec.classList.remove('hidden');
+                        
+                        // Init status report dates
+                        const today = new Date();
+                        const yest = new Date(today);
+                        yest.setDate(today.getDate() - 1);
+                        const firstDayOfMonthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+                        const yesterdayStr = `${yest.getFullYear()}-${String(yest.getMonth() + 1).padStart(2, '0')}-${String(yest.getDate()).padStart(2, '0')}`;
+                        
+                        statusTrafficStart.value = firstDayOfMonthStr;
+                        statusTrafficEnd.value = yesterdayStr;
+                        
+                        await loadSubmissionStatus();
+                    } else {
+                        lblActiveStore.innerText = currentStore.name;
+                        lblStoreMeta.innerText = `Mã: ${currentStore.code} | ASM quản lý: ${currentStore.asm}`;
+                        formSec.classList.remove('hidden');
+                        await loadWeeklyReportData();
+                    }
                 } else {
                     showToast("❌ Sai mã PIN", data.error || "Mã PIN không đúng, vui lòng kiểm tra lại.", "❌");
                 }
@@ -857,6 +884,8 @@
             unsignedContainer.innerHTML = '';
             supportContainer.innerHTML = '';
             inputTraffic.value = '';
+            document.getElementById('input-bills').value = '';
+            document.getElementById('weekly-cr-alert').classList.add('hidden');
             resetPart4Fields();
             
             try {
@@ -864,13 +893,33 @@
                 const data = await res.json();
                 
                 if (data.ok) {
-                    if (data.contracts.length > 0 || data.unsigned_contracts.length > 0 || data.details.store_code || data.traffic !== '') {
+                    if (data.contracts.length > 0 || data.unsigned_contracts.length > 0 || data.details.store_code || data.traffic !== '' || (data.bills !== undefined && data.bills !== '')) {
                         // Pre-populate data exists -> Switch to Edit Mode
                         editModeBanner.classList.remove('hidden');
                         btnSubmit.innerHTML = "🔄 CẬP NHẬT BÁO CÁO TUẦN";
                         
-                        // Traffic
+                        // Traffic & Bills
                         inputTraffic.value = data.traffic;
+                        document.getElementById('input-bills').value = data.bills !== undefined ? data.bills : '';
+                        
+                        // Calculate weekly CR
+                        const trf = Number(data.traffic || 0);
+                        const b = Number(data.bills || 0);
+                        const alertDiv = document.getElementById('weekly-cr-alert');
+                        if (trf > 0) {
+                            const cr = (b / trf) * 100;
+                            alertDiv.innerHTML = `Tỷ lệ chuyển đổi (CR) tuần: <strong>${cr.toFixed(1)}%</strong>`;
+                            alertDiv.classList.remove('hidden');
+                            if (cr > 100) {
+                                alertDiv.className = "text-[11px] font-bold text-rose-400 mt-2 bg-rose-950/20 px-3 py-2 rounded-xl border border-rose-800/40";
+                            } else if (cr < 50 || cr >= 90) {
+                                alertDiv.className = "text-[11px] font-bold text-amber-400 mt-2 bg-amber-950/20 px-3 py-2 rounded-xl border border-amber-800/40";
+                            } else if (cr >= 80 && cr <= 87) {
+                                alertDiv.className = "text-[11px] font-bold text-emerald-400 mt-2 bg-emerald-950/20 px-3 py-2 rounded-xl border border-emerald-800/40";
+                            } else {
+                                alertDiv.className = "text-[11px] font-bold text-slate-300 mt-2 bg-slate-900/60 px-3 py-2 rounded-xl border border-slate-800";
+                            }
+                        }
                         
                         // Contracts (3.1)
                         data.contracts.forEach(c => {
@@ -981,24 +1030,99 @@
                     const numDays = new Date(year, month, 0).getDate();
                     for (let day = 1; day <= numDays; day++) {
                         const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                        const val = data.traffic[dateStr] !== undefined ? data.traffic[dateStr] : '';
-                        const bgClass = val !== '' ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-slate-900/60 border-slate-700';
+                        const dayData = data.traffic[dateStr];
+                        const trfVal = (dayData && dayData.traffic !== undefined) ? dayData.traffic : '';
+                        const billsVal = (dayData && dayData.bills !== undefined) ? dayData.bills : '';
+                        
+                        let crPercent = '';
+                        let badgeClass = '';
+                        if (trfVal !== '' && billsVal !== '') {
+                            const t = Number(trfVal);
+                            const b = Number(billsVal);
+                            if (t === 0) {
+                                crPercent = b > 0 ? 'CR > 100%' : '0%';
+                                badgeClass = b > 0 ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-800 text-slate-400';
+                            } else {
+                                const cr = (b / t) * 100;
+                                crPercent = cr.toFixed(1) + '%';
+                                if (cr > 100) badgeClass = 'bg-rose-500/20 text-rose-400';
+                                else if (cr < 50 || cr >= 90) badgeClass = 'bg-amber-500/20 text-amber-400';
+                                else if (cr >= 80 && cr <= 87) badgeClass = 'bg-emerald-500/20 text-emerald-400';
+                                else badgeClass = 'bg-slate-800 text-slate-400';
+                            }
+                        }
+                        
+                        const bgClass = trfVal !== '' ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-slate-900/60 border-slate-700';
                         
                         dailyTrafficGrid.innerHTML += `
-                            <div class="p-3 border rounded-xl flex flex-col justify-between gap-1.5 transition-all ${bgClass}">
-                                <span class="text-[10px] font-bold text-slate-400">${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}</span>
-                                <input type="number" min="0" data-date="${dateStr}" value="${val}" placeholder="Trống" class="daily-traffic-input w-full bg-slate-800/80 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-bold focus:outline-none focus:border-gold">
+                            <div class="p-3 border rounded-xl flex flex-col justify-between gap-1.5 transition-all ${bgClass}" data-card-date="${dateStr}">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-[10px] font-bold text-slate-400">${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}</span>
+                                    <span class="text-[9px] font-bold cr-badge px-1 py-0.5 rounded text-slate-400 ${badgeClass}">${crPercent}</span>
+                                </div>
+                                <div class="flex flex-col gap-1">
+                                    <div class="flex items-center gap-1">
+                                        <span class="text-[9px] text-slate-500 w-8">Khách:</span>
+                                        <input type="number" min="0" data-date="${dateStr}" data-type="traffic" value="${trfVal}" placeholder="Trống" class="daily-traffic-input w-full bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200 font-bold focus:outline-none focus:border-gold">
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <span class="text-[9px] text-slate-500 w-8">Bill:</span>
+                                        <input type="number" min="0" data-date="${dateStr}" data-type="bills" value="${billsVal}" placeholder="Trống" class="daily-bills-input w-full bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200 font-bold focus:outline-none focus:border-gold">
+                                    </div>
+                                </div>
                             </div>
                         `;
                     }
                     
-                    // Add listeners to change border color on edit
-                    const inputs = dailyTrafficGrid.querySelectorAll('.daily-traffic-input');
-                    inputs.forEach(inp => {
-                        inp.addEventListener('input', (e) => {
-                            const parent = e.target.closest('.p-3');
-                            parent.className = "p-3 border rounded-xl flex flex-col justify-between gap-1.5 transition-all bg-amber-500/5 border-amber-500/50";
-                        });
+                    // Add listeners to change border color on edit and calculate CR live
+                    const cards = dailyTrafficGrid.querySelectorAll('[data-card-date]');
+                    cards.forEach(card => {
+                        const trfInp = card.querySelector('[data-type="traffic"]');
+                        const billInp = card.querySelector('[data-type="bills"]');
+                        const crBadge = card.querySelector('.cr-badge');
+                        
+                        const updateCR = () => {
+                            const trf = trfInp.value.trim();
+                            const bill = billInp.value.trim();
+                            
+                            card.className = "p-3 border rounded-xl flex flex-col justify-between gap-1.5 transition-all bg-amber-500/5 border-amber-500/50";
+                            
+                            if (trf !== '' && bill !== '') {
+                                const tVal = Number(trf);
+                                const bVal = Number(bill);
+                                
+                                if (tVal === 0) {
+                                    if (bVal > 0) {
+                                        crBadge.innerText = 'CR > 100%';
+                                        crBadge.className = 'text-[9px] font-bold cr-badge px-1 py-0.5 rounded bg-rose-500/20 text-rose-400';
+                                        card.className = "p-3 border rounded-xl flex flex-col justify-between gap-1.5 transition-all bg-rose-500/5 border-rose-500/40";
+                                    } else {
+                                        crBadge.innerText = '0%';
+                                        crBadge.className = 'text-[9px] font-bold cr-badge px-1 py-0.5 rounded bg-slate-800 text-slate-400';
+                                    }
+                                } else {
+                                    const cr = (bVal / tVal) * 100;
+                                    crBadge.innerText = cr.toFixed(1) + '%';
+                                    
+                                    if (cr > 100) {
+                                        crBadge.className = 'text-[9px] font-bold cr-badge px-1 py-0.5 rounded bg-rose-500/20 text-rose-400';
+                                        card.className = "p-3 border rounded-xl flex flex-col justify-between gap-1.5 transition-all bg-rose-500/5 border-rose-500/40";
+                                    } else if (cr < 50 || cr >= 90) {
+                                        crBadge.className = 'text-[9px] font-bold cr-badge px-1 py-0.5 rounded bg-amber-500/20 text-amber-400';
+                                    } else if (cr >= 80 && cr <= 87) {
+                                        crBadge.className = 'text-[9px] font-bold cr-badge px-1 py-0.5 rounded bg-emerald-500/20 text-emerald-400';
+                                    } else {
+                                        crBadge.className = 'text-[9px] font-bold cr-badge px-1 py-0.5 rounded bg-slate-800 text-slate-400';
+                                    }
+                                }
+                            } else {
+                                crBadge.innerText = '';
+                                crBadge.className = 'text-[9px] font-bold cr-badge px-1 py-0.5 rounded text-slate-400';
+                            }
+                        };
+                        
+                        trfInp.addEventListener('input', updateCR);
+                        billInp.addEventListener('input', updateCR);
                     });
                 }
             } catch (err) {
@@ -1013,14 +1137,51 @@
         btnSaveDailyTraffic.addEventListener('click', async () => {
             if (!currentStore) return;
             
-            const inputs = dailyTrafficGrid.querySelectorAll('.daily-traffic-input');
+            const cards = dailyTrafficGrid.querySelectorAll('[data-card-date]');
             const traffic_data = {};
+            let hasError = false;
+            let hasWarning = false;
+            let warningDates = [];
             
-            inputs.forEach(inp => {
-                const dateStr = inp.getAttribute('data-date');
-                const val = inp.value.trim();
-                traffic_data[dateStr] = val;
+            cards.forEach(card => {
+                const dateStr = card.getAttribute('data-card-date');
+                const trfInp = card.querySelector('[data-type="traffic"]');
+                const billInp = card.querySelector('[data-type="bills"]');
+                
+                const trf = trfInp.value.trim();
+                const bill = billInp.value.trim();
+                
+                if (trf !== '' && bill !== '') {
+                    const tVal = Number(trf);
+                    const bVal = Number(bill);
+                    if (tVal === 0 && bVal > 0) {
+                        hasError = true;
+                    } else {
+                        const cr = (bVal / tVal) * 100;
+                        if (cr > 100) {
+                            hasError = true;
+                        } else if (cr < 50 || cr >= 90) {
+                            hasWarning = true;
+                            warningDates.push(`${dateStr.split('-')[2]}/${dateStr.split('-')[1]} (CR: ${cr.toFixed(1)}%)`);
+                        }
+                    }
+                }
+                
+                traffic_data[dateStr] = {
+                    traffic: trf,
+                    bills: bill
+                };
             });
+            
+            if (hasError) {
+                alert("❌ Lỗi dữ liệu: Số bill không thể lớn hơn lượt khách. Vui lòng sửa lại các ô có CR > 100%.");
+                return;
+            }
+            
+            if (hasWarning) {
+                const confirmSave = confirm(`⚠️ Cảnh báo Tỷ lệ Chuyển đổi (CR) bất thường vào các ngày:\n- ${warningDates.join('\n- ')}\n\nBạn có chắc chắn muốn lưu số liệu này?`);
+                if (!confirmSave) return;
+            }
             
             btnSaveDailyTraffic.disabled = true;
             btnSaveDailyTraffic.innerText = "⌛ ĐANG LƯU DỮ LIỆU...";
@@ -1133,7 +1294,26 @@
             if (!currentStore) return;
             
             const trafficVal = inputTraffic.value.trim();
+            const billsVal = document.getElementById('input-bills').value.trim();
             const reportDate = inputReportDate.value;
+
+            if (trafficVal !== '' && billsVal !== '') {
+                const tVal = Number(trafficVal);
+                const bVal = Number(billsVal);
+                if (tVal === 0 && bVal > 0) {
+                    alert("❌ Lỗi: Số bill bán lẻ không thể lớn hơn lượt khách.");
+                    return;
+                }
+                const cr = (bVal / tVal) * 100;
+                if (cr > 100) {
+                    alert("❌ Lỗi: Số bill bán lẻ không thể lớn hơn lượt khách.");
+                    return;
+                }
+                if (cr < 50 || cr >= 90) {
+                    const confirmSave = confirm(`⚠️ Cảnh báo: Tỷ lệ chuyển đổi (CR) tuần này là ${cr.toFixed(1)}%, lệch nhiều so với mức chuẩn (80-87%). Bạn có chắc chắn muốn nộp báo cáo này?`);
+                    if (!confirmSave) return;
+                }
+            }
 
             // Gather Current Contracts
             const contracts = [];
@@ -1231,6 +1411,7 @@
                         pin: currentStore.pin,
                         report_date: reportDate,
                         traffic: trafficVal,
+                        bills: billsVal,
                         contracts: contracts,
                         unsigned_contracts: unsigned_contracts,
                         details: details,
@@ -1253,11 +1434,42 @@
             }
         });
 
+        // Live calculation of weekly CR as CHT types
+        const triggerWeeklyCR = () => {
+            const trfVal = inputTraffic.value.trim();
+            const billsVal = document.getElementById('input-bills').value.trim();
+            const alertDiv = document.getElementById('weekly-cr-alert');
+            
+            if (trfVal !== '' && billsVal !== '') {
+                const tVal = Number(trfVal);
+                const bVal = Number(billsVal);
+                const cr = tVal > 0 ? (bVal / tVal) * 100 : 0;
+                
+                alertDiv.innerHTML = `Tỷ lệ chuyển đổi (CR) tuần: <strong>${cr.toFixed(1)}%</strong>`;
+                alertDiv.classList.remove('hidden');
+                
+                if (cr > 100) {
+                    alertDiv.className = "text-[11px] font-bold text-rose-400 mt-2 bg-rose-950/20 px-3 py-2 rounded-xl border border-rose-800/40";
+                } else if (cr < 50 || cr >= 90) {
+                    alertDiv.className = "text-[11px] font-bold text-amber-400 mt-2 bg-amber-950/20 px-3 py-2 rounded-xl border border-amber-800/40";
+                } else if (cr >= 80 && cr <= 87) {
+                    alertDiv.className = "text-[11px] font-bold text-emerald-400 mt-2 bg-emerald-950/20 px-3 py-2 rounded-xl border border-emerald-800/40";
+                } else {
+                    alertDiv.className = "text-[11px] font-bold text-slate-300 mt-2 bg-slate-900/60 px-3 py-2 rounded-xl border border-slate-800";
+                }
+            } else {
+                alertDiv.classList.add('hidden');
+            }
+        };
+        inputTraffic.addEventListener('input', triggerWeeklyCR);
+        document.getElementById('input-bills').addEventListener('input', triggerWeeklyCR);
+
         // Logout
         btnLogout.addEventListener('click', () => {
             localStorage.removeItem('ap_asm');
             localStorage.removeItem('ap_store_code');
             localStorage.removeItem('ap_pin');
+            localStorage.removeItem('ap_role');
             currentStore = null;
             pinInput.value = '';
             formSec.classList.add('hidden');
@@ -1297,7 +1509,16 @@
 
         btnStatusBack.addEventListener('click', () => {
             statusSec.classList.add('hidden');
-            if (currentStore) {
+            if (currentStore && currentStore.role === 'asm') {
+                // ASM Logout
+                localStorage.removeItem('ap_asm');
+                localStorage.removeItem('ap_store_code');
+                localStorage.removeItem('ap_pin');
+                localStorage.removeItem('ap_role');
+                currentStore = null;
+                pinInput.value = '';
+                loginSec.classList.remove('hidden');
+            } else if (currentStore) {
                 formSec.classList.remove('hidden');
             } else {
                 loginSec.classList.remove('hidden');
