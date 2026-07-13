@@ -747,6 +747,7 @@
             try {
                 const res = await fetch(`/api/stores?asm=${encodeURIComponent(asm)}`);
                 const data = await res.json();
+                if (data.ok) {
                     storeSelect.innerHTML = `<option value="">-- Chọn Cửa Hàng --</option>
                                              <option value="ASM_${asm}" data-name="Quản lý (ASM) ${asm}" data-brand="ASM" data-asm="${asm}">🔑 [Đăng nhập quyền ASM ${asm}]</option>`;
                     data.stores.forEach(s => {
