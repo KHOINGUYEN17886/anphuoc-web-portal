@@ -1551,7 +1551,11 @@
             statusTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-slate-500">Đang tải trạng thái...</td></tr>';
             
             try {
-                const res = await fetch(`/api/submission_status?report_date=${dateVal}`);
+                let url = `/api/submission_status?report_date=${dateVal}`;
+                if (currentStore && currentStore.role === 'asm') {
+                    url += `&asm=${encodeURIComponent(currentStore.asm)}`;
+                }
+                const res = await fetch(url);
                 const data = await res.json();
                 
                 if (data.ok) {
