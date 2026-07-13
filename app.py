@@ -544,9 +544,14 @@ def export_data():
 @app.route('/api/submission_status', methods=['GET'])
 def get_submission_status():
     report_date = request.args.get('report_date') or get_report_date().strftime('%Y-%m-%d')
+    asm = request.args.get('asm')
     try:
-        # Get all stores
-        stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores ORDER BY region, store_name")
+        # Get stores (filtered by ASM if provided)
+        if asm:
+            stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores WHERE asm_name = ? ORDER BY region, store_name", (asm,))
+        else:
+            stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores ORDER BY region, store_name")
+            
         # Get submitted operational details
         submitted = query_db("SELECT DISTINCT store_code FROM tb_operational_details WHERE report_date = ?", (report_date,))
         sub_set = {s['store_code'] for s in submitted}
