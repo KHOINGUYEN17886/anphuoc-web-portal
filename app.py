@@ -570,6 +570,42 @@ def get_submission_status():
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
 
+@app.route('/api/get_support_requests', methods=['GET'])
+def get_support_requests():
+    report_date = request.args.get('report_date') or get_report_date().strftime('%Y-%m-%d')
+    asm = request.args.get('asm')
+    try:
+        if asm:
+            rows = query_db("""
+                SELECT s.store_name, r.category, r.priority, r.issue_item, r.deadline, r.person_in_charge 
+                FROM tb_support_requests r
+                JOIN tb_stores s ON r.store_code = s.store_code
+                WHERE r.report_date = ? AND s.asm_name = ?
+                ORDER BY s.store_name, r.priority DESC
+            """, (report_date, asm))
+        else:
+            rows = query_db("""
+                SELECT s.store_name, r.category, r.priority, r.issue_item, r.deadline, r.person_in_charge 
+                FROM tb_support_requests r
+                JOIN tb_stores s ON r.store_code = s.store_code
+                WHERE r.report_date = ?
+                ORDER BY s.store_name, r.priority DESC
+            """, (report_date,))
+            
+        results = []
+        for r in rows:
+            results.append({
+                'store_name': r['store_name'],
+                'category': r['category'],
+                'priority': r['priority'],
+                'issue_item': r['issue_item'],
+                'deadline': r['deadline'],
+                'person_in_charge': r['person_in_charge']
+            })
+        return jsonify({'ok': True, 'requests': results})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)})
+
 # ──────────────────────────────────────────────────────────────────────────────
 # NEW API: ASM TRAFFIC REMINDERS SUMMARY
 # ──────────────────────────────────────────────────────────────────────────────
