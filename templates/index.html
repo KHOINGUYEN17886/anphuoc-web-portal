@@ -157,6 +157,16 @@
                                 <input id="input-bills" type="number" min="0" placeholder="Nhập số bill bán lẻ" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-gold transition-colors text-lg font-bold">
                             </div>
                         </div>
+                        <div class="flex gap-4 mb-2">
+                            <div class="flex-1">
+                                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Trong đó: Bill online từ CÔNG TY</label>
+                                <input id="input-company-online-bills" type="number" min="0" placeholder="Để trống nếu = 0" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-gold transition-colors text-sm font-semibold">
+                            </div>
+                            <div class="flex-1">
+                                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Trong đó: Bill online CỬA HÀNG tự bán</label>
+                                <input id="input-store-online-bills" type="number" min="0" placeholder="Để trống nếu = 0" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-gold transition-colors text-sm font-semibold">
+                            </div>
+                        </div>
                         <div id="weekly-cr-alert" class="text-[11px] font-bold mt-2 px-3 py-2 rounded-xl border hidden animate-pulse"></div>
                         <p class="text-[10px] text-slate-500 mt-1">Khuyên dùng: Hãy nhập lẻ hàng ngày ở Tab 2 để hệ thống tự cộng tổng và kiểm tra CR chính xác hơn.</p>
                     </div>
@@ -695,6 +705,8 @@
         const inputReportDate = document.getElementById('input-report-date');
         const editModeBanner = document.getElementById('edit-mode-banner');
         const inputTraffic = document.getElementById('input-traffic');
+        const inputCompanyOnlineBills = document.getElementById('input-company-online-bills');
+        const inputStoreOnlineBills = document.getElementById('input-store-online-bills');
         const btnLogout = document.getElementById('btn-logout');
         
         const tabWeeklyBtn = document.getElementById('tab-weekly-btn');
@@ -920,6 +932,8 @@
             supportContainer.innerHTML = '';
             inputTraffic.value = '';
             document.getElementById('input-bills').value = '';
+            inputCompanyOnlineBills.value = '';
+            inputStoreOnlineBills.value = '';
             document.getElementById('weekly-cr-alert').classList.add('hidden');
             resetPart4Fields();
             
@@ -936,14 +950,25 @@
                         // Traffic & Bills
                         inputTraffic.value = data.traffic;
                         document.getElementById('input-bills').value = data.bills !== undefined ? data.bills : '';
+                        inputCompanyOnlineBills.value = data.company_online_bills !== undefined ? data.company_online_bills : '';
+                        inputStoreOnlineBills.value = data.store_online_bills !== undefined ? data.store_online_bills : '';
                         
                         // Calculate weekly CR
                         const trf = Number(data.traffic || 0);
                         const b = Number(data.bills || 0);
+                        const co = Number(data.company_online_bills || 0);
+                        const so = Number(data.store_online_bills || 0);
                         const alertDiv = document.getElementById('weekly-cr-alert');
                         if (trf > 0) {
-                            const cr = (b / trf) * 100;
-                            alertDiv.innerHTML = `Tỷ lệ chuyển đổi (CR) tuần: <strong>${cr.toFixed(1)}%</strong>`;
+                            const billForCR = b - co;
+                            const cr = (billForCR / trf) * 100;
+                            
+                            let crText = `Tỷ lệ chuyển đổi (CR) tuần: <strong>${cr.toFixed(1)}%</strong>`;
+                            if (co > 0 || so > 0) {
+                                crText += `<br><span class="text-[10px] text-slate-400 font-normal">CR thực tế tại quầy (đã loại trừ ${co} bill online C.ty): <strong>${cr.toFixed(1)}%</strong> (Tổng bill: ${b}, Bill tự bán: ${so})</span>`;
+                            }
+                            
+                            alertDiv.innerHTML = crText;
                             alertDiv.classList.remove('hidden');
                             if (cr > 100) {
                                 alertDiv.className = "text-[11px] font-bold text-rose-400 mt-2 bg-rose-950/20 px-3 py-2 rounded-xl border border-rose-800/40";
@@ -1068,17 +1093,22 @@
                         const dayData = data.traffic[dateStr];
                         const trfVal = (dayData && dayData.traffic !== undefined) ? dayData.traffic : '';
                         const billsVal = (dayData && dayData.bills !== undefined) ? dayData.bills : '';
+                        const coVal = (dayData && dayData.company_online_bills !== undefined) ? dayData.company_online_bills : '';
+                        const soVal = (dayData && dayData.store_online_bills !== undefined) ? dayData.store_online_bills : '';
                         
                         let crPercent = '';
                         let badgeClass = '';
                         if (trfVal !== '' && billsVal !== '') {
                             const t = Number(trfVal);
                             const b = Number(billsVal);
+                            const co = Number(coVal) || 0;
+                            const billForCR = b - co;
+                            
                             if (t === 0) {
-                                crPercent = b > 0 ? 'CR > 100%' : '0%';
-                                badgeClass = b > 0 ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-800 text-slate-400';
+                                crPercent = billForCR > 0 ? 'CR > 100%' : '0%';
+                                badgeClass = billForCR > 0 ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-800 text-slate-400';
                             } else {
-                                const cr = (b / t) * 100;
+                                const cr = (billForCR / t) * 100;
                                 crPercent = cr.toFixed(1) + '%';
                                 if (cr > 100) badgeClass = 'bg-rose-500/20 text-rose-400';
                                 else if (cr < 50 || cr >= 90) badgeClass = 'bg-amber-500/20 text-amber-400';
@@ -1097,12 +1127,20 @@
                                 </div>
                                 <div class="flex flex-col gap-1">
                                     <div class="flex items-center gap-1">
-                                        <span class="text-[9px] text-slate-500 w-8">Khách:</span>
-                                        <input type="number" min="0" data-date="${dateStr}" data-type="traffic" value="${trfVal}" placeholder="Trống" class="daily-traffic-input w-full bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200 font-bold focus:outline-none focus:border-gold">
+                                        <span class="text-[8px] text-slate-500 w-8">Khách:</span>
+                                        <input type="number" min="0" data-date="${dateStr}" data-type="traffic" value="${trfVal}" placeholder="Trống" class="daily-traffic-input w-full bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-0.5 text-xs text-slate-200 font-bold focus:outline-none focus:border-gold">
                                     </div>
                                     <div class="flex items-center gap-1">
-                                        <span class="text-[9px] text-slate-500 w-8">Bill:</span>
-                                        <input type="number" min="0" data-date="${dateStr}" data-type="bills" value="${billsVal}" placeholder="Trống" class="daily-bills-input w-full bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200 font-bold focus:outline-none focus:border-gold">
+                                        <span class="text-[8px] text-slate-500 w-8">Bill:</span>
+                                        <input type="number" min="0" data-date="${dateStr}" data-type="bills" value="${billsVal}" placeholder="Trống" class="daily-bills-input w-full bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-0.5 text-xs text-slate-200 font-bold focus:outline-none focus:border-gold">
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <span class="text-[8px] text-slate-500 w-8">OL C.ty:</span>
+                                        <input type="number" min="0" data-date="${dateStr}" data-type="company_online_bills" value="${coVal}" placeholder="0" class="daily-company-online-input w-full bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-0.5 text-[10px] text-slate-300 focus:outline-none focus:border-gold">
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <span class="text-[8px] text-slate-500 w-8">OL CH:</span>
+                                        <input type="number" min="0" data-date="${dateStr}" data-type="store_online_bills" value="${soVal}" placeholder="0" class="daily-store-online-input w-full bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-0.5 text-[10px] text-slate-300 focus:outline-none focus:border-gold">
                                     </div>
                                 </div>
                             </div>
@@ -1114,20 +1152,27 @@
                     cards.forEach(card => {
                         const trfInp = card.querySelector('[data-type="traffic"]');
                         const billInp = card.querySelector('[data-type="bills"]');
+                        const coInp = card.querySelector('[data-type="company_online_bills"]');
+                        const soInp = card.querySelector('[data-type="store_online_bills"]');
                         const crBadge = card.querySelector('.cr-badge');
                         
                         const updateCR = () => {
                             const trf = trfInp.value.trim();
                             const bill = billInp.value.trim();
+                            const co = coInp.value.trim();
+                            const so = soInp.value.trim();
                             
                             card.className = "p-3 border rounded-xl flex flex-col justify-between gap-1.5 transition-all bg-amber-500/5 border-amber-500/50";
                             
                             if (trf !== '' && bill !== '') {
                                 const tVal = Number(trf);
                                 const bVal = Number(bill);
+                                const coVal = Number(co) || 0;
+                                
+                                const billForCR = bVal - coVal;
                                 
                                 if (tVal === 0) {
-                                    if (bVal > 0) {
+                                    if (billForCR > 0) {
                                         crBadge.innerText = 'CR > 100%';
                                         crBadge.className = 'text-[9px] font-bold cr-badge px-1 py-0.5 rounded bg-rose-500/20 text-rose-400';
                                         card.className = "p-3 border rounded-xl flex flex-col justify-between gap-1.5 transition-all bg-rose-500/5 border-rose-500/40";
@@ -1136,7 +1181,7 @@
                                         crBadge.className = 'text-[9px] font-bold cr-badge px-1 py-0.5 rounded bg-slate-800 text-slate-400';
                                     }
                                 } else {
-                                    const cr = (bVal / tVal) * 100;
+                                    const cr = (billForCR / tVal) * 100;
                                     crBadge.innerText = cr.toFixed(1) + '%';
                                     
                                     if (cr > 100) {
@@ -1158,6 +1203,8 @@
                         
                         trfInp.addEventListener('input', updateCR);
                         billInp.addEventListener('input', updateCR);
+                        coInp.addEventListener('input', updateCR);
+                        soInp.addEventListener('input', updateCR);
                     });
                 }
             } catch (err) {
@@ -1182,29 +1229,48 @@
                 const dateStr = card.getAttribute('data-card-date');
                 const trfInp = card.querySelector('[data-type="traffic"]');
                 const billInp = card.querySelector('[data-type="bills"]');
+                const coInp = card.querySelector('[data-type="company_online_bills"]');
+                const soInp = card.querySelector('[data-type="store_online_bills"]');
                 
                 const trf = trfInp.value.trim();
                 const bill = billInp.value.trim();
+                const co = coInp.value.trim();
+                const so = soInp.value.trim();
                 
                 if (trf !== '' && bill !== '') {
                     const tVal = Number(trf);
                     const bVal = Number(bill);
-                    if (tVal === 0 && bVal > 0) {
+                    const coVal = Number(co) || 0;
+                    const soVal = Number(so) || 0;
+                    
+                    if (coVal < 0 || soVal < 0) {
+                        alert(`❌ Lỗi ngày ${dateStr.split('-')[2]}/${dateStr.split('-')[1]}: Số bill online không thể âm.`);
+                        hasError = true;
+                    } else if (coVal + soVal > bVal) {
+                        alert(`❌ Lỗi ngày ${dateStr.split('-')[2]}/${dateStr.split('-')[1]}: Tổng số bill online (${coVal + soVal}) lớn hơn tổng số bill (${bVal}).`);
                         hasError = true;
                     } else {
-                        const cr = (bVal / tVal) * 100;
-                        if (cr > 100) {
+                        const billForCR = bVal - coVal;
+                        
+                        if (tVal === 0 && billForCR > 0) {
                             hasError = true;
-                        } else if (cr < 50 || cr >= 90) {
-                            hasWarning = true;
-                            warningDates.push(`${dateStr.split('-')[2]}/${dateStr.split('-')[1]} (CR: ${cr.toFixed(1)}%)`);
+                        } else {
+                            const cr = tVal > 0 ? (billForCR / tVal) * 100 : 0;
+                            if (cr > 100) {
+                                hasError = true;
+                            } else if (cr < 50 || cr >= 90) {
+                                hasWarning = true;
+                                warningDates.push(`${dateStr.split('-')[2]}/${dateStr.split('-')[1]} (CR: ${cr.toFixed(1)}% - C.ty online: ${coVal})`);
+                            }
                         }
                     }
                 }
                 
                 traffic_data[dateStr] = {
                     traffic: trf,
-                    bills: bill
+                    bills: bill,
+                    company_online_bills: co,
+                    store_online_bills: so
                 };
             });
             
@@ -1330,22 +1396,38 @@
             
             const trafficVal = inputTraffic.value.trim();
             const billsVal = document.getElementById('input-bills').value.trim();
+            const companyOnlineVal = inputCompanyOnlineBills.value.trim();
+            const storeOnlineVal = inputStoreOnlineBills.value.trim();
             const reportDate = inputReportDate.value;
 
             if (trafficVal !== '' && billsVal !== '') {
                 const tVal = Number(trafficVal);
                 const bVal = Number(billsVal);
-                if (tVal === 0 && bVal > 0) {
-                    alert("❌ Lỗi: Số bill bán lẻ không thể lớn hơn lượt khách.");
+                const coVal = Number(companyOnlineVal) || 0;
+                const soVal = Number(storeOnlineVal) || 0;
+                
+                if (coVal < 0 || soVal < 0) {
+                    alert("❌ Lỗi: Số bill online không thể âm.");
                     return;
                 }
-                const cr = (bVal / tVal) * 100;
+                if (coVal + soVal > bVal) {
+                    alert("❌ Lỗi: Tổng số bill online không thể lớn hơn tổng số bill.");
+                    return;
+                }
+                
+                const billForCR = bVal - coVal;
+                const cr = tVal > 0 ? (billForCR / tVal) * 100 : 0;
+                
+                if (tVal === 0 && billForCR > 0) {
+                    alert("❌ Lỗi: Lượt khách bằng 0 nhưng vẫn có bill bán tại quầy/tự bán.");
+                    return;
+                }
                 if (cr > 100) {
-                    alert("❌ Lỗi: Số bill bán lẻ không thể lớn hơn lượt khách.");
+                    alert("❌ Lỗi: Số bill bán lẻ (sau khi loại trừ bill online Công ty) không thể lớn hơn lượt khách.");
                     return;
                 }
                 if (cr < 50 || cr >= 90) {
-                    const confirmSave = confirm(`⚠️ Cảnh báo: Tỷ lệ chuyển đổi (CR) tuần này là ${cr.toFixed(1)}%, lệch nhiều so với mức chuẩn (80-87%). Bạn có chắc chắn muốn nộp báo cáo này?`);
+                    const confirmSave = confirm(`⚠️ Cảnh báo: Tỷ lệ chuyển đổi (CR) thực tế tuần này là ${cr.toFixed(1)}% (loại trừ ${coVal} đơn Công ty), lệch nhiều so với mức chuẩn (80-87%). Bạn có chắc chắn muốn nộp báo cáo này?`);
                     if (!confirmSave) return;
                 }
             }
@@ -1447,6 +1529,8 @@
                         report_date: reportDate,
                         traffic: trafficVal,
                         bills: billsVal,
+                        company_online_bills: Number(companyOnlineVal) || 0,
+                        store_online_bills: Number(storeOnlineVal) || 0,
                         contracts: contracts,
                         unsigned_contracts: unsigned_contracts,
                         details: details,
@@ -1473,14 +1557,25 @@
         const triggerWeeklyCR = () => {
             const trfVal = inputTraffic.value.trim();
             const billsVal = document.getElementById('input-bills').value.trim();
+            const companyOnlineVal = inputCompanyOnlineBills.value.trim();
+            const storeOnlineVal = inputStoreOnlineBills.value.trim();
             const alertDiv = document.getElementById('weekly-cr-alert');
             
             if (trfVal !== '' && billsVal !== '') {
                 const tVal = Number(trfVal);
                 const bVal = Number(billsVal);
-                const cr = tVal > 0 ? (bVal / tVal) * 100 : 0;
+                const coVal = Number(companyOnlineVal) || 0;
+                const soVal = Number(storeOnlineVal) || 0;
                 
-                alertDiv.innerHTML = `Tỷ lệ chuyển đổi (CR) tuần: <strong>${cr.toFixed(1)}%</strong>`;
+                const billForCR = bVal - coVal;
+                const cr = tVal > 0 ? (billForCR / tVal) * 100 : 0;
+                
+                let crText = `Tỷ lệ chuyển đổi (CR) tuần: <strong>${cr.toFixed(1)}%</strong>`;
+                if (coVal > 0 || soVal > 0) {
+                    crText += `<br><span class="text-[10px] text-slate-400 font-normal">CR thực tế tại quầy (loại trừ ${coVal} bill online C.ty): <strong>${cr.toFixed(1)}%</strong> (Tổng bill: ${bVal}, Bill tự bán: ${soVal})</span>`;
+                }
+                
+                alertDiv.innerHTML = crText;
                 alertDiv.classList.remove('hidden');
                 
                 if (cr > 100) {
@@ -1498,6 +1593,8 @@
         };
         inputTraffic.addEventListener('input', triggerWeeklyCR);
         document.getElementById('input-bills').addEventListener('input', triggerWeeklyCR);
+        inputCompanyOnlineBills.addEventListener('input', triggerWeeklyCR);
+        inputStoreOnlineBills.addEventListener('input', triggerWeeklyCR);
 
         // Logout
         btnLogout.addEventListener('click', () => {

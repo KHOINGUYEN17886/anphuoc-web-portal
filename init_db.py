@@ -52,19 +52,32 @@ CREATE TABLE IF NOT EXISTS tb_stores (
 """)
 
 # Note: tb_traffic is now DAILY. report_date is renamed/treated as traffic_date.
-# Drop old table to update schema
-cursor.execute("DROP TABLE IF EXISTS tb_traffic")
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS tb_traffic (
     store_code TEXT NOT NULL,
     traffic_date TEXT NOT NULL,
     traffic_val INTEGER NOT NULL,
     bills_val INTEGER DEFAULT 0,
+    company_online_bills INTEGER DEFAULT 0,
+    store_online_bills INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (store_code, traffic_date),
     FOREIGN KEY (store_code) REFERENCES tb_stores(store_code)
 )
 """)
+
+# Alter table to add new columns to tb_traffic if they don't exist
+try:
+    cursor.execute("ALTER TABLE tb_traffic ADD COLUMN company_online_bills INTEGER DEFAULT 0")
+    print("Added column company_online_bills to tb_traffic")
+except Exception as e:
+    pass
+
+try:
+    cursor.execute("ALTER TABLE tb_traffic ADD COLUMN store_online_bills INTEGER DEFAULT 0")
+    print("Added column store_online_bills to tb_traffic")
+except Exception as e:
+    pass
 
 cursor.execute(f"""
 CREATE TABLE IF NOT EXISTS tb_contracts (

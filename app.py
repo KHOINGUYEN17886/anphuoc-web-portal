@@ -269,9 +269,16 @@ def get_daily_traffic():
             
         # Query daily traffic and bills for this store and month
         prefix = f"{year}-{int(month):02d}-%"
-        rows = query_db("SELECT traffic_date, traffic_val, bills_val FROM tb_traffic WHERE store_code = ? AND traffic_date LIKE ?", (store_code, prefix))
+        rows = query_db("SELECT traffic_date, traffic_val, bills_val, company_online_bills, store_online_bills FROM tb_traffic WHERE store_code = ? AND traffic_date LIKE ?", (store_code, prefix))
         
-        traffic_map = {r['traffic_date']: {'traffic': r['traffic_val'], 'bills': r['bills_val'] or 0} for r in rows}
+        traffic_map = {
+            r['traffic_date']: {
+                'traffic': r['traffic_val'],
+                'bills': r['bills_val'] or 0,
+                'company_online_bills': r['company_online_bills'] or 0,
+                'store_online_bills': r['store_online_bills'] or 0
+            } for r in rows
+        }
         return jsonify({'ok': True, 'traffic': traffic_map})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
@@ -296,6 +303,8 @@ def submit_daily_traffic():
         for date_str, day_data in traffic_data.items():
             traffic_str = day_data.get('traffic', '') if isinstance(day_data, dict) else ''
             bills_str = day_data.get('bills', '') if isinstance(day_data, dict) else ''
+            co_str = day_data.get('company_online_bills', '') if isinstance(day_data, dict) else ''
+            so_str = day_data.get('store_online_bills', '') if isinstance(day_data, dict) else ''
             
             if (traffic_str is None or str(traffic_str).strip() == '') and (bills_str is None or str(bills_str).strip() == ''):
                 # Delete record if cleared
@@ -304,22 +313,26 @@ def submit_daily_traffic():
                 try:
                     trf_val = int(traffic_str) if (traffic_str is not None and str(traffic_str).strip() != '') else 0
                     bil_val = int(bills_str) if (bills_str is not None and str(bills_str).strip() != '') else 0
+                    co_val = int(co_str) if (co_str is not None and str(co_str).strip() != '') else 0
+                    so_val = int(so_str) if (so_str is not None and str(so_str).strip() != '') else 0
                     
-                    if trf_val < 0 or bil_val < 0:
+                    if trf_val < 0 or bil_val < 0 or co_val < 0 or so_val < 0:
                         continue
                     if DATABASE_URL:
                         execute_db("""
-                        INSERT INTO tb_traffic (store_code, traffic_date, traffic_val, bills_val)
-                        VALUES (?, ?, ?, ?)
+                        INSERT INTO tb_traffic (store_code, traffic_date, traffic_val, bills_val, company_online_bills, store_online_bills)
+                        VALUES (?, ?, ?, ?, ?, ?)
                         ON CONFLICT (store_code, traffic_date) DO UPDATE SET 
                             traffic_val = EXCLUDED.traffic_val,
-                            bills_val = EXCLUDED.bills_val
-                        """, (store_code, date_str, trf_val, bil_val))
+                            bills_val = EXCLUDED.bills_val,
+                            company_online_bills = EXCLUDED.company_online_bills,
+                            store_online_bills = EXCLUDED.store_online_bills
+                        """, (store_code, date_str, trf_val, bil_val, co_val, so_val))
                     else:
                         execute_db("""
-                        INSERT OR REPLACE INTO tb_traffic (store_code, traffic_date, traffic_val, bills_val)
-                        VALUES (?, ?, ?, ?)
-                        """, (store_code, date_str, trf_val, bil_val))
+                        INSERT OR REPLACE INTO tb_traffic (store_code, traffic_date, traffic_val, bills_val, company_online_bills, store_online_bills)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                        """, (store_code, date_str, trf_val, bil_val, co_val, so_val))
                 except ValueError:
                     continue
                     
@@ -357,14 +370,18 @@ def get_operational_report():
         support = query_db("SELECT category, priority, issue_item, deadline, person_in_charge FROM tb_support_requests WHERE store_code = ? AND report_date = ?", (store_code, report_date))
         
         # Get traffic and bills for this specific Friday (report_date) if nộp in weekly
-        traffic_row = query_db("SELECT traffic_val, bills_val FROM tb_traffic WHERE store_code = ? AND traffic_date = ?", (store_code, report_date), one=True)
+        traffic_row = query_db("SELECT traffic_val, bills_val, company_online_bills, store_online_bills FROM tb_traffic WHERE store_code = ? AND traffic_date = ?", (store_code, report_date), one=True)
         traffic_val = traffic_row['traffic_val'] if traffic_row else ''
         bills_val = traffic_row['bills_val'] if traffic_row else ''
+        co_val = traffic_row['company_online_bills'] if traffic_row else 0
+        so_val = traffic_row['store_online_bills'] if traffic_row else 0
         
         return jsonify({
             'ok': True,
             'traffic': traffic_val,
             'bills': bills_val,
+            'company_online_bills': co_val,
+            'store_online_bills': so_val,
             'contracts': contracts,
             'unsigned_contracts': unsigned,
             'details': details or {},
@@ -403,16 +420,21 @@ def submit_data():
             execute_db("DELETE FROM tb_traffic WHERE store_code = ? AND traffic_date = ?", (store_code, report_date))
             trf_int = int(traffic_val)
             bil_int = int(bills_val) if (bills_val is not None and str(bills_val).strip() != '') else 0
+            co_int = int(data.get('company_online_bills', 0))
+            so_int = int(data.get('store_online_bills', 0))
+            
             if DATABASE_URL:
                 execute_db("""
-                INSERT INTO tb_traffic (store_code, traffic_date, traffic_val, bills_val) VALUES (?, ?, ?, ?)
+                INSERT INTO tb_traffic (store_code, traffic_date, traffic_val, bills_val, company_online_bills, store_online_bills) VALUES (?, ?, ?, ?, ?, ?)
                 ON CONFLICT (store_code, traffic_date) DO UPDATE SET 
                     traffic_val = EXCLUDED.traffic_val,
-                    bills_val = EXCLUDED.bills_val
-                """, (store_code, report_date, trf_int, bil_int))
+                    bills_val = EXCLUDED.bills_val,
+                    company_online_bills = EXCLUDED.company_online_bills,
+                    store_online_bills = EXCLUDED.store_online_bills
+                """, (store_code, report_date, trf_int, bil_int, co_int, so_int))
             else:
-                execute_db("INSERT OR REPLACE INTO tb_traffic (store_code, traffic_date, traffic_val, bills_val) VALUES (?, ?, ?, ?)", 
-                           (store_code, report_date, trf_int, bil_int))
+                execute_db("INSERT OR REPLACE INTO tb_traffic (store_code, traffic_date, traffic_val, bills_val, company_online_bills, store_online_bills) VALUES (?, ?, ?, ?, ?, ?)", 
+                           (store_code, report_date, trf_int, bil_int, co_int, so_int))
             
         # 3. Save Contracts (Section 3.1)
         execute_db("DELETE FROM tb_contracts WHERE store_code = ? AND report_date = ?", (store_code, report_date))
