@@ -107,9 +107,14 @@
                     <h3 id="lbl-active-store" class="text-xl font-bold text-white">...</h3>
                     <p id="lbl-store-meta" class="text-xs text-slate-400">...</p>
                 </div>
-                <button id="btn-logout" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-3 py-2 rounded-lg font-semibold text-slate-300 transition-all self-start md:self-auto">
-                    Đăng xuất
-                </button>
+                <div class="flex items-center gap-2 self-start md:self-auto">
+                    <button id="btn-show-change-pin" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-3 py-2 rounded-lg font-semibold text-slate-300 transition-all">
+                        🔑 Đổi PIN
+                    </button>
+                    <button id="btn-logout" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-3 py-2 rounded-lg font-semibold text-slate-300 transition-all">
+                        Đăng xuất
+                    </button>
+                </div>
             </div>
 
             <!-- Tab Navigation -->
@@ -431,13 +436,31 @@
         <section id="status-section" class="hidden space-y-6">
             <div class="flex items-center justify-between bg-slate-900/60 border border-slate-800 rounded-2xl p-4">
                 <div>
-                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <h3 id="status-dashboard-title" class="text-lg font-bold text-white flex items-center gap-2">
                         📊 Báo Cáo Theo Dõi Dành Cho ASM
                     </h3>
                     <p class="text-xs text-slate-400">Xem tiến độ nộp bài và nhắc nhở nộp thiếu</p>
                 </div>
-                <button id="btn-status-back" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-4 py-2 rounded-xl transition-all text-slate-300 font-bold">
-                    ⬅ Quay Lại
+                <div class="flex items-center gap-2">
+                    <button id="btn-status-change-pin" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-3 py-2 rounded-lg font-semibold text-slate-300 transition-all">
+                        🔑 Đổi PIN
+                    </button>
+                    <button id="btn-status-back" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-4 py-2 rounded-xl transition-all text-slate-300 font-bold">
+                        ⬅ Quay Lại
+                    </button>
+                </div>
+            </div>
+
+            <!-- Admin & ASM Excel Export Control Bar -->
+            <div id="admin-control-bar" class="flex flex-wrap items-center justify-between bg-slate-900/40 border border-slate-800 rounded-2xl p-4 gap-3">
+                <div id="admin-asm-filter-container" class="flex items-center gap-2">
+                    <label class="text-xs font-semibold text-slate-400">Lọc theo ASM:</label>
+                    <select id="admin-asm-filter" class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-gold">
+                        <option value="">-- Tất cả ASM --</option>
+                    </select>
+                </div>
+                <button id="btn-export-excel" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md">
+                    📥 Xuất Excel Báo Cáo Tuần
                 </button>
             </div>
 
@@ -449,8 +472,11 @@
                 <button id="status-tab-daily-btn" class="py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2">
                     Tiến độ Traffic hàng ngày
                 </button>
-                <button id="status-tab-support-btn" class="py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white">
+                <button id="status-tab-support-btn" class="py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2">
                     Yêu cầu hỗ trợ (4.5)
+                </button>
+                <button id="status-tab-passcodes-btn" class="py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white hidden">
+                    🔑 Quản lý PIN
                 </button>
             </div>
 
@@ -475,6 +501,7 @@
                                 <th class="py-2.5 px-3">Tên Cửa Hàng</th>
                                 <th class="py-2.5 px-3">ASM Quản Lý</th>
                                 <th class="py-2.5 px-3 text-center">Trạng Thế</th>
+                                <th id="th-admin-action" class="py-2.5 px-3 text-center hidden">Hành động</th>
                             </tr>
                         </thead>
                         <tbody id="status-table-body" class="divide-y divide-slate-800"></tbody>
@@ -541,6 +568,49 @@
                     </table>
                 </div>
             </div>
+
+            <!-- ASM Tab 4: Passcode Management (Admin Only) -->
+            <div id="status-tab-passcodes-content" class="hidden bg-slate-800/40 border border-slate-700/50 rounded-b-2xl p-5 shadow-lg space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- ASM PINs -->
+                    <div class="space-y-3">
+                        <h4 class="font-bold text-white text-xs uppercase border-b border-slate-700/60 pb-2">🔑 Mã PIN Quản lý (ASM)</h4>
+                        <div class="overflow-x-auto max-h-[400px]">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="border-b border-slate-700 text-slate-400 font-semibold">
+                                        <th class="py-2.5 px-3">Tên ASM</th>
+                                        <th class="py-2.5 px-3">Mã PIN</th>
+                                        <th class="py-2.5 px-3 text-center">Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-passcodes-asms" class="divide-y divide-slate-800">
+                                    <tr><td colspan="3" class="text-center py-4 text-slate-500">Đang tải...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- Store PINs -->
+                    <div class="space-y-3">
+                        <h4 class="font-bold text-white text-xs uppercase border-b border-slate-700/60 pb-2">🏪 Mã PIN Cửa Hàng (CHT)</h4>
+                        <div class="overflow-x-auto max-h-[400px]">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="border-b border-slate-700 text-slate-400 font-semibold">
+                                        <th class="py-2.5 px-3">Mã CH</th>
+                                        <th class="py-2.5 px-3">Tên Cửa Hàng</th>
+                                        <th class="py-2.5 px-3">Mã PIN</th>
+                                        <th class="py-2.5 px-3 text-center">Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-passcodes-stores" class="divide-y divide-slate-800">
+                                    <tr><td colspan="4" class="text-center py-4 text-slate-500">Đang tải...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </section>
 
     </main>
@@ -561,7 +631,35 @@
             </button>
         </div>
     </div>
-
+    <!-- CHANGE PIN MODAL -->
+    <div id="change-pin-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-800 border border-slate-700 max-w-sm w-full rounded-2xl p-6 shadow-2xl space-y-4">
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                🔑 Thay Đổi Mã PIN Đăng Nhập
+            </h3>
+            <p id="change-pin-subtitle" class="text-xs text-slate-400">Vui lòng điền mã PIN hiện tại và mã PIN mới.</p>
+            
+            <div class="space-y-3">
+                <div id="div-old-pin">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Mã PIN hiện tại</label>
+                    <input id="change-pin-old" type="password" maxlength="8" placeholder="Nhập PIN cũ" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 text-sm focus:outline-none focus:border-gold">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Mã PIN mới (tối thiểu 4 số)</label>
+                    <input id="change-pin-new" type="password" maxlength="8" placeholder="Nhập PIN mới" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 text-sm focus:outline-none focus:border-gold">
+                </div>
+            </div>
+            
+            <div class="flex gap-3 pt-2">
+                <button id="btn-change-pin-cancel" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-2 rounded-xl text-xs transition-all">
+                    Hủy
+                </button>
+                <button id="btn-change-pin-save" class="flex-1 bg-gold hover:bg-gold-dark text-slate-900 font-bold py-2 rounded-xl text-xs transition-all">
+                    Lưu Mã PIN Mới
+                </button>
+            </div>
+        </div>
+    </div>
     <!-- Template for Contract Card (3.1) -->
     <template id="tmpl-contract-card">
         <div class="contract-card bg-slate-900/50 border border-slate-700/60 rounded-xl p-4 relative space-y-3">
@@ -709,6 +807,24 @@
         const inputStoreOnlineBills = document.getElementById('input-store-online-bills');
         const btnLogout = document.getElementById('btn-logout');
         
+        const btnShowChangePin = document.getElementById('btn-show-change-pin');
+        const btnStatusChangePin = document.getElementById('btn-status-change-pin');
+        const changePinModal = document.getElementById('change-pin-modal');
+        const btnChangePinCancel = document.getElementById('btn-change-pin-cancel');
+        const btnChangePinSave = document.getElementById('btn-change-pin-save');
+        const changePinOld = document.getElementById('change-pin-old');
+        const changePinNew = document.getElementById('change-pin-new');
+        const changePinSubtitle = document.getElementById('change-pin-subtitle');
+        const divOldPin = document.getElementById('div-old-pin');
+        
+        const statusTabPasscodesBtn = document.getElementById('status-tab-passcodes-btn');
+        const statusTabPasscodesContent = document.getElementById('status-tab-passcodes-content');
+        const adminControlBar = document.getElementById('admin-control-bar');
+        const adminAsmFilter = document.getElementById('admin-asm-filter');
+        const btnExportExcel = document.getElementById('btn-export-excel');
+        const tablePasscodesAsms = document.getElementById('table-passcodes-asms');
+        const tablePasscodesStores = document.getElementById('table-passcodes-stores');
+        
         const tabWeeklyBtn = document.getElementById('tab-weekly-btn');
         const tabDailyBtn = document.getElementById('tab-daily-btn');
         const tabWeeklyContent = document.getElementById('tab-weekly-content');
@@ -769,6 +885,7 @@
                 const data = await res.json();
                 if (data.ok) {
                     regSelect.innerHTML = '<option value="">-- Chọn Quản lý (ASM) --</option>';
+                    regSelect.innerHTML += '<option value="ADMIN">🔑 [ADMIN - QUẢN TRỊ VIÊN]</option>';
                     data.asms.forEach(asm => {
                         regSelect.innerHTML += `<option value="${asm}">${asm}</option>`;
                     });
@@ -784,6 +901,12 @@
             if (!asm) {
                 storeSelect.innerHTML = '<option value="">-- Chọn ASM trước --</option>';
                 storeSelect.disabled = true;
+                return;
+            }
+            
+            if (asm === 'ADMIN') {
+                storeSelect.innerHTML = '<option value="ADMIN" data-name="Quản Trị Viên (Admin)" data-brand="ADMIN" data-asm="ADMIN">🔑 [Đăng nhập quyền ADMIN]</option>';
+                storeSelect.disabled = false;
                 return;
             }
             
@@ -847,11 +970,25 @@
                     
                     loginSec.classList.add('hidden');
                     
-                    if (currentStore.role === 'asm') {
+                    if (currentStore.role === 'asm' || currentStore.role === 'admin') {
                         lblActiveStore.innerText = currentStore.name;
-                        lblStoreMeta.innerText = `Chức danh: ASM quản lý cụm | Vùng phụ trách: ${currentStore.asm}`;
+                        lblStoreMeta.innerText = currentStore.role === 'admin' ? `Chức danh: Quản Trị Viên (Admin)` : `Chức danh: ASM quản lý cụm | Cụm phụ trách: ${currentStore.asm}`;
                         statusSec.classList.remove('hidden');
                         
+                        const titleEl = document.getElementById('status-dashboard-title');
+                        if (currentStore.role === 'admin') {
+                            titleEl.innerHTML = '📊 Báo Cáo Theo Dõi Dành Cho ADMIN';
+                            document.getElementById('admin-control-bar').classList.remove('hidden');
+                            document.getElementById('admin-asm-filter-container').classList.remove('hidden');
+                            statusTabPasscodesBtn.classList.remove('hidden');
+                            await loadAdminAsmFilter();
+                        } else {
+                            titleEl.innerHTML = '📊 Báo Cáo Theo Dõi Dành Cho ASM';
+                            document.getElementById('admin-control-bar').classList.remove('hidden');
+                            document.getElementById('admin-asm-filter-container').classList.add('hidden');
+                            statusTabPasscodesBtn.classList.add('hidden');
+                        }
+
                         // Init status report dates
                         const today = new Date();
                         const yest = new Date(today);
@@ -1598,6 +1735,32 @@
 
         // Logout
         btnLogout.addEventListener('click', () => {
+            if (currentStore && currentStore.is_impersonated) {
+                // Return to Admin Dashboard
+                const adminPin = currentStore.admin_pin;
+                currentStore = {
+                    code: 'ADMIN',
+                    name: 'Quản Trị Viên (Admin)',
+                    brand: 'ADMIN',
+                    asm: 'ADMIN',
+                    pin: adminPin,
+                    role: 'admin'
+                };
+                
+                formSec.classList.add('hidden');
+                statusSec.classList.remove('hidden');
+                
+                const titleEl = document.getElementById('status-dashboard-title');
+                titleEl.innerHTML = '📊 Báo Cáo Theo Dõi Dành Cho ADMIN';
+                document.getElementById('admin-control-bar').classList.remove('hidden');
+                document.getElementById('admin-asm-filter-container').classList.remove('hidden');
+                statusTabPasscodesBtn.classList.remove('hidden');
+                
+                loadSubmissionStatus();
+                return;
+            }
+            
+            // Standard logout
             localStorage.removeItem('ap_asm');
             localStorage.removeItem('ap_store_code');
             localStorage.removeItem('ap_pin');
@@ -1607,6 +1770,302 @@
             formSec.classList.add('hidden');
             loginSec.classList.remove('hidden');
         });
+
+        // Impersonate store helper
+        window.impersonateStore = async function(storeCode, storeName, asmName) {
+            try {
+                const res = await fetch(`/api/stores?store_code=${storeCode}`);
+                const data = await res.json();
+                if (data.ok && data.store) {
+                    const store = data.store;
+                    const adminPin = currentStore.pin;
+                    
+                    currentStore = {
+                        code: store.store_code,
+                        name: store.store_name,
+                        brand: store.brand,
+                        asm: store.asm_name,
+                        pin: adminPin,
+                        role: 'store',
+                        is_impersonated: true,
+                        admin_pin: adminPin
+                    };
+                    
+                    statusSec.classList.add('hidden');
+                    formSec.classList.remove('hidden');
+                    
+                    lblActiveStore.innerText = currentStore.name;
+                    lblStoreMeta.innerHTML = `<span class="bg-gold text-slate-900 px-2 py-0.5 rounded font-bold mr-2 text-[10px]">ĐANG ĐĂNG NHẬP HỘ BỞI ADMIN</span> Mã: ${currentStore.code} | ASM quản lý: ${currentStore.asm}`;
+                    
+                    await loadWeeklyReportData();
+                }
+            } catch (err) {
+                console.error("Lỗi đăng nhập hộ:", err);
+                showToast("❌ Lỗi", "Không thể thiết lập phiên đăng nhập hộ.", "❌");
+            }
+        };
+
+        // Admin ASM filter listener
+        adminAsmFilter.addEventListener('change', () => {
+            loadSubmissionStatus();
+            if (!statusTabDailyContent.classList.contains('hidden')) {
+                loadDailyTrafficSummary();
+            }
+        });
+
+        // Excel Export listener
+        btnExportExcel.addEventListener('click', () => {
+            const dateVal = statusReportDate.value;
+            if (!dateVal) {
+                showToast("⚠️ Cảnh báo", "Vui lòng chọn ngày báo cáo cần xuất.", "⚠️");
+                return;
+            }
+            
+            let asmVal = '';
+            if (currentStore.role === 'asm') {
+                asmVal = currentStore.asm;
+            } else if (currentStore.role === 'admin') {
+                asmVal = adminAsmFilter.value;
+            }
+            
+            const role = currentStore.role;
+            const pin = currentStore.pin;
+            
+            // Redirect browser to download the file directly
+            window.location.href = `/api/export_excel?report_date=${dateVal}&asm=${encodeURIComponent(asmVal)}&role=${role}&pin=${pin}`;
+        });
+
+        // Passcode modal listeners
+        btnShowChangePin.addEventListener('click', () => {
+            changePinModal.classList.remove('hidden');
+            changePinSubtitle.innerText = `Đổi mã PIN đăng nhập cho cửa hàng ${currentStore.code}.`;
+            divOldPin.classList.remove('hidden');
+            changePinOld.value = '';
+            changePinNew.value = '';
+            
+            changePinModal.dataset.userType = 'store';
+            changePinModal.dataset.userId = currentStore.code;
+            changePinModal.dataset.mode = 'self';
+        });
+
+        btnStatusChangePin.addEventListener('click', () => {
+            changePinModal.classList.remove('hidden');
+            changePinSubtitle.innerText = `Đổi mã PIN đăng nhập cho ASM ${currentStore.role === 'admin' ? 'ADMIN' : currentStore.asm}.`;
+            divOldPin.classList.remove('hidden');
+            changePinOld.value = '';
+            changePinNew.value = '';
+            
+            changePinModal.dataset.userType = currentStore.role === 'admin' ? 'admin' : 'asm';
+            changePinModal.dataset.userId = currentStore.role === 'admin' ? 'ADMIN' : currentStore.asm;
+            changePinModal.dataset.mode = 'self';
+        });
+
+        btnChangePinCancel.addEventListener('click', () => {
+            changePinModal.classList.add('hidden');
+        });
+
+        btnChangePinSave.addEventListener('click', async () => {
+            const userType = changePinModal.dataset.userType;
+            const userId = changePinModal.dataset.userId;
+            const mode = changePinModal.dataset.mode;
+            
+            const newPin = changePinNew.value.trim();
+            const oldPin = changePinOld.value.trim();
+            
+            if (newPin.length < 4) {
+                showToast("⚠️ Cảnh báo", "Mã PIN mới phải từ 4 ký tự trở lên.", "⚠️");
+                return;
+            }
+            
+            if (mode === 'self' && !oldPin) {
+                showToast("⚠️ Cảnh báo", "Vui lòng nhập mã PIN hiện tại để xác thực.", "⚠️");
+                return;
+            }
+            
+            if (userType === 'admin') {
+                showToast("⚠️ Cảnh báo", "Mã PIN của ADMIN chỉ được đổi qua cấu hình máy chủ (MASTER_PIN).", "⚠️");
+                return;
+            }
+            
+            const payload = {
+                user_type: userType,
+                user_id: userId,
+                new_pin: newPin
+            };
+            
+            if (mode === 'admin') {
+                payload.admin_pin = currentStore.pin;
+            } else {
+                payload.old_pin = oldPin;
+            }
+            
+            try {
+                const res = await fetch('/api/update_passcode', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                
+                if (data.ok) {
+                    showToast("✅ Thành Công", data.message, "✅");
+                    changePinModal.classList.add('hidden');
+                    
+                    if (mode === 'self') {
+                        currentStore.pin = newPin;
+                        localStorage.setItem('ap_pin', newPin);
+                    }
+                    
+                    if (mode === 'admin') {
+                        loadPasscodes();
+                    }
+                } else {
+                    showToast("❌ Thất bại", data.error || "Không thể cập nhật mã PIN.", "❌");
+                }
+            } catch (err) {
+                showToast("❌ Lỗi kết nối", "Không thể gửi yêu cầu đến máy chủ.", "❌");
+            }
+        });
+
+        // Window function for admin change PIN
+        window.showChangePinModalAdmin = function(userType, userId) {
+            changePinModal.classList.remove('hidden');
+            changePinSubtitle.innerText = `Đặt mật khẩu mới cho ${userType === 'asm' ? 'ASM' : 'cửa hàng'} ${userId}.`;
+            divOldPin.classList.add('hidden');
+            changePinNew.value = '';
+            
+            changePinModal.dataset.userType = userType;
+            changePinModal.dataset.userId = userId;
+            changePinModal.dataset.mode = 'admin';
+        };
+
+        // Admin filters load function
+        async function loadAdminAsmFilter() {
+            try {
+                const res = await fetch('/api/asms');
+                const data = await res.json();
+                const filterSel = document.getElementById('admin-asm-filter');
+                filterSel.innerHTML = '<option value="">-- Tất cả ASM --</option>';
+                if (data.ok) {
+                    data.asms.forEach(asm => {
+                        filterSel.innerHTML += `<option value="${asm}">${asm}</option>`;
+                    });
+                }
+            } catch (err) {
+                console.error("Lỗi tải filter ASM:", err);
+            }
+        }
+
+        // Passcodes load function
+        async function loadPasscodes() {
+            tablePasscodesAsms.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-slate-500">Đang tải...</td></tr>';
+            tablePasscodesStores.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-slate-500">Đang tải...</td></tr>';
+            try {
+                const res = await fetch(`/api/get_all_passcodes?admin_pin=${currentStore.pin}`);
+                const data = await res.json();
+                if (data.ok) {
+                    tablePasscodesAsms.innerHTML = '';
+                    data.asms.forEach(asm => {
+                        tablePasscodesAsms.innerHTML += `
+                            <tr class="border-b border-slate-800/80 hover:bg-slate-700/10">
+                                <td class="py-3 px-3 text-slate-300 font-bold">${asm.asm_name}</td>
+                                <td class="py-3 px-3 font-mono text-gold font-semibold">${asm.passcode}</td>
+                                <td class="py-3 px-3 text-center">
+                                    <button class="bg-gold/20 hover:bg-gold/30 text-gold text-[10px] font-bold px-2.5 py-1.5 rounded-lg border border-gold/30 active:scale-95 transition-all"
+                                        onclick="showChangePinModalAdmin('asm', '${asm.asm_name}')">
+                                        ✏️ Sửa PIN
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    
+                    tablePasscodesStores.innerHTML = '';
+                    data.stores.forEach(s => {
+                        tablePasscodesStores.innerHTML += `
+                            <tr class="border-b border-slate-800/80 hover:bg-slate-700/10">
+                                <td class="py-3 px-3 text-slate-300 font-mono font-bold">${s.store_code}</td>
+                                <td class="py-3 px-3 text-slate-400">${s.store_name}</td>
+                                <td class="py-3 px-3 font-mono text-gold font-semibold">${s.passcode || '1234'}</td>
+                                <td class="py-3 px-3 text-center">
+                                    <button class="bg-gold/20 hover:bg-gold/30 text-gold text-[10px] font-bold px-2.5 py-1.5 rounded-lg border border-gold/30 active:scale-95 transition-all"
+                                        onclick="showChangePinModalAdmin('store', '${s.store_code}')">
+                                        ✏️ Sửa PIN
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    showToast("❌ Lỗi tải PIN", data.error || "Không có quyền truy cập", "❌");
+                }
+            } catch (err) {
+                console.error("Lỗi load PIN:", err);
+            }
+        }
+
+        statusTabWeeklyBtn.addEventListener('click', () => {
+            statusTabWeeklyBtn.className = "py-2.5 px-4 font-bold text-xs border-b-2 border-gold text-gold mr-2";
+            statusTabDailyBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
+            statusTabSupportBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
+            statusTabPasscodesBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white hidden";
+            if (currentStore && currentStore.role === 'admin') {
+                statusTabPasscodesBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
+            }
+            statusTabWeeklyContent.classList.remove('hidden');
+            statusTabDailyContent.classList.add('hidden');
+            statusTabSupportContent.classList.add('hidden');
+            statusTabPasscodesContent.classList.add('hidden');
+        });
+
+        statusTabDailyBtn.addEventListener('click', async () => {
+            statusTabDailyBtn.className = "py-2.5 px-4 font-bold text-xs border-b-2 border-gold text-gold mr-2";
+            statusTabWeeklyBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
+            statusTabSupportBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
+            statusTabPasscodesBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white hidden";
+            if (currentStore && currentStore.role === 'admin') {
+                statusTabPasscodesBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
+            }
+            statusTabDailyContent.classList.remove('hidden');
+            statusTabWeeklyContent.classList.add('hidden');
+            statusTabSupportContent.classList.add('hidden');
+            statusTabPasscodesContent.classList.add('hidden');
+
+            await loadDailyTrafficSummary();
+        });
+
+        statusTabSupportBtn.addEventListener('click', async () => {
+            statusTabSupportBtn.className = "py-2.5 px-4 font-bold text-xs border-b-2 border-gold text-gold mr-2";
+            statusTabWeeklyBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
+            statusTabDailyBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
+            statusTabPasscodesBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white hidden";
+            if (currentStore && currentStore.role === 'admin') {
+                statusTabPasscodesBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
+            }
+            statusTabSupportContent.classList.remove('hidden');
+            statusTabWeeklyContent.classList.add('hidden');
+            statusTabDailyContent.classList.add('hidden');
+            statusTabPasscodesContent.classList.add('hidden');
+
+            await loadSupportRequests();
+        });
+
+        statusTabPasscodesBtn.addEventListener('click', async () => {
+            statusTabPasscodesBtn.className = "py-2.5 px-4 font-bold text-xs border-b-2 border-gold text-gold mr-2";
+            statusTabWeeklyBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
+            statusTabDailyBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
+            statusTabSupportBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
+            statusTabPasscodesContent.classList.remove('hidden');
+            statusTabWeeklyContent.classList.add('hidden');
+            statusTabDailyContent.classList.add('hidden');
+            statusTabSupportContent.classList.add('hidden');
+
+            await loadPasscodes();
+        });
+
+        statusReportDate.addEventListener('change', loadSubmissionStatus);
+        statusSupportReportDate.addEventListener('change', loadSupportRequests);
+        btnRefreshTrafficStatus.addEventListener('click', loadDailyTrafficSummary);
 
         function showToast(title, message, icon) {
             toastTitle.innerText = title;
@@ -1642,8 +2101,8 @@
 
         btnStatusBack.addEventListener('click', () => {
             statusSec.classList.add('hidden');
-            if (currentStore && currentStore.role === 'asm') {
-                // ASM Logout
+            if (currentStore && (currentStore.role === 'asm' || currentStore.role === 'admin')) {
+                // ASM/Admin Logout
                 localStorage.removeItem('ap_asm');
                 localStorage.removeItem('ap_store_code');
                 localStorage.removeItem('ap_pin');
@@ -1700,8 +2159,15 @@
             
             try {
                 let url = `/api/submission_status?report_date=${dateVal}`;
-                if (currentStore && currentStore.role === 'asm') {
-                    url += `&asm=${encodeURIComponent(currentStore.asm)}`;
+                if (currentStore) {
+                    if (currentStore.role === 'asm') {
+                        url += `&asm=${encodeURIComponent(currentStore.asm)}`;
+                    } else if (currentStore.role === 'admin') {
+                        const filterAsmVal = adminAsmFilter.value;
+                        if (filterAsmVal) {
+                            url += `&asm=${encodeURIComponent(filterAsmVal)}`;
+                        }
+                    }
                 }
                 const res = await fetch(url);
                 const data = await res.json();
@@ -1711,6 +2177,14 @@
                     let subCount = 0;
                     let pendCount = 0;
                     
+                    const isAdmin = currentStore && currentStore.role === 'admin';
+                    const thAction = document.getElementById('th-admin-action');
+                    if (isAdmin) {
+                        thAction.classList.remove('hidden');
+                    } else {
+                        thAction.classList.add('hidden');
+                    }
+                    
                     data.status.forEach(s => {
                         const statusBadge = s.submitted 
                             ? '<span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-500 rounded-full font-bold border border-emerald-500/20">ĐÃ NỘP</span>' 
@@ -1719,12 +2193,25 @@
                         if (s.submitted) subCount++; else pendCount++;
                         if (s.store_code === 'BGD') return;
 
+                        let actionTd = '';
+                        if (isAdmin) {
+                            actionTd = `
+                                <td class="py-3 px-3 text-center">
+                                    <button class="bg-gold/20 hover:bg-gold/30 text-gold text-[10px] font-bold px-2.5 py-1.5 rounded-lg border border-gold/30 active:scale-95 transition-all"
+                                        onclick="impersonateStore('${s.store_code}', '${s.store_name}', '${s.asm_name}')">
+                                        ✍️ Nhập Hộ
+                                    </button>
+                                </td>
+                            `;
+                        }
+
                         statusTableBody.innerHTML += `
                             <tr class="hover:bg-slate-800/30 transition-colors">
                                 <td class="py-3 px-3 text-slate-400 font-medium">${s.region}</td>
                                 <td class="py-3 px-3 text-white font-semibold">${s.store_name}</td>
                                 <td class="py-3 px-3 text-slate-300">${s.asm_name}</td>
                                 <td class="py-3 px-3 text-center">${statusBadge}</td>
+                                ${actionTd}
                             </tr>
                         `;
                     });
@@ -1738,7 +2225,14 @@
 
         // ASM Tab 2 load
         async function loadDailyTrafficSummary() {
-            const asm = regSelect.value || "Tiên"; // Fallback to Tiên if no ASM selected
+            let asm = '';
+            if (currentStore) {
+                if (currentStore.role === 'asm') {
+                    asm = currentStore.asm;
+                } else if (currentStore.role === 'admin') {
+                    asm = adminAsmFilter.value;
+                }
+            }
             const start = statusTrafficStart.value;
             const end = statusTrafficEnd.value;
             

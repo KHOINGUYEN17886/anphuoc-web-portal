@@ -1,14 +1,17 @@
 import os
 import calendar
 from datetime import date, datetime, timedelta
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_file
 import sqlite3
 import threading
 import urllib.request
+import urllib.parse
 import json
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import io
+import pandas as pd
 
 # Import psycopg2 for PostgreSQL if on cloud
 try:
@@ -70,10 +73,13 @@ def query_db(query, args=(), one=False):
     conn.close()
     return (rv[0] if rv else None) if one else rv
 
-# Get reporting date (Friday of the current week)
+# Get reporting date (Friday of the current week or previous week if early in the week)
 def get_report_date():
     today = date.today()
-    offset = 4 - today.weekday()
+    if today.weekday() >= 4: # Friday (4), Saturday (5), Sunday (6)
+        offset = 4 - today.weekday()
+    else: # Monday (0), Tuesday (1), Wednesday (2), Thursday (3)
+        offset = -3 - today.weekday()
     return today + timedelta(days=offset)
 
 def async_sync_and_alert(store_code, report_date, support_requests):
@@ -210,10 +216,16 @@ def get_asms():
 @app.route('/api/stores', methods=['GET'])
 def get_stores():
     asm = request.args.get('asm')
-    if not asm:
-        return jsonify({'ok': False, 'error': 'ASM is required'})
+    store_code = request.args.get('store_code')
     try:
-        rows = query_db("SELECT store_code, store_name, brand, asm_name FROM tb_stores WHERE asm_name = ? ORDER BY store_name", (asm,))
+        if store_code:
+            row = query_db("SELECT store_code, store_name, brand, asm_name FROM tb_stores WHERE store_code = ?", (store_code,), one=True)
+            return jsonify({'ok': True, 'store': row})
+        
+        if not asm or asm == 'all' or asm == 'ADMIN':
+            rows = query_db("SELECT store_code, store_name, brand, asm_name FROM tb_stores ORDER BY store_name")
+        else:
+            rows = query_db("SELECT store_code, store_name, brand, asm_name FROM tb_stores WHERE asm_name = ? ORDER BY store_name", (asm,))
         return jsonify({'ok': True, 'stores': rows})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
@@ -227,12 +239,24 @@ def validate_pin():
     if not store_code or not pin:
         return jsonify({'ok': False, 'error': 'Missing store_code or pin'})
     
+    # Handle Admin validation
+    if store_code == 'ADMIN':
+        master_pin = os.environ.get('MASTER_PIN', '8888')
+        if pin == master_pin:
+            return jsonify({'ok': True, 'valid': True, 'role': 'admin'})
+        return jsonify({'ok': True, 'valid': False, 'error': 'Mã PIN ADMIN không đúng'})
+        
     # Handle ASM validation
     if store_code.startswith("ASM_"):
         asm_name = store_code[4:]
-        if pin == '9999':
-            return jsonify({'ok': True, 'valid': True, 'role': 'asm', 'asm_name': asm_name})
-        return jsonify({'ok': True, 'valid': False, 'error': 'Mã PIN ASM không đúng'})
+        try:
+            asm = query_db("SELECT * FROM tb_asms WHERE asm_name = ?", (asm_name,), one=True)
+            valid_pin = asm['passcode'] if asm else '9999'
+            if pin == valid_pin:
+                return jsonify({'ok': True, 'valid': True, 'role': 'asm', 'asm_name': asm_name})
+            return jsonify({'ok': True, 'valid': False, 'error': 'Mã PIN ASM không đúng'})
+        except Exception as e:
+            return jsonify({'ok': False, 'error': str(e)})
     
     try:
         store = query_db("SELECT * FROM tb_stores WHERE store_code = ? AND passcode = ?", (store_code, pin), one=True)
@@ -295,9 +319,11 @@ def submit_daily_traffic():
         
     try:
         # Validate PIN
-        store = query_db("SELECT * FROM tb_stores WHERE store_code = ? AND passcode = ?", (store_code, pin), one=True)
-        if not store and pin != '1234':
-            return jsonify({'ok': False, 'error': 'Mã PIN không đúng'})
+        master_pin = os.environ.get('MASTER_PIN', '8888')
+        if pin != master_pin:
+            store = query_db("SELECT * FROM tb_stores WHERE store_code = ? AND passcode = ?", (store_code, pin), one=True)
+            if not store and pin != '1234':
+                return jsonify({'ok': False, 'error': 'Mã PIN không đúng'})
             
         # Upsert each day
         for date_str, day_data in traffic_data.items():
@@ -411,9 +437,11 @@ def submit_data():
         
     try:
         # 1. Validate PIN
-        store = query_db("SELECT * FROM tb_stores WHERE store_code = ? AND passcode = ?", (store_code, pin), one=True)
-        if not store and pin != '1234':
-            return jsonify({'ok': False, 'error': 'Mã PIN không hợp lệ'})
+        master_pin = os.environ.get('MASTER_PIN', '8888')
+        if pin != master_pin:
+            store = query_db("SELECT * FROM tb_stores WHERE store_code = ? AND passcode = ?", (store_code, pin), one=True)
+            if not store and pin != '1234':
+                return jsonify({'ok': False, 'error': 'Mã PIN không hợp lệ'})
             
         # 2. Save Traffic (Save for report_date as daily record)
         if traffic_val is not None and str(traffic_val).strip() != '':
@@ -637,7 +665,7 @@ def get_asm_traffic_summary():
     start_date_str = request.args.get('start_date')
     end_date_str = request.args.get('end_date')
     
-    if not asm or not start_date_str or not end_date_str:
+    if not start_date_str or not end_date_str:
         return jsonify({'ok': False, 'error': 'Thiếu tham số bắt buộc'})
         
     try:
@@ -653,8 +681,11 @@ def get_asm_traffic_summary():
         delta = end_date - start_date
         all_dates = [(start_date + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(delta.days + 1)]
         
-        # Get all stores for this ASM
-        stores = query_db("SELECT store_code, store_name FROM tb_stores WHERE asm_name = ? ORDER BY store_name", (asm,))
+        # Get all stores for this ASM or all stores
+        if asm and asm != 'ALL' and asm != 'undefined' and asm != '':
+            stores = query_db("SELECT store_code, store_name FROM tb_stores WHERE asm_name = ? ORDER BY store_name", (asm,))
+        else:
+            stores = query_db("SELECT store_code, store_name FROM tb_stores ORDER BY store_name")
         
         # Get all traffic entries in range
         rows = query_db("""
@@ -692,6 +723,291 @@ def get_asm_traffic_summary():
         return jsonify({'ok': True, 'summary': results})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
+
+@app.route('/api/get_all_passcodes', methods=['GET'])
+def get_all_passcodes():
+    admin_pin = request.args.get('admin_pin')
+    master_pin = os.environ.get('MASTER_PIN', '8888')
+    if admin_pin != master_pin:
+        return jsonify({'ok': False, 'error': 'Không có quyền truy cập'}), 401
+        
+    try:
+        asms = query_db("SELECT asm_name, passcode FROM tb_asms ORDER BY asm_name")
+        stores = query_db("SELECT store_code, store_name, asm_name, passcode FROM tb_stores ORDER BY store_code")
+        return jsonify({'ok': True, 'asms': asms, 'stores': stores})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)})
+
+@app.route('/api/update_passcode', methods=['POST'])
+def update_passcode():
+    data = request.json or {}
+    user_type = data.get('user_type') # 'store' or 'asm'
+    user_id = data.get('user_id') # store_code or asm_name
+    new_pin = data.get('new_pin')
+    old_pin = data.get('old_pin')
+    admin_pin = data.get('admin_pin')
+    
+    if not user_type or not user_id or not new_pin:
+        return jsonify({'ok': False, 'error': 'Thiếu tham số bắt buộc'})
+        
+    new_pin = str(new_pin).strip()
+    if len(new_pin) < 4:
+        return jsonify({'ok': False, 'error': 'Mã PIN phải có ít nhất 4 ký tự'})
+        
+    master_pin = os.environ.get('MASTER_PIN', '8888')
+    is_admin = (admin_pin == master_pin)
+    
+    try:
+        if user_type == 'asm':
+            # Check authorization if not admin
+            if not is_admin:
+                asm = query_db("SELECT * FROM tb_asms WHERE asm_name = ? AND passcode = ?", (user_id, old_pin), one=True)
+                if not asm:
+                    return jsonify({'ok': False, 'error': 'Mật khẩu cũ không chính xác'})
+            
+            # Update
+            execute_db("UPDATE tb_asms SET passcode = ? WHERE asm_name = ?", (new_pin, user_id))
+            return jsonify({'ok': True, 'message': 'Đã đổi mã PIN ASM thành công!'})
+            
+        elif user_type == 'store':
+            # Check authorization if not admin
+            if not is_admin:
+                store = query_db("SELECT * FROM tb_stores WHERE store_code = ? AND passcode = ?", (user_id, old_pin), one=True)
+                # Fallback default PIN
+                if not store and old_pin == '1234':
+                    store_exists = query_db("SELECT * FROM tb_stores WHERE store_code = ?", (user_id,), one=True)
+                    if store_exists:
+                        store = store_exists
+                if not store:
+                    return jsonify({'ok': False, 'error': 'Mật khẩu cũ không chính xác'})
+            
+            # Update
+            execute_db("UPDATE tb_stores SET passcode = ? WHERE store_code = ?", (new_pin, user_id))
+            return jsonify({'ok': True, 'message': 'Đã đổi mã PIN cửa hàng thành công!'})
+            
+        else:
+            return jsonify({'ok': False, 'error': 'Loại người dùng không hợp lệ'})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)})
+
+@app.route('/api/export_excel', methods=['GET'])
+def export_excel():
+    report_date = request.args.get('report_date')
+    asm = request.args.get('asm')
+    role = request.args.get('role') # 'asm' or 'admin'
+    pin = request.args.get('pin')
+    
+    if not report_date:
+        return "Thiếu ngày báo cáo", 400
+        
+    master_pin = os.environ.get('MASTER_PIN', '8888')
+    # Validate authorization
+    is_authorized = False
+    if role == 'admin' and pin == master_pin:
+        is_authorized = True
+    elif role == 'asm':
+        # Verify ASM PIN
+        asm_record = query_db("SELECT * FROM tb_asms WHERE asm_name = ? AND passcode = ?", (asm, pin), one=True)
+        if asm_record:
+            is_authorized = True
+            
+    if not is_authorized:
+        return "Không có quyền xuất báo cáo", 401
+        
+    try:
+        # Build query filters based on role and ASM
+        # Admin can view all or filter by ASM. ASM can only view their own stores.
+        filter_asm = None
+        if role == 'asm':
+            filter_asm = asm
+        elif role == 'admin' and asm:
+            filter_asm = asm
+            
+        # 1. Fetch data
+        if filter_asm:
+            stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores WHERE asm_name = ? ORDER BY store_code", (filter_asm,))
+        else:
+            stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores ORDER BY store_code")
+            
+        store_codes = [s['store_code'] for s in stores]
+        if not store_codes:
+            return "Không tìm thấy dữ liệu cửa hàng", 404
+            
+        placeholders = ",".join(["?"] * len(store_codes))
+        
+        # Load Traffic (matching report_date week Friday)
+        # We also get Company & Store Online Bills
+        traffic_rows = query_db(f"""
+            SELECT store_code, traffic_date, traffic_val, bills_val, company_online_bills, store_online_bills 
+            FROM tb_traffic 
+            WHERE traffic_date = ? AND store_code IN ({placeholders})
+        """, [report_date] + store_codes)
+        
+        # Load Contracts
+        contract_rows = query_db(f"""
+            SELECT store_code, contract_value, product_category, quantity, deposit_paid, installment_2, status, reason 
+            FROM tb_contracts 
+            WHERE report_date = ? AND store_code IN ({placeholders})
+        """, [report_date] + store_codes)
+        
+        # Load Unsigned
+        unsigned_rows = query_db(f"""
+            SELECT store_code, prev_year_value, expected_signing_time, product_category, quantity, status, reason 
+            FROM tb_unsigned_contracts 
+            WHERE report_date = ? AND store_code IN ({placeholders})
+        """, [report_date] + store_codes)
+        
+        # Load Details
+        detail_rows = query_db(f"""
+            SELECT * FROM tb_operational_details 
+            WHERE report_date = ? AND store_code IN ({placeholders})
+        """, [report_date] + store_codes)
+        
+        # Load Support Requests
+        support_rows = query_db(f"""
+            SELECT store_code, category, priority, issue_item, deadline, person_in_charge 
+            FROM tb_support_requests 
+            WHERE report_date = ? AND store_code IN ({placeholders})
+        """, [report_date] + store_codes)
+        
+        # Map stores for easy metadata resolution
+        store_map = {s['store_code']: s for s in stores}
+        
+        # 2. Process dataframes using pandas
+        # Sheet 1: Traffic & CR
+        traffic_data = []
+        traffic_dict = {t['store_code']: t for t in traffic_rows}
+        for code, s in store_map.items():
+            t = traffic_dict.get(code, {})
+            trf_val = t.get('traffic_val', 0)
+            bil_val = t.get('bills_val', 0)
+            co_val = t.get('company_online_bills', 0)
+            so_val = t.get('store_online_bills', 0)
+            
+            bill_for_cr = bil_val - co_val
+            cr = (bill_for_cr / trf_val * 100) if trf_val > 0 else 0
+            
+            traffic_data.append({
+                'Mã Cửa Hàng': code,
+                'Tên Cửa Hàng': s['store_name'],
+                'Khu Vực': s['region'],
+                'ASM Quản Lý': s['asm_name'],
+                'Traffic (Lượt Khách)': trf_val if 'traffic_val' in t else 'Chưa nộp',
+                'Số Bill Bán Lẻ': bil_val if 'bills_val' in t else 'Chưa nộp',
+                'Bill Online Công Ty': co_val if 'company_online_bills' in t else 0,
+                'Bill Online Cửa Hàng': so_val if 'store_online_bills' in t else 0,
+                'Tỷ Lệ CR tại quầy (%)': f"{cr:.1f}%" if 'traffic_val' in t else 'N/A'
+            })
+        df_traffic = pd.DataFrame(traffic_data)
+        
+        # Sheet 2: Contracts 3.1
+        contracts_data = []
+        for c in contract_rows:
+            s = store_map.get(c['store_code'], {})
+            contracts_data.append({
+                'Mã Cửa Hàng': c['store_code'],
+                'Tên Cửa Hàng': s.get('store_name', ''),
+                'Khu Vực': s.get('region', ''),
+                'Giá Trị HĐ (Tr.đ)': c['contract_value'],
+                'Chủng Loại': c['product_category'],
+                'Số Lượng': c['quantity'],
+                'Số Tiền Đã Cọc': c['deposit_paid'],
+                'Số Tiền Đợt 2': c['installment_2'],
+                'Trạng Thái': c['status'],
+                'Lý Do / Chi Tiết': c['reason']
+            })
+        df_contracts = pd.DataFrame(contracts_data) if contracts_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'Khu Vực', 'Giá Trị HĐ (Tr.đ)', 'Chủng Loại', 'Số Lượng', 'Số Tiền Đã Cọc', 'Số Tiền Đợt 2', 'Trạng Thái', 'Lý Do / Chi Tiết'])
+        
+        # Sheet 3: Unsigned Contracts 3.2
+        unsigned_data = []
+        for u in unsigned_rows:
+            s = store_map.get(u['store_code'], {})
+            unsigned_data.append({
+                'Mã Cửa Hàng': u['store_code'],
+                'Tên Cửa Hàng': s.get('store_name', ''),
+                'Khu Vực': s.get('region', ''),
+                'Giá Trị Năm Ngoái (Tr.đ)': u['prev_year_value'],
+                'Thời Gian Dự Kiến Ký': u['expected_signing_time'],
+                'Chủng Loại': u['product_category'],
+                'Số Lượng': u['quantity'],
+                'Trạng Thái': u['status'],
+                'Lý Do / Chi Tiết': u['reason']
+            })
+        df_unsigned = pd.DataFrame(unsigned_data) if unsigned_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'Khu Vực', 'Giá Trị Năm Ngoái (Tr.đ)', 'Thời Gian Dự Kiến Ký', 'Chủng Loại', 'Số Lượng', 'Trạng thái', 'Lý Do / Chi Tiết'])
+        
+        # Sheet 4: Operational Details 4.1-4.4
+        details_data = []
+        for d in detail_rows:
+            s = store_map.get(d['store_code'], {})
+            details_data.append({
+                'Mã Cửa Hàng': d['store_code'],
+                'Tên Cửa Hàng': s.get('store_name', ''),
+                'Khu Vực': s.get('region', ''),
+                'Mở Cửa / Đóng Cửa': d['op_open_close_status'],
+                'Ghi Chú Mở/Đóng': d['op_open_close_note'],
+                'Đồng Phục & Diện Mạo': d['op_uniform_status'],
+                'Ghi Chú Đồng Phục': d['op_uniform_note'],
+                'Chào Hỏi Khách Hàng': d['op_greet_status'],
+                'Ghi Chú Chào Hỏi': d['op_greet_note'],
+                'Ý Kiến Phản Hồi Khách': d['op_feedback_status'],
+                'Ghi Chú Phản Hồi': d['op_feedback_note'],
+                'Vấn Đề Vận Hành Khác': d['op_other_status'],
+                'Ghi Chú Vấn Đề Khác': d['op_other_note'],
+                'Chỉ Tiêu Nhân Sự': d['hr_target'],
+                'Thực Tế Nhân Sự': d['hr_actual'],
+                'Bảo Vệ Ca Trực': d['hr_guard'],
+                'Nghỉ Việc/Tuyển Dụng': d['hr_resigned_note'],
+                'Nghỉ Phép/Ối/Đau': d['hr_leave_note'],
+                'Tự Ý Nghỉ Việc': d['hr_absent_note'],
+                'Phản Hồi Tồn Kho': d['inv_stock_status'],
+                'Hàng Thiếu/Đứt Size': d['inv_info_goods'],
+                'Hàng Trả Kho': d['inv_return_warehouse'],
+                'Đề Xuất/Kiến Nghị': d['inv_proposal']
+            })
+        df_details = pd.DataFrame(details_data) if details_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'Khu Vực'])
+        
+        # Sheet 5: Support Requests 4.5
+        support_data = []
+        for sp in support_rows:
+            s = store_map.get(sp['store_code'], {})
+            support_data.append({
+                'Mã Cửa Hàng': sp['store_code'],
+                'Tên Cửa Hàng': s.get('store_name', ''),
+                'Khu Vực': s.get('region', ''),
+                'Danh Mục Hỗ Trợ': sp['category'],
+                'Độ Ưu Tiên': sp['priority'],
+                'Nội Dung Sự Việc Cụ Thể': sp['issue_item'],
+                'Thời Hạn Hoàn Thành': sp['deadline'],
+                'Người Chịu Trách Nhiệm': sp['person_in_charge']
+            })
+        df_support = pd.DataFrame(support_data) if support_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'Khu Vực', 'Danh Mục Hỗ Trợ', 'Độ Ưu Tiên', 'Nội Dung Sự Việc Cụ Thể', 'Thời Hạn Hoàn Thành', 'Người Chịu Trách Nhiệm'])
+        
+        # 3. Create Excel File in memory
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df_traffic.to_excel(writer, sheet_name='Traffic & CR', index=False)
+            df_contracts.to_excel(writer, sheet_name='HĐ Đang Đàm Phán 3.1', index=False)
+            df_unsigned.to_excel(writer, sheet_name='HĐ Chưa Ký 3.2', index=False)
+            df_details.to_excel(writer, sheet_name='Chi Tiết Vận Hành 4', index=False)
+            df_support.to_excel(writer, sheet_name='Yêu Cầu Hỗ Trợ 4.5', index=False)
+            
+        output.seek(0)
+        
+        # Format filename
+        filename = f"BaoCao_RetailCommander_{report_date}.xlsx"
+        if filter_asm:
+            filename = f"BaoCao_RetailCommander_{filter_asm}_{report_date}.xlsx"
+            
+        encoded_filename = urllib.parse.quote(filename)
+        
+        return send_file(
+            output,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            as_attachment=True,
+            download_name=filename
+        )
+    except Exception as e:
+        return f"Lỗi xuất file Excel: {str(e)}", 500
 
 if __name__ == '__main__':
     # Default port 8080

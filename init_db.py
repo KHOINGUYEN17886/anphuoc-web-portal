@@ -51,6 +51,14 @@ CREATE TABLE IF NOT EXISTS tb_stores (
 )
 """)
 
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS tb_asms (
+    asm_name TEXT PRIMARY KEY,
+    passcode TEXT DEFAULT '9999',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+""")
+
 # Note: tb_traffic is now DAILY. report_date is renamed/treated as traffic_date.
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS tb_traffic (
@@ -221,6 +229,27 @@ if os.path.exists(stores_info_path):
         except Exception as e:
             print(f"Error inserting {code}: {e}")
             
+    conn.commit()
+    
+    # Extract unique ASMs and seed tb_asms
+    unique_asms = set(item['asm_name'] for item in new_pins_list if item['asm_name'])
+    for asm_name in unique_asms:
+        if asm_name in ('Chưa gán', 'Khác', 'nan'):
+            continue
+        try:
+            if is_postgres:
+                cursor.execute("""
+                INSERT INTO tb_asms (asm_name, passcode)
+                VALUES (%s, %s)
+                ON CONFLICT (asm_name) DO NOTHING
+                """, (asm_name, '9999'))
+            else:
+                cursor.execute("""
+                INSERT OR IGNORE INTO tb_asms (asm_name, passcode)
+                VALUES (?, ?)
+                """, (asm_name, '9999'))
+        except Exception as e:
+            print(f"Error seeding ASM {asm_name}: {e}")
     conn.commit()
     
     # Save PINs spreadsheet
