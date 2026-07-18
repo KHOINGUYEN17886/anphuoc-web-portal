@@ -903,6 +903,118 @@ def style_sheet(ws, title, subtitle, date_range_str, role_str):
             max_len = max(max_len, len(str(header_val)))
         ws.column_dimensions[col_letter].width = max(max_len + 3, 11)
 
+def style_input_traffic_sheet(ws):
+    ws.views.sheetView[0].showGridLines = True
+    
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+    
+    red_fill = PatternFill(start_color="C00000", end_color="C00000", fill_type="solid")
+    peach_fill = PatternFill(start_color="FCE4D6", end_color="FCE4D6", fill_type="solid")
+    gray_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
+    header_fill = PatternFill(start_color="1F4E79", end_color="1F4E79", fill_type="solid")
+    zebra_fill = PatternFill(start_color="F2F4F7", end_color="F2F4F7", fill_type="solid")
+    white_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
+    
+    white_font = Font(name="Segoe UI", size=10, bold=True, color="FFFFFF")
+    red_bold_font = Font(name="Segoe UI", size=12, bold=True, color="C00000")
+    bold_font = Font(name="Segoe UI", size=10, bold=True)
+    normal_font = Font(name="Segoe UI", size=10)
+    italic_gray_font = Font(name="Segoe UI", size=10, italic=True, color="7F7F7F")
+    
+    thin_border = Border(
+        left=Side(style='thin', color='D3D3D3'),
+        right=Side(style='thin', color='D3D3D3'),
+        top=Side(style='thin', color='D3D3D3'),
+        bottom=Side(style='thin', color='D3D3D3')
+    )
+    
+    # --- Row 1 ---
+    cell_a1 = ws.cell(row=1, column=1)
+    cell_a1.value = "Nhập đúng tên CH trên file M\n(chỉ thêm đúng CH mình quản lý)"
+    cell_a1.font = Font(name="Segoe UI", size=9, bold=True, color="FFFFFF")
+    cell_a1.fill = red_fill
+    cell_a1.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    
+    ws.merge_cells(start_row=1, start_column=2, end_row=1, end_column=7)
+    title_cell = ws.cell(row=1, column=2)
+    title_cell.value = "Nhập traffic cửa hàng vào đây"
+    title_cell.font = red_bold_font
+    title_cell.fill = peach_fill
+    title_cell.alignment = Alignment(horizontal="center", vertical="center")
+    
+    for col in range(3, 8):
+        ws.cell(row=1, column=col).fill = peach_fill
+        
+    ws.row_dimensions[1].height = 35
+    
+    # --- Row 2 (Total) ---
+    ws.cell(row=2, column=1).value = "Total"
+    ws.cell(row=2, column=1).font = bold_font
+    ws.cell(row=2, column=1).fill = gray_fill
+    ws.cell(row=2, column=1).alignment = Alignment(horizontal="center", vertical="center")
+    ws.cell(row=2, column=1).border = thin_border
+    
+    max_row = ws.max_row
+    for col in range(2, 8):
+        col_letter = get_column_letter(col)
+        cell = ws.cell(row=2, column=col)
+        cell.value = f"=SUM({col_letter}4:{col_letter}{max_row})"
+        cell.font = bold_font
+        cell.fill = gray_fill
+        cell.alignment = Alignment(horizontal="right", vertical="center")
+        cell.number_format = '#,##0'
+        cell.border = thin_border
+        
+    ws.row_dimensions[2].height = 20
+    
+    # --- Row 3 (Headers) ---
+    headers = [
+        "Cửa Hàng", "Traffic Tuần Này", "Traffic Tuần Trước", 
+        "Traffic Tuần cùng kỳ", "Traffic Tháng Này", "Traffic Tháng Trước", 
+        "Traffic Tháng cùng kỳ"
+    ]
+    for col, h in enumerate(headers, 1):
+        cell = ws.cell(row=3, column=col)
+        cell.value = h
+        cell.font = white_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = thin_border
+        
+    ws.row_dimensions[3].height = 25
+    
+    # --- Row 4+ (Data) ---
+    for row in range(4, max_row + 1):
+        is_even = (row % 2 == 0)
+        row_fill = zebra_fill if is_even else white_fill
+        ws.row_dimensions[row].height = 20
+        
+        cell_name = ws.cell(row=row, column=1)
+        cell_name.font = normal_font
+        cell_name.fill = row_fill
+        cell_name.border = thin_border
+        cell_name.alignment = Alignment(horizontal="left", vertical="center")
+        
+        for col in range(2, 8):
+            cell = ws.cell(row=row, column=col)
+            val = cell.value
+            cell.border = thin_border
+            cell.fill = row_fill
+            
+            if val == "Không có dữ liệu":
+                cell.font = italic_gray_font
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+            else:
+                cell.font = normal_font
+                cell.alignment = Alignment(horizontal="right", vertical="center")
+                cell.number_format = '#,##0'
+                
+    ws.column_dimensions['A'].width = 32
+    for col in range(2, 8):
+        col_letter = get_column_letter(col)
+        ws.column_dimensions[col_letter].width = 20
+
 @app.route('/api/export_excel', methods=['GET'])
 def export_excel():
     report_date = request.args.get('report_date')
@@ -948,6 +1060,53 @@ def export_excel():
         rep_dt = datetime.strptime(report_date, '%Y-%m-%d')
         start_date = (rep_dt - timedelta(days=6)).strftime('%Y-%m-%d')
         end_date = report_date
+        
+        # Calculate other date ranges for Input_Traffic comparison
+        # 1. This Week
+        w_curr_start = start_date
+        w_curr_end = end_date
+        
+        # 2. Last Week
+        w_prev_start = (rep_dt - timedelta(days=13)).strftime('%Y-%m-%d')
+        w_prev_end = (rep_dt - timedelta(days=7)).strftime('%Y-%m-%d')
+        
+        # 3. Same Week LY (364 days ago)
+        w_ly_start = (rep_dt - timedelta(days=370)).strftime('%Y-%m-%d')
+        w_ly_end = (rep_dt - timedelta(days=364)).strftime('%Y-%m-%d')
+        
+        # 4. This Month
+        m_curr_start = rep_dt.replace(day=1).strftime('%Y-%m-%d')
+        m_curr_end = report_date
+        
+        # 5. Last Month
+        m_prev_end_dt = rep_dt.replace(day=1) - timedelta(days=1)
+        m_prev_start = m_prev_end_dt.replace(day=1).strftime('%Y-%m-%d')
+        m_prev_end = m_prev_end_dt.strftime('%Y-%m-%d')
+        
+        # 6. Same Month LY
+        try:
+            ly_rep_dt = rep_dt.replace(year=rep_dt.year - 1)
+        except ValueError:
+            ly_rep_dt = rep_dt.replace(year=rep_dt.year - 1, day=28)
+        m_ly_start = ly_rep_dt.replace(day=1).strftime('%Y-%m-%d')
+        m_ly_end = ly_rep_dt.strftime('%Y-%m-%d')
+        
+        # Query Period 1: Last Year (w_ly_start to max of w_ly_end and m_ly_end)
+        ly_max_date = max(w_ly_end, m_ly_end)
+        traffic_rows_ly = query_db(f"""
+            SELECT store_code, traffic_date, traffic_val FROM tb_traffic
+            WHERE traffic_date >= ? AND traffic_date <= ? AND store_code IN ({placeholders})
+        """, [w_ly_start, ly_max_date] + store_codes)
+        
+        # Query Period 2: This Year (min of w_prev_start and m_prev_start to w_curr_end)
+        ty_min_date = min(w_prev_start, m_prev_start)
+        traffic_rows_ty = query_db(f"""
+            SELECT store_code, traffic_date, traffic_val FROM tb_traffic
+            WHERE traffic_date >= ? AND traffic_date <= ? AND store_code IN ({placeholders})
+        """, [ty_min_date, w_curr_end] + store_codes)
+        
+        # Combine all traffic rows for comparison
+        all_traffic_rows = traffic_rows_ly + traffic_rows_ty
         
         # Load Traffic records for the entire week
         traffic_rows = query_db(f"""
@@ -1094,6 +1253,41 @@ def export_excel():
                     })
         df_daily_detail = pd.DataFrame(daily_detail_data)
         
+        # Process Input_Traffic sheet data
+        store_traffic_all_map = defaultdict(list)
+        for r in all_traffic_rows:
+            store_traffic_all_map[r['store_code']].append(r)
+            
+        def get_range_sum(rows, start, end):
+            matching_vals = [r['traffic_val'] for r in rows if start <= r['traffic_date'] <= end and r['traffic_val'] is not None]
+            if not matching_vals:
+                return None
+            return sum(matching_vals)
+            
+        input_traffic_data = []
+        for code, s in store_map.items():
+            rows = store_traffic_all_map.get(code, [])
+            
+            val_w_curr = get_range_sum(rows, w_curr_start, w_curr_end)
+            val_w_prev = get_range_sum(rows, w_prev_start, w_prev_end)
+            val_w_ly = get_range_sum(rows, w_ly_start, w_ly_end)
+            val_m_curr = get_range_sum(rows, m_curr_start, m_curr_end)
+            val_m_prev = get_range_sum(rows, m_prev_start, m_prev_end)
+            val_m_ly = get_range_sum(rows, m_ly_start, m_ly_end)
+            
+            input_traffic_data.append({
+                'Cửa Hàng': s['store_name'],
+                'Traffic Tuần Này': val_w_curr if val_w_curr is not None else 'Không có dữ liệu',
+                'Traffic Tuần Trước': val_w_prev if val_w_prev is not None else 'Không có dữ liệu',
+                'Traffic Tuần cùng kỳ': val_w_ly if val_w_ly is not None else 'Không có dữ liệu',
+                'Traffic Tháng Này': val_m_curr if val_m_curr is not None else 'Không có dữ liệu',
+                'Traffic Tháng Trước': val_m_prev if val_m_prev is not None else 'Không có dữ liệu',
+                'Traffic Tháng cùng kỳ': val_m_ly if val_m_ly is not None else 'Không có dữ liệu'
+            })
+            
+        input_traffic_data.sort(key=lambda x: x['Cửa Hàng'])
+        df_input_traffic = pd.DataFrame(input_traffic_data)
+        
         # Sheet 3: HĐ Đang Đàm Phán 3.1
         contracts_data = []
         for c in contract_rows:
@@ -1182,6 +1376,7 @@ def export_excel():
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             df_traffic.to_excel(writer, sheet_name='Tổng Hợp Traffic & CR', index=False, startrow=4)
             df_daily_detail.to_excel(writer, sheet_name='Traffic Chi Tiết Theo Ngày', index=False, startrow=4)
+            df_input_traffic.to_excel(writer, sheet_name='Input_Traffic', index=False, startrow=2)
             df_contracts.to_excel(writer, sheet_name='HĐ Đang Đàm Phán 3.1', index=False, startrow=4)
             df_unsigned.to_excel(writer, sheet_name='HĐ Chưa Ký 3.2', index=False, startrow=4)
             df_details.to_excel(writer, sheet_name='Chi Tiết Vận Hành 4', index=False, startrow=4)
@@ -1194,6 +1389,7 @@ def export_excel():
             
             style_sheet(workbook['Tổng Hợp Traffic & CR'], "Báo Cáo Tổng Hợp Traffic & CR Tuần", "Tổng hợp kết quả chuyển đổi", date_range_str, role_str)
             style_sheet(workbook['Traffic Chi Tiết Theo Ngày'], "Báo Cáo Chi Tiết Traffic Ngày-Qua-Ngày", "Nhật ký nhập traffic hàng ngày của tuần", date_range_str, role_str)
+            style_input_traffic_sheet(workbook['Input_Traffic'])
             style_sheet(workbook['HĐ Đang Đàm Phán 3.1'], "Danh Sách Hợp Đồng Đang Đàm Phán (3.1)", "Theo dõi tiến độ thương thảo hợp đồng", date_range_str, role_str)
             style_sheet(workbook['HĐ Chưa Ký 3.2'], "Danh Sách Hợp Đồng Cùng Kỳ Chưa Ký (3.2)", "Hợp đồng trễ hạn chưa tái ký", date_range_str, role_str)
             style_sheet(workbook['Chi Tiết Vận Hành 4'], "Báo Cáo Chi Tiết Vận Hành - Nhân Sự - Hàng Hóa", "Đánh giá chất lượng dịch vụ & nhân sự tại quầy", date_range_str, role_str)
