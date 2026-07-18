@@ -384,7 +384,7 @@ def get_operational_report():
             return jsonify({'ok': False, 'error': 'Mã PIN không đúng'})
             
         # Query contracts (Section 3.1)
-        contracts = query_db("SELECT contract_value, product_category, quantity, deposit_paid, installment_2, status, reason FROM tb_contracts WHERE store_code = ? AND report_date = ?", (store_code, report_date))
+        contracts = query_db("SELECT contract_number, contract_value, product_category, quantity, deposit_paid, installment_2, status, reason FROM tb_contracts WHERE store_code = ? AND report_date = ?", (store_code, report_date))
         
         # Query unsigned contracts (Section 3.2)
         unsigned = query_db("SELECT prev_year_value, expected_signing_time, product_category, quantity, status, reason FROM tb_unsigned_contracts WHERE store_code = ? AND report_date = ?", (store_code, report_date))
@@ -467,6 +467,7 @@ def submit_data():
         # 3. Save Contracts (Section 3.1)
         execute_db("DELETE FROM tb_contracts WHERE store_code = ? AND report_date = ?", (store_code, report_date))
         for c in contracts:
+            contract_num = str(c.get('contract_number', '')).strip() or 'Đang GD'
             val = float(c.get('contract_value', 0.0))
             cat = str(c.get('product_category', '')).strip()
             qty = int(c.get('quantity', 0))
@@ -478,9 +479,9 @@ def submit_data():
             if val > 0 and cat:
                 execute_db("""
                 INSERT INTO tb_contracts 
-                (store_code, report_date, contract_value, product_category, quantity, deposit_paid, installment_2, status, reason)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (store_code, report_date, val, cat, qty, dep, inst2, status, reason))
+                (store_code, report_date, contract_number, contract_value, product_category, quantity, deposit_paid, installment_2, status, reason)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (store_code, report_date, contract_num, val, cat, qty, dep, inst2, status, reason))
                 
         # 4. Save Unsigned Contracts (Section 3.2)
         execute_db("DELETE FROM tb_unsigned_contracts WHERE store_code = ? AND report_date = ?", (store_code, report_date))
@@ -574,7 +575,7 @@ def export_data():
             WHERE traffic_date >= ? AND traffic_date <= ?
         """, (month_start.strftime('%Y-%m-%d'), report_date))
         
-        contracts = query_db("SELECT store_code, contract_value, product_category, quantity, deposit_paid, installment_2, status, reason FROM tb_contracts WHERE report_date = ?", (report_date,))
+        contracts = query_db("SELECT store_code, contract_number, contract_value, product_category, quantity, deposit_paid, installment_2, status, reason FROM tb_contracts WHERE report_date = ?", (report_date,))
         unsigned = query_db("SELECT store_code, prev_year_value, expected_signing_time, product_category, quantity, status, reason FROM tb_unsigned_contracts WHERE report_date = ?", (report_date,))
         details = query_db("SELECT * FROM tb_operational_details WHERE report_date = ?", (report_date,))
         support = query_db("SELECT store_code, category, priority, issue_item, deadline, person_in_charge FROM tb_support_requests WHERE report_date = ?", (report_date,))
@@ -790,6 +791,118 @@ def update_passcode():
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
 
+def style_sheet(ws, title, subtitle, date_range_str, role_str):
+    # Enable grid lines explicitly
+    ws.views.sheetView[0].showGridLines = True
+    
+    # 1. Title Block (Rows 1 to 3)
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    
+    navy_fill = PatternFill(start_color="1B365D", end_color="1B365D", fill_type="solid")
+    
+    # Merge cells for Title on Row 1
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=ws.max_column)
+    title_cell = ws.cell(row=1, column=1)
+    title_cell.value = title.upper()
+    title_cell.font = Font(name="Segoe UI", size=13, bold=True, color="FFFFFF")
+    title_cell.fill = navy_fill
+    title_cell.alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 28
+    
+    # Merge cells for Subtitle on Row 2 (Date Range & Target)
+    ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=ws.max_column)
+    sub_cell = ws.cell(row=2, column=1)
+    sub_cell.value = f"Tuần báo cáo: {date_range_str}  |  Đối tượng: {role_str}"
+    sub_cell.font = Font(name="Segoe UI", size=9, italic=True, color="FFFFFF")
+    sub_cell.fill = navy_fill
+    sub_cell.alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[2].height = 18
+    
+    # Merge cells for Metadata on Row 3 (Export info)
+    ws.merge_cells(start_row=3, start_column=1, end_row=3, end_column=ws.max_column)
+    meta_cell = ws.cell(row=3, column=1)
+    from datetime import datetime
+    now_str = datetime.now().strftime("%d/%m/%Y %H:%M")
+    meta_cell.value = f"Ngày xuất báo cáo: {now_str}  |  Hệ thống Retail Commander"
+    meta_cell.font = Font(name="Segoe UI", size=9, italic=True, color="FFFFFF")
+    meta_cell.fill = navy_fill
+    meta_cell.alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[3].height = 18
+    
+    # Empty Spacer Row 4
+    ws.row_dimensions[4].height = 12
+    
+    # Table Header Row 5
+    header_fill = PatternFill(start_color="2F5597", end_color="2F5597", fill_type="solid")
+    header_font = Font(name="Segoe UI", size=10, bold=True, color="FFFFFF")
+    thin_border = Border(
+        left=Side(style='thin', color='D3D3D3'),
+        right=Side(style='thin', color='D3D3D3'),
+        top=Side(style='thin', color='D3D3D3'),
+        bottom=Side(style='thin', color='D3D3D3')
+    )
+    
+    # Format Headers
+    for col in range(1, ws.max_column + 1):
+        cell = ws.cell(row=5, column=col)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = thin_border
+    ws.row_dimensions[5].height = 24
+    
+    # Format Data Rows (Row 6 onwards)
+    data_font = Font(name="Segoe UI", size=10)
+    zebra_fill = PatternFill(start_color="F2F4F7", end_color="F2F4F7", fill_type="solid")
+    white_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
+    
+    for row in range(6, ws.max_row + 1):
+        is_even = (row % 2 == 0)
+        row_fill = zebra_fill if is_even else white_fill
+        ws.row_dimensions[row].height = 18
+        
+        for col in range(1, ws.max_column + 1):
+            cell = ws.cell(row=row, column=col)
+            cell.font = data_font
+            if cell.fill.fill_type is None:
+                cell.fill = row_fill
+            cell.border = thin_border
+            
+            # Auto-align and format number cells
+            val = cell.value
+            col_name = ws.cell(row=5, column=col).value or ""
+            
+            if isinstance(val, (int, float)):
+                if "%" in col_name or "Tỷ Lệ" in col_name:
+                    cell.number_format = '0.0"%"'
+                    cell.alignment = Alignment(horizontal="right", vertical="center")
+                elif "Giá Trị" in col_name or "Số Tiền" in col_name or "Cọc" in col_name or "Đợt 2" in col_name or "HĐ" in col_name:
+                    cell.number_format = '#,##0.00'
+                    cell.alignment = Alignment(horizontal="right", vertical="center")
+                else:
+                    cell.number_format = '#,##0'
+                    cell.alignment = Alignment(horizontal="right", vertical="center")
+            elif val == "Chưa nộp" or val == "Chưa nhập" or val == "N/A":
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+            else:
+                cell.alignment = Alignment(horizontal="left", vertical="center")
+                
+    # Auto-adjust column widths
+    from openpyxl.utils import get_column_letter
+    for col in ws.columns:
+        max_len = 0
+        col_idx = col[0].column
+        col_letter = get_column_letter(col_idx)
+        for cell in col:
+            if cell.row < 5:
+                continue
+            if cell.value is not None:
+                max_len = max(max_len, len(str(cell.value)))
+        header_val = ws.cell(row=5, column=col_idx).value
+        if header_val:
+            max_len = max(max_len, len(str(header_val)))
+        ws.column_dimensions[col_letter].width = max(max_len + 3, 11)
+
 @app.route('/api/export_excel', methods=['GET'])
 def export_excel():
     report_date = request.args.get('report_date')
@@ -801,12 +914,10 @@ def export_excel():
         return "Thiếu ngày báo cáo", 400
         
     master_pin = os.environ.get('MASTER_PIN', '8888')
-    # Validate authorization
     is_authorized = False
     if role == 'admin' and pin == master_pin:
         is_authorized = True
     elif role == 'asm':
-        # Verify ASM PIN
         asm_record = query_db("SELECT * FROM tb_asms WHERE asm_name = ? AND passcode = ?", (asm, pin), one=True)
         if asm_record:
             is_authorized = True
@@ -815,8 +926,6 @@ def export_excel():
         return "Không có quyền xuất báo cáo", 401
         
     try:
-        # Build query filters based on role and ASM
-        # Admin can view all or filter by ASM. ASM can only view their own stores.
         filter_asm = None
         if role == 'asm':
             filter_asm = asm
@@ -835,72 +944,157 @@ def export_excel():
             
         placeholders = ",".join(["?"] * len(store_codes))
         
-        # Load Traffic (matching report_date week Friday)
-        # We also get Company & Store Online Bills
+        # Get start and end date of the week (Saturday to Friday)
+        rep_dt = datetime.strptime(report_date, '%Y-%m-%d')
+        start_date = (rep_dt - timedelta(days=6)).strftime('%Y-%m-%d')
+        end_date = report_date
+        
+        # Load Traffic records for the entire week
         traffic_rows = query_db(f"""
             SELECT store_code, traffic_date, traffic_val, bills_val, company_online_bills, store_online_bills 
             FROM tb_traffic 
-            WHERE traffic_date = ? AND store_code IN ({placeholders})
-        """, [report_date] + store_codes)
+            WHERE traffic_date >= ? AND traffic_date <= ? AND store_code IN ({placeholders})
+            ORDER BY store_code, traffic_date
+        """, [start_date, end_date] + store_codes)
         
-        # Load Contracts
+        # Load Contracts (Section 3.1) with contract_number
         contract_rows = query_db(f"""
-            SELECT store_code, contract_value, product_category, quantity, deposit_paid, installment_2, status, reason 
+            SELECT store_code, contract_number, contract_value, product_category, quantity, deposit_paid, installment_2, status, reason 
             FROM tb_contracts 
             WHERE report_date = ? AND store_code IN ({placeholders})
         """, [report_date] + store_codes)
         
-        # Load Unsigned
+        # Load Unsigned (Section 3.2)
         unsigned_rows = query_db(f"""
             SELECT store_code, prev_year_value, expected_signing_time, product_category, quantity, status, reason 
             FROM tb_unsigned_contracts 
             WHERE report_date = ? AND store_code IN ({placeholders})
         """, [report_date] + store_codes)
         
-        # Load Details
+        # Load Details (Section 4)
         detail_rows = query_db(f"""
             SELECT * FROM tb_operational_details 
             WHERE report_date = ? AND store_code IN ({placeholders})
         """, [report_date] + store_codes)
         
-        # Load Support Requests
+        # Load Support Requests (Section 4.5)
         support_rows = query_db(f"""
             SELECT store_code, category, priority, issue_item, deadline, person_in_charge 
             FROM tb_support_requests 
             WHERE report_date = ? AND store_code IN ({placeholders})
         """, [report_date] + store_codes)
         
-        # Map stores for easy metadata resolution
         store_map = {s['store_code']: s for s in stores}
         
+        # Group traffic rows by store_code
+        from collections import defaultdict
+        store_traffic_map = defaultdict(list)
+        for r in traffic_rows:
+            store_traffic_map[r['store_code']].append(r)
+            
         # 2. Process dataframes using pandas
-        # Sheet 1: Traffic & CR
-        traffic_data = []
-        traffic_dict = {t['store_code']: t for t in traffic_rows}
+        # Sheet 1: Tổng Hợp Traffic & CR
+        traffic_summary_data = []
         for code, s in store_map.items():
-            t = traffic_dict.get(code, {})
-            trf_val = t.get('traffic_val', 0)
-            bil_val = t.get('bills_val', 0)
-            co_val = t.get('company_online_bills', 0)
-            so_val = t.get('store_online_bills', 0)
+            s_traffic = store_traffic_map.get(code, [])
+            has_submitted = len(s_traffic) > 0
             
-            bill_for_cr = bil_val - co_val
-            cr = (bill_for_cr / trf_val * 100) if trf_val > 0 else 0
-            
-            traffic_data.append({
-                'Mã Cửa Hàng': code,
-                'Tên Cửa Hàng': s['store_name'],
-                'Khu Vực': s['region'],
-                'ASM Quản Lý': s['asm_name'],
-                'Traffic (Lượt Khách)': trf_val if 'traffic_val' in t else 'Chưa nộp',
-                'Số Bill Bán Lẻ': bil_val if 'bills_val' in t else 'Chưa nộp',
-                'Bill Online Công Ty': co_val if 'company_online_bills' in t else 0,
-                'Bill Online Cửa Hàng': so_val if 'store_online_bills' in t else 0,
-                'Tỷ Lệ CR tại quầy (%)': f"{cr:.1f}%" if 'traffic_val' in t else 'N/A'
-            })
-        df_traffic = pd.DataFrame(traffic_data)
+            if not has_submitted:
+                traffic_summary_data.append({
+                    'Mã Cửa Hàng': code,
+                    'Tên Cửa Hàng': s['store_name'],
+                    'Khu Vực': s['region'],
+                    'ASM Quản Lý': s['asm_name'],
+                    'Tổng Traffic': 'Chưa nộp',
+                    'Tổng Bill Bán Lẻ': 'Chưa nộp',
+                    'Tổng Bill OL Công Ty': 0,
+                    'Tổng Bill OL Cửa Hàng': 0,
+                    'Tỷ Lệ CR tại quầy (%)': 'N/A'
+                })
+            else:
+                tot_trf = sum(r['traffic_val'] for r in s_traffic if r['traffic_val'] is not None)
+                tot_bil = sum(r['bills_val'] for r in s_traffic if r['bills_val'] is not None)
+                tot_co = sum(r['company_online_bills'] for r in s_traffic if r['company_online_bills'] is not None)
+                tot_so = sum(r['store_online_bills'] for r in s_traffic if r['store_online_bills'] is not None)
+                
+                bill_for_cr = tot_bil - tot_co
+                cr = (bill_for_cr / tot_trf * 100) if tot_trf > 0 else 0.0
+                
+                traffic_summary_data.append({
+                    'Mã Cửa Hàng': code,
+                    'Tên Cửa Hàng': s['store_name'],
+                    'Khu Vực': s['region'],
+                    'ASM Quản Lý': s['asm_name'],
+                    'Tổng Traffic': tot_trf,
+                    'Tổng Bill Bán Lẻ': tot_bil,
+                    'Tổng Bill OL Công Ty': tot_co,
+                    'Tổng Bill OL Cửa Hàng': tot_so,
+                    'Tỷ Lệ CR tại quầy (%)': cr
+                })
+        df_traffic = pd.DataFrame(traffic_summary_data)
         
-        # Sheet 2: Contracts 3.1
+        # Sheet 2: Traffic Chi Tiết Theo Ngày
+        daily_detail_data = []
+        weekday_vn = {
+            5: "Thứ Bảy",
+            6: "Chủ Nhật",
+            0: "Thứ Hai",
+            1: "Thứ Ba",
+            2: "Thứ Tư",
+            3: "Thứ Năm",
+            4: "Thứ Sáu"
+        }
+        
+        for code, s in store_map.items():
+            s_traffic = store_traffic_map.get(code, [])
+            s_traffic_dict = {r['traffic_date']: r for r in s_traffic}
+            
+            for i in range(7):
+                curr_date = rep_dt - timedelta(days=(6 - i))
+                curr_date_str = curr_date.strftime('%Y-%m-%d')
+                curr_day_vn = weekday_vn[curr_date.weekday()]
+                
+                r = s_traffic_dict.get(curr_date_str)
+                
+                if r is None:
+                    daily_detail_data.append({
+                        'Mã Cửa Hàng': code,
+                        'Tên Cửa Hàng': s['store_name'],
+                        'Khu Vực': s['region'],
+                        'ASM Quản Lý': s['asm_name'],
+                        'Ngày': curr_date.strftime('%d/%m/%Y'),
+                        'Thứ': curr_day_vn,
+                        'Traffic (Lượt Khách)': 'Chưa nhập',
+                        'Số Bill Bán Lẻ': 'Chưa nhập',
+                        'Bill Online Công Ty': 0,
+                        'Bill Online Cửa Hàng': 0,
+                        'Tỷ Lệ CR tại quầy (%)': 'N/A'
+                    })
+                else:
+                    trf_val = r['traffic_val']
+                    bil_val = r['bills_val']
+                    co_val = r['company_online_bills'] or 0
+                    so_val = r['store_online_bills'] or 0
+                    
+                    bill_for_cr = (bil_val or 0) - co_val
+                    cr = (bill_for_cr / trf_val * 100) if (trf_val and trf_val > 0) else 0.0
+                    
+                    daily_detail_data.append({
+                        'Mã Cửa Hàng': code,
+                        'Tên Cửa Hàng': s['store_name'],
+                        'Khu Vực': s['region'],
+                        'ASM Quản Lý': s['asm_name'],
+                        'Ngày': curr_date.strftime('%d/%m/%Y'),
+                        'Thứ': curr_day_vn,
+                        'Traffic (Lượt Khách)': trf_val if trf_val is not None else 'Chưa nhập',
+                        'Số Bill Bán Lẻ': bil_val if bil_val is not None else 'Chưa nhập',
+                        'Bill Online Công Ty': co_val,
+                        'Bill Online Cửa Hàng': so_val,
+                        'Tỷ Lệ CR tại quầy (%)': cr if trf_val is not None else 'N/A'
+                    })
+        df_daily_detail = pd.DataFrame(daily_detail_data)
+        
+        # Sheet 3: HĐ Đang Đàm Phán 3.1
         contracts_data = []
         for c in contract_rows:
             s = store_map.get(c['store_code'], {})
@@ -908,6 +1102,7 @@ def export_excel():
                 'Mã Cửa Hàng': c['store_code'],
                 'Tên Cửa Hàng': s.get('store_name', ''),
                 'Khu Vực': s.get('region', ''),
+                'Số Hợp Đồng': c['contract_number'] or 'Đang GD',
                 'Giá Trị HĐ (Tr.đ)': c['contract_value'],
                 'Chủng Loại': c['product_category'],
                 'Số Lượng': c['quantity'],
@@ -916,9 +1111,9 @@ def export_excel():
                 'Trạng Thái': c['status'],
                 'Lý Do / Chi Tiết': c['reason']
             })
-        df_contracts = pd.DataFrame(contracts_data) if contracts_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'Khu Vực', 'Giá Trị HĐ (Tr.đ)', 'Chủng Loại', 'Số Lượng', 'Số Tiền Đã Cọc', 'Số Tiền Đợt 2', 'Trạng Thái', 'Lý Do / Chi Tiết'])
+        df_contracts = pd.DataFrame(contracts_data) if contracts_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'Khu Vực', 'Số Hợp Đồng', 'Giá Trị HĐ (Tr.đ)', 'Chủng Loại', 'Số Lượng', 'Số Tiền Đã Cọc', 'Số Tiền Đợt 2', 'Trạng Thái', 'Lý Do / Chi Tiết'])
         
-        # Sheet 3: Unsigned Contracts 3.2
+        # Sheet 4: Unsigned Contracts 3.2
         unsigned_data = []
         for u in unsigned_rows:
             s = store_map.get(u['store_code'], {})
@@ -935,7 +1130,7 @@ def export_excel():
             })
         df_unsigned = pd.DataFrame(unsigned_data) if unsigned_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'Khu Vực', 'Giá Trị Năm Ngoái (Tr.đ)', 'Thời Gian Dự Kiến Ký', 'Chủng Loại', 'Số Lượng', 'Trạng thái', 'Lý Do / Chi Tiết'])
         
-        # Sheet 4: Operational Details 4.1-4.4
+        # Sheet 5: Chi Tiết Vận Hành 4
         details_data = []
         for d in detail_rows:
             s = store_map.get(d['store_code'], {})
@@ -966,7 +1161,7 @@ def export_excel():
             })
         df_details = pd.DataFrame(details_data) if details_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'Khu Vực'])
         
-        # Sheet 5: Support Requests 4.5
+        # Sheet 6: Yêu Cầu Hỗ Trợ 4.5
         support_data = []
         for sp in support_rows:
             s = store_map.get(sp['store_code'], {})
@@ -985,11 +1180,24 @@ def export_excel():
         # 3. Create Excel File in memory
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df_traffic.to_excel(writer, sheet_name='Traffic & CR', index=False)
-            df_contracts.to_excel(writer, sheet_name='HĐ Đang Đàm Phán 3.1', index=False)
-            df_unsigned.to_excel(writer, sheet_name='HĐ Chưa Ký 3.2', index=False)
-            df_details.to_excel(writer, sheet_name='Chi Tiết Vận Hành 4', index=False)
-            df_support.to_excel(writer, sheet_name='Yêu Cầu Hỗ Trợ 4.5', index=False)
+            df_traffic.to_excel(writer, sheet_name='Tổng Hợp Traffic & CR', index=False, startrow=4)
+            df_daily_detail.to_excel(writer, sheet_name='Traffic Chi Tiết Theo Ngày', index=False, startrow=4)
+            df_contracts.to_excel(writer, sheet_name='HĐ Đang Đàm Phán 3.1', index=False, startrow=4)
+            df_unsigned.to_excel(writer, sheet_name='HĐ Chưa Ký 3.2', index=False, startrow=4)
+            df_details.to_excel(writer, sheet_name='Chi Tiết Vận Hành 4', index=False, startrow=4)
+            df_support.to_excel(writer, sheet_name='Yêu Cầu Hỗ Trợ 4.5', index=False, startrow=4)
+            
+            # Access workbook and apply corporate styling
+            workbook = writer.book
+            date_range_str = f"Từ {datetime.strptime(start_date, '%Y-%m-%d').strftime('%d/%m/%Y')} đến {datetime.strptime(end_date, '%Y-%m-%d').strftime('%d/%m/%Y')}"
+            role_str = f"ASM {filter_asm}" if filter_asm else "Toàn Hệ Thống"
+            
+            style_sheet(workbook['Tổng Hợp Traffic & CR'], "Báo Cáo Tổng Hợp Traffic & CR Tuần", "Tổng hợp kết quả chuyển đổi", date_range_str, role_str)
+            style_sheet(workbook['Traffic Chi Tiết Theo Ngày'], "Báo Cáo Chi Tiết Traffic Ngày-Qua-Ngày", "Nhật ký nhập traffic hàng ngày của tuần", date_range_str, role_str)
+            style_sheet(workbook['HĐ Đang Đàm Phán 3.1'], "Danh Sách Hợp Đồng Đang Đàm Phán (3.1)", "Theo dõi tiến độ thương thảo hợp đồng", date_range_str, role_str)
+            style_sheet(workbook['HĐ Chưa Ký 3.2'], "Danh Sách Hợp Đồng Cùng Kỳ Chưa Ký (3.2)", "Hợp đồng trễ hạn chưa tái ký", date_range_str, role_str)
+            style_sheet(workbook['Chi Tiết Vận Hành 4'], "Báo Cáo Chi Tiết Vận Hành - Nhân Sự - Hàng Hóa", "Đánh giá chất lượng dịch vụ & nhân sự tại quầy", date_range_str, role_str)
+            style_sheet(workbook['Yêu Cầu Hỗ Trợ 4.5'], "Danh Sách Yêu Cầu Hỗ Trợ Kỹ Thuật / Vận Hành (4.5)", "Tiếp nhận và xử lý yêu cầu phát sinh từ cửa hàng", date_range_str, role_str)
             
         output.seek(0)
         

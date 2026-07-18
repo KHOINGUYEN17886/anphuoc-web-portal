@@ -79,20 +79,30 @@ try:
     cursor.execute("ALTER TABLE tb_traffic ADD COLUMN company_online_bills INTEGER DEFAULT 0")
     print("Added column company_online_bills to tb_traffic")
 except Exception as e:
-    pass
+    conn.rollback()
 
 try:
     cursor.execute("ALTER TABLE tb_traffic ADD COLUMN store_online_bills INTEGER DEFAULT 0")
     print("Added column store_online_bills to tb_traffic")
 except Exception as e:
-    pass
+    conn.rollback()
+
+try:
+    cursor.execute("ALTER TABLE tb_contracts ADD COLUMN contract_number TEXT DEFAULT 'Đang GD'")
+    print("Added column contract_number to tb_contracts")
+except Exception as e:
+    conn.rollback()
 
 cursor.execute(f"""
 CREATE TABLE IF NOT EXISTS tb_contracts (
     id {id_type},
     store_code TEXT NOT NULL,
     report_date TEXT NOT NULL,
+    contract_number TEXT DEFAULT 'Đang GD',
     contract_value REAL NOT NULL,
+    product_category TEXT NOT NULL,
+    quantity INTEGER NOT NULL,
+    deposit_paid REAL DEFAULT 0.0,
     product_category TEXT NOT NULL,
     quantity INTEGER NOT NULL,
     deposit_paid REAL DEFAULT 0.0,

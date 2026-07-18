@@ -666,7 +666,11 @@
             <button class="btn-remove-row absolute top-2 right-2 text-slate-500 hover:text-rose-500 text-sm font-bold w-6 h-6 rounded-full flex items-center justify-center border border-slate-800 hover:border-rose-500/20 bg-slate-900 transition-all">
                 &times;
             </button>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Số hợp đồng</label>
+                    <input type="text" class="val-contract-number w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-gold" placeholder="Đang GD" value="Đang GD">
+                </div>
                 <div>
                     <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Giá trị HĐ (VNĐ)</label>
                     <input type="number" class="val-contract w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-gold" placeholder="Ví dụ: 50000000">
@@ -1456,6 +1460,7 @@
             const clone = tmpl.content.cloneNode(true);
             
             if (data.contract_value) {
+                clone.querySelector('.val-contract-number').value = data.contract_number !== undefined ? data.contract_number : 'Đang GD';
                 clone.querySelector('.val-contract').value = data.contract_value;
                 clone.querySelector('.val-category').value = data.product_category;
                 clone.querySelector('.val-quantity').value = data.quantity;
@@ -1573,6 +1578,7 @@
             const contracts = [];
             const cCards = contractsContainer.querySelectorAll('.contract-card');
             for (let card of cCards) {
+                const contract_number = card.querySelector('.val-contract-number').value.trim() || 'Đang GD';
                 const contract_value = card.querySelector('.val-contract').value.trim();
                 const product_category = card.querySelector('.val-category').value.trim();
                 const quantity = card.querySelector('.val-quantity').value.trim();
@@ -1585,7 +1591,7 @@
                     showToast("⚠️ Lỗi Nhập Liệu", "Hợp đồng yêu cầu điền đầy đủ Giá Trị và Chủng Loại.", "⚠️");
                     return;
                 }
-                contracts.push({ contract_value, product_category, quantity, deposit_paid, installment_2, status, reason });
+                contracts.push({ contract_number, contract_value, product_category, quantity, deposit_paid, installment_2, status, reason });
             }
 
             // Gather Unsigned Contracts
