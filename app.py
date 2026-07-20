@@ -22,8 +22,30 @@ except ImportError:
 
 app = Flask(__name__)
 
-# Secret token for local machine to pull data
-API_SECRET_TOKEN = os.environ.get('API_SECRET_TOKEN', 'ap_report_secret_key_2026')
+# ── Bảo mật (P2-G) ────────────────────────────────────────────────────────────
+# Token API pull dữ liệu: BẮT BUỘC set env ở production. Nếu thiếu → sinh token
+# ngẫu nhiên mỗi lần khởi động (route /api/export sẽ không đoán được) + cảnh báo.
+import secrets as _secrets
+API_SECRET_TOKEN = os.environ.get('API_SECRET_TOKEN')
+if not API_SECRET_TOKEN:
+    API_SECRET_TOKEN = _secrets.token_urlsafe(24)
+    print("⚠️  [BẢO MẬT] Chưa set API_SECRET_TOKEN — dùng token ngẫu nhiên phiên này. "
+          "Đặt biến môi trường API_SECRET_TOKEN cho production.")
+
+# MASTER_PIN: cảnh báo nếu còn dùng default yếu.
+MASTER_PIN = os.environ.get('MASTER_PIN', '8888')
+if MASTER_PIN == '8888':
+    print("⚠️  [BẢO MẬT] MASTER_PIN đang dùng giá trị mặc định '8888' — đặt MASTER_PIN mạnh cho production.")
+
+# Cho phép PIN mặc định '1234' (tiện dev). Production: KHÔNG set → chặn bypass.
+ALLOW_DEFAULT_PIN = os.environ.get('ALLOW_DEFAULT_PIN', '0') == '1'
+
+
+def _default_pin_allowed(pin) -> bool:
+    """PIN '1234' chỉ được chấp nhận khi ALLOW_DEFAULT_PIN bật (môi trường dev)."""
+    return ALLOW_DEFAULT_PIN and str(pin) == '1234'
+
+
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
 # SQLite absolute path helper
@@ -81,6 +103,31 @@ def get_report_date():
     else: # Monday (0), Tuesday (1), Wednesday (2), Thursday (3)
         offset = -3 - today.weekday()
     return today + timedelta(days=offset)
+
+# ── Safe DB Migration ─────────────────────────────────────────────────────────
+def safe_migrate_db():
+    """Chạy ALTER TABLE an toàn — idempotent, không mất data cũ."""
+    migrations = [
+        # customer_name cho HĐ 3.1
+        "ALTER TABLE tb_contracts ADD COLUMN customer_name TEXT DEFAULT ''",
+        # contract_number cho HĐ 3.2 (unsigned)
+        "ALTER TABLE tb_unsigned_contracts ADD COLUMN contract_number TEXT DEFAULT 'Đang GD'",
+    ]
+    conn = get_db_connection()
+    cur = conn.cursor()
+    for sql in migrations:
+        try:
+            cur.execute(sql)
+            conn.commit()
+            print(f"✅ [Migration] {sql[:60]}...")
+        except Exception as e:
+            # Column already exists — safe to ignore
+            if 'duplicate' in str(e).lower() or 'already exists' in str(e).lower():
+                pass
+            else:
+                print(f"⚠️  [Migration] Bỏ qua: {e}")
+    cur.close()
+    conn.close()
 
 def async_sync_and_alert(store_code, report_date, support_requests):
     def worker():
@@ -265,7 +312,7 @@ def validate_pin():
             
         # Fallback for default pin if store not configured with one
         store_exists = query_db("SELECT * FROM tb_stores WHERE store_code = ?", (store_code,), one=True)
-        if store_exists and pin == '1234':
+        if store_exists and _default_pin_allowed(pin):
             return jsonify({'ok': True, 'valid': True, 'role': 'store'})
             
         return jsonify({'ok': True, 'valid': False, 'error': 'Mã PIN không đúng'})
@@ -288,7 +335,7 @@ def get_daily_traffic():
     try:
         # Validate PIN
         store = query_db("SELECT * FROM tb_stores WHERE store_code = ? AND passcode = ?", (store_code, pin), one=True)
-        if not store and pin != '1234':
+        if not store and not _default_pin_allowed(pin):
             return jsonify({'ok': False, 'error': 'Mã PIN không đúng'})
             
         # Query daily traffic and bills for this store and month
@@ -322,7 +369,7 @@ def submit_daily_traffic():
         master_pin = os.environ.get('MASTER_PIN', '8888')
         if pin != master_pin:
             store = query_db("SELECT * FROM tb_stores WHERE store_code = ? AND passcode = ?", (store_code, pin), one=True)
-            if not store and pin != '1234':
+            if not store and not _default_pin_allowed(pin):
                 return jsonify({'ok': False, 'error': 'Mã PIN không đúng'})
             
         # Upsert each day
@@ -380,14 +427,14 @@ def get_operational_report():
         
     try:
         store = query_db("SELECT * FROM tb_stores WHERE store_code = ? AND passcode = ?", (store_code, pin), one=True)
-        if not store and pin != '1234':
+        if not store and not _default_pin_allowed(pin):
             return jsonify({'ok': False, 'error': 'Mã PIN không đúng'})
             
-        # Query contracts (Section 3.1)
-        contracts = query_db("SELECT contract_number, contract_value, product_category, quantity, deposit_paid, installment_2, status, reason FROM tb_contracts WHERE store_code = ? AND report_date = ?", (store_code, report_date))
+        # Query contracts (Section 3.1) — includes customer_name
+        contracts = query_db("SELECT contract_number, customer_name, contract_value, product_category, quantity, deposit_paid, installment_2, status, reason FROM tb_contracts WHERE store_code = ? AND report_date = ?", (store_code, report_date))
         
-        # Query unsigned contracts (Section 3.2)
-        unsigned = query_db("SELECT prev_year_value, expected_signing_time, product_category, quantity, status, reason FROM tb_unsigned_contracts WHERE store_code = ? AND report_date = ?", (store_code, report_date))
+        # Query unsigned contracts (Section 3.2) — includes contract_number
+        unsigned = query_db("SELECT contract_number, prev_year_value, expected_signing_time, product_category, quantity, status, reason FROM tb_unsigned_contracts WHERE store_code = ? AND report_date = ?", (store_code, report_date))
         
         # Query operational details (Section 4.1 - 4.4)
         details = query_db("SELECT * FROM tb_operational_details WHERE store_code = ? AND report_date = ?", (store_code, report_date), one=True)
@@ -440,7 +487,7 @@ def submit_data():
         master_pin = os.environ.get('MASTER_PIN', '8888')
         if pin != master_pin:
             store = query_db("SELECT * FROM tb_stores WHERE store_code = ? AND passcode = ?", (store_code, pin), one=True)
-            if not store and pin != '1234':
+            if not store and not _default_pin_allowed(pin):
                 return jsonify({'ok': False, 'error': 'Mã PIN không hợp lệ'})
             
         # 2. Save Traffic (Save for report_date as daily record)
@@ -464,10 +511,11 @@ def submit_data():
                 execute_db("INSERT OR REPLACE INTO tb_traffic (store_code, traffic_date, traffic_val, bills_val, company_online_bills, store_online_bills) VALUES (?, ?, ?, ?, ?, ?)", 
                            (store_code, report_date, trf_int, bil_int, co_int, so_int))
             
-        # 3. Save Contracts (Section 3.1)
+        # 3. Save Contracts (Section 3.1) — includes customer_name
         execute_db("DELETE FROM tb_contracts WHERE store_code = ? AND report_date = ?", (store_code, report_date))
         for c in contracts:
             contract_num = str(c.get('contract_number', '')).strip() or 'Đang GD'
+            customer_name = str(c.get('customer_name', '')).strip()
             val = float(c.get('contract_value', 0.0))
             cat = str(c.get('product_category', '')).strip()
             qty = int(c.get('quantity', 0))
@@ -479,13 +527,14 @@ def submit_data():
             if val > 0 and cat:
                 execute_db("""
                 INSERT INTO tb_contracts 
-                (store_code, report_date, contract_number, contract_value, product_category, quantity, deposit_paid, installment_2, status, reason)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (store_code, report_date, contract_num, val, cat, qty, dep, inst2, status, reason))
+                (store_code, report_date, contract_number, customer_name, contract_value, product_category, quantity, deposit_paid, installment_2, status, reason)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (store_code, report_date, contract_num, customer_name, val, cat, qty, dep, inst2, status, reason))
                 
-        # 4. Save Unsigned Contracts (Section 3.2)
+        # 4. Save Unsigned Contracts (Section 3.2) — includes contract_number
         execute_db("DELETE FROM tb_unsigned_contracts WHERE store_code = ? AND report_date = ?", (store_code, report_date))
         for uc in unsigned_contracts:
+            uc_contract_num = str(uc.get('contract_number', '')).strip() or 'Đang GD'
             val = float(uc.get('prev_year_value', 0.0))
             time_str = str(uc.get('expected_signing_time', '')).strip()
             cat = str(uc.get('product_category', '')).strip()
@@ -496,9 +545,9 @@ def submit_data():
             if val > 0:
                 execute_db("""
                 INSERT INTO tb_unsigned_contracts 
-                (store_code, report_date, prev_year_value, expected_signing_time, product_category, quantity, status, reason)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (store_code, report_date, val, time_str, cat, qty, status, reason))
+                (store_code, report_date, contract_number, prev_year_value, expected_signing_time, product_category, quantity, status, reason)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (store_code, report_date, uc_contract_num, val, time_str, cat, qty, status, reason))
                 
         # 5. Save Operational Details (Section 4.1 - 4.4)
         execute_db("DELETE FROM tb_operational_details WHERE store_code = ? AND report_date = ?", (store_code, report_date))
@@ -774,8 +823,8 @@ def update_passcode():
             # Check authorization if not admin
             if not is_admin:
                 store = query_db("SELECT * FROM tb_stores WHERE store_code = ? AND passcode = ?", (user_id, old_pin), one=True)
-                # Fallback default PIN
-                if not store and old_pin == '1234':
+                # Fallback default PIN (chỉ khi ALLOW_DEFAULT_PIN bật)
+                if not store and _default_pin_allowed(old_pin):
                     store_exists = query_db("SELECT * FROM tb_stores WHERE store_code = ?", (user_id,), one=True)
                     if store_exists:
                         store = store_exists
@@ -1116,16 +1165,16 @@ def export_excel():
             ORDER BY store_code, traffic_date
         """, [start_date, end_date] + store_codes)
         
-        # Load Contracts (Section 3.1) with contract_number
+        # Load Contracts (Section 3.1) with contract_number + customer_name
         contract_rows = query_db(f"""
-            SELECT store_code, contract_number, contract_value, product_category, quantity, deposit_paid, installment_2, status, reason 
+            SELECT store_code, contract_number, customer_name, contract_value, product_category, quantity, deposit_paid, installment_2, status, reason 
             FROM tb_contracts 
             WHERE report_date = ? AND store_code IN ({placeholders})
         """, [report_date] + store_codes)
         
-        # Load Unsigned (Section 3.2)
+        # Load Unsigned (Section 3.2) with contract_number
         unsigned_rows = query_db(f"""
-            SELECT store_code, prev_year_value, expected_signing_time, product_category, quantity, status, reason 
+            SELECT store_code, contract_number, prev_year_value, expected_signing_time, product_category, quantity, status, reason 
             FROM tb_unsigned_contracts 
             WHERE report_date = ? AND store_code IN ({placeholders})
         """, [report_date] + store_codes)
@@ -1288,7 +1337,7 @@ def export_excel():
         input_traffic_data.sort(key=lambda x: x['Cửa Hàng'])
         df_input_traffic = pd.DataFrame(input_traffic_data)
         
-        # Sheet 3: HĐ Đang Đàm Phán 3.1
+        # Sheet 3: HĐ Đang Đàm Phán 3.1 — thêm Tên Khách Hàng
         contracts_data = []
         for c in contract_rows:
             s = store_map.get(c['store_code'], {})
@@ -1296,6 +1345,7 @@ def export_excel():
                 'Mã Cửa Hàng': c['store_code'],
                 'Tên Cửa Hàng': s.get('store_name', ''),
                 'Khu Vực': s.get('region', ''),
+                'Tên Khách Hàng': c.get('customer_name') or '',
                 'Số Hợp Đồng': c['contract_number'] or 'Đang GD',
                 'Giá Trị HĐ (Tr.đ)': c['contract_value'],
                 'Chủng Loại': c['product_category'],
@@ -1305,9 +1355,9 @@ def export_excel():
                 'Trạng Thái': c['status'],
                 'Lý Do / Chi Tiết': c['reason']
             })
-        df_contracts = pd.DataFrame(contracts_data) if contracts_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'Khu Vực', 'Số Hợp Đồng', 'Giá Trị HĐ (Tr.đ)', 'Chủng Loại', 'Số Lượng', 'Số Tiền Đã Cọc', 'Số Tiền Đợt 2', 'Trạng Thái', 'Lý Do / Chi Tiết'])
+        df_contracts = pd.DataFrame(contracts_data) if contracts_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'Khu Vực', 'Tên Khách Hàng', 'Số Hợp Đồng', 'Giá Trị HĐ (Tr.đ)', 'Chủng Loại', 'Số Lượng', 'Số Tiền Đã Cọc', 'Số Tiền Đợt 2', 'Trạng Thái', 'Lý Do / Chi Tiết'])
         
-        # Sheet 4: Unsigned Contracts 3.2
+        # Sheet 4: Unsigned Contracts 3.2 — thêm Số Hợp Đồng
         unsigned_data = []
         for u in unsigned_rows:
             s = store_map.get(u['store_code'], {})
@@ -1315,6 +1365,7 @@ def export_excel():
                 'Mã Cửa Hàng': u['store_code'],
                 'Tên Cửa Hàng': s.get('store_name', ''),
                 'Khu Vực': s.get('region', ''),
+                'Số Hợp Đồng': u.get('contract_number') or 'Đang GD',
                 'Giá Trị Năm Ngoái (Tr.đ)': u['prev_year_value'],
                 'Thời Gian Dự Kiến Ký': u['expected_signing_time'],
                 'Chủng Loại': u['product_category'],
@@ -1322,7 +1373,7 @@ def export_excel():
                 'Trạng Thái': u['status'],
                 'Lý Do / Chi Tiết': u['reason']
             })
-        df_unsigned = pd.DataFrame(unsigned_data) if unsigned_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'Khu Vực', 'Giá Trị Năm Ngoái (Tr.đ)', 'Thời Gian Dự Kiến Ký', 'Chủng Loại', 'Số Lượng', 'Trạng thái', 'Lý Do / Chi Tiết'])
+        df_unsigned = pd.DataFrame(unsigned_data) if unsigned_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'Khu Vực', 'Số Hợp Đồng', 'Giá Trị Năm Ngoái (Tr.đ)', 'Thời Gian Dự Kiến Ký', 'Chủng Loại', 'Số Lượng', 'Trạng Thái', 'Lý Do / Chi Tiết'])
         
         # Sheet 5: Chi Tiết Vận Hành 4
         details_data = []
@@ -1351,7 +1402,12 @@ def export_excel():
                 'Phản Hồi Tồn Kho': d['inv_stock_status'],
                 'Hàng Thiếu/Đứt Size': d['inv_info_goods'],
                 'Hàng Trả Kho': d['inv_return_warehouse'],
-                'Đề Xuất/Kiến Nghị': d['inv_proposal']
+                'Đề Xuất/Kiến Nghị': d['inv_proposal'],
+                # 4.4 KHÁCH HÀNG & THỊ TRƯỜNG — trước đây bị bỏ sót khỏi file xuất
+                'Góp Ý SP Của Khách': d['market_product_feedback'],
+                'SP Khách Tìm Cty Chưa Có': d['market_missing_products'],
+                'Đối Thủ Cạnh Tranh': d['market_competitors'],
+                'Ý Kiến Khác Của CH': d['market_other_feedback']
             })
         df_details = pd.DataFrame(details_data) if details_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'Khu Vực'])
         
@@ -1413,7 +1469,202 @@ def export_excel():
     except Exception as e:
         return f"Lỗi xuất file Excel: {str(e)}", 500
 
+# ── Quick Report API ──────────────────────────────────────────────────────────
+MASTER_ASM_NAME = os.environ.get('MASTER_ASM_NAME', 'Khôi')
+
+@app.route('/api/quick_report', methods=['GET'])
+def quick_report():
+    """Tổng hợp báo cáo nhanh theo phân quyền: store / asm / admin / master_asm."""
+    role      = request.args.get('role')       # 'store', 'asm', 'admin'
+    user_id   = request.args.get('user_id')    # store_code hoặc asm_name hoặc 'ADMIN'
+    pin       = request.args.get('pin')
+    report_date = request.args.get('report_date') or get_report_date().strftime('%Y-%m-%d')
+    asm_filter  = request.args.get('asm_filter')  # chỉ admin/master dùng
+
+    if not role or not user_id or not pin:
+        return jsonify({'ok': False, 'error': 'Thiếu tham số bắt buộc'})
+
+    master_pin = os.environ.get('MASTER_PIN', '8888')
+    is_master  = False
+
+    try:
+        # ── Auth ──────────────────────────────────────────────────────────────
+        if role == 'admin':
+            if pin != master_pin:
+                return jsonify({'ok': False, 'error': 'Không có quyền'}), 401
+            is_master = True
+        elif role == 'asm':
+            asm_rec = query_db("SELECT * FROM tb_asms WHERE asm_name = ? AND passcode = ?", (user_id, pin), one=True)
+            if not asm_rec:
+                return jsonify({'ok': False, 'error': 'Mã PIN ASM không đúng'}), 401
+            is_master = (user_id == MASTER_ASM_NAME)
+        elif role == 'store':
+            store_rec = query_db("SELECT * FROM tb_stores WHERE store_code = ? AND passcode = ?", (user_id, pin), one=True)
+            if not store_rec and not _default_pin_allowed(pin):
+                return jsonify({'ok': False, 'error': 'Mã PIN không đúng'}), 401
+        else:
+            return jsonify({'ok': False, 'error': 'Role không hợp lệ'}), 400
+
+        # ── Determine scope ───────────────────────────────────────────────────
+        filter_asm_q = None  # None = all
+        store_scope  = None  # None = multi-store
+
+        if role == 'store':
+            store_scope = user_id
+        elif role == 'asm' and not is_master:
+            filter_asm_q = user_id
+        elif (role == 'admin' or is_master) and asm_filter:
+            filter_asm_q = asm_filter
+
+        # ── Fetch stores ──────────────────────────────────────────────────────
+        if store_scope:
+            stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores WHERE store_code = ?", (store_scope,))
+        elif filter_asm_q:
+            stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores WHERE asm_name = ? ORDER BY store_name", (filter_asm_q,))
+        else:
+            stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores ORDER BY asm_name, store_name")
+
+        store_codes = [s['store_code'] for s in stores]
+        if not store_codes:
+            return jsonify({'ok': True, 'report_date': report_date, 'stores': [],
+                            'contracts': [], 'unsigned': [], 'details': [], 'support': [],
+                            'summary': {}, 'can_export': is_master or role == 'admin'})
+
+        placeholders = ",".join(["?"] * len(store_codes))
+
+        # ── Traffic summary ───────────────────────────────────────────────────
+        rep_dt    = datetime.strptime(report_date, '%Y-%m-%d')
+        week_start = (rep_dt - timedelta(days=6)).strftime('%Y-%m-%d')
+
+        traffic_rows = query_db(f"""
+            SELECT store_code, SUM(traffic_val) as total_traffic, SUM(bills_val) as total_bills,
+                   SUM(company_online_bills) as co_bills
+            FROM tb_traffic WHERE traffic_date >= ? AND traffic_date <= ?
+            AND store_code IN ({placeholders})
+            GROUP BY store_code
+        """, [week_start, report_date] + store_codes)
+        traffic_map = {r['store_code']: r for r in traffic_rows}
+
+        # ── Submitted stores ──────────────────────────────────────────────────
+        submitted_set = {r['store_code'] for r in query_db(
+            f"SELECT DISTINCT store_code FROM tb_operational_details WHERE report_date = ? AND store_code IN ({placeholders})",
+            [report_date] + store_codes
+        )}
+
+        # ── Build store summary list ──────────────────────────────────────────
+        stores_out = []
+        for s in stores:
+            code = s['store_code']
+            tr = traffic_map.get(code, {})
+            tot_tr  = tr.get('total_traffic') or 0
+            tot_bil = tr.get('total_bills') or 0
+            co_bil  = tr.get('co_bills') or 0
+            retail_bil = tot_bil - co_bil
+            cr = round(retail_bil / tot_tr * 100, 1) if tot_tr > 0 else 0
+            stores_out.append({
+                'store_code': code,
+                'store_name': s['store_name'],
+                'region': s['region'],
+                'asm_name': s['asm_name'],
+                'submitted': code in submitted_set,
+                'traffic': tot_tr,
+                'bills': tot_bil,
+                'cr': cr,
+            })
+
+        # ── Contracts 3.1 ─────────────────────────────────────────────────────
+        contract_rows = query_db(f"""
+            SELECT c.store_code, s.store_name, s.region, c.contract_number, c.customer_name,
+                   c.contract_value, c.product_category, c.quantity,
+                   c.deposit_paid, c.installment_2, c.status, c.reason
+            FROM tb_contracts c JOIN tb_stores s ON c.store_code = s.store_code
+            WHERE c.report_date = ? AND c.store_code IN ({placeholders})
+            ORDER BY s.asm_name, s.store_name
+        """, [report_date] + store_codes)
+
+        # ── Unsigned 3.2 ──────────────────────────────────────────────────────
+        unsigned_rows = query_db(f"""
+            SELECT u.store_code, s.store_name, s.region, u.contract_number,
+                   u.prev_year_value, u.expected_signing_time, u.product_category,
+                   u.quantity, u.status, u.reason
+            FROM tb_unsigned_contracts u JOIN tb_stores s ON u.store_code = s.store_code
+            WHERE u.report_date = ? AND u.store_code IN ({placeholders})
+            ORDER BY s.asm_name, s.store_name
+        """, [report_date] + store_codes)
+
+        # ── Operational 4.x ───────────────────────────────────────────────────
+        detail_rows = query_db(f"""
+            SELECT d.store_code, s.store_name, s.region, s.asm_name,
+                   d.op_open_close_status, d.op_open_close_note, d.op_uniform_status, d.op_uniform_note,
+                   d.op_greet_status, d.op_greet_note, d.op_feedback_status, d.op_feedback_note,
+                   d.op_other_status, d.op_other_note,
+                   d.hr_target, d.hr_actual, d.hr_guard, d.hr_resigned_note, d.hr_leave_note, d.hr_absent_note,
+                   d.inv_stock_status, d.inv_info_goods, d.inv_return_warehouse, d.inv_proposal,
+                   d.market_product_feedback, d.market_missing_products, d.market_competitors, d.market_other_feedback
+            FROM tb_operational_details d JOIN tb_stores s ON d.store_code = s.store_code
+            WHERE d.report_date = ? AND d.store_code IN ({placeholders})
+            ORDER BY s.asm_name, s.store_name
+        """, [report_date] + store_codes)
+
+        # ── Support 4.5 ───────────────────────────────────────────────────────
+        support_rows = query_db(f"""
+            SELECT r.store_code, s.store_name, s.asm_name, r.category, r.priority,
+                   r.issue_item, r.deadline, r.person_in_charge
+            FROM tb_support_requests r JOIN tb_stores s ON r.store_code = s.store_code
+            WHERE r.report_date = ? AND r.store_code IN ({placeholders})
+            ORDER BY CASE r.priority WHEN 'Cao' THEN 1 WHEN 'Trung bình' THEN 2 ELSE 3 END, s.store_name
+        """, [report_date] + store_codes)
+
+        # ── KPI Summary ───────────────────────────────────────────────────────
+        total_traffic   = sum(s['traffic'] for s in stores_out)
+        total_bills     = sum(s['bills']   for s in stores_out)
+        submitted_count = sum(1 for s in stores_out if s['submitted'])
+        total_contract_value = sum(float(c.get('contract_value') or 0) for c in contract_rows)
+        total_unsigned_value = sum(float(u.get('prev_year_value') or 0) for u in unsigned_rows)
+        high_priority_support = sum(1 for r in support_rows if r['priority'] == 'Cao')
+
+        summary = {
+            'total_stores':   len(stores_out),
+            'submitted':      submitted_count,
+            'pending':        len(stores_out) - submitted_count,
+            'total_traffic':  total_traffic,
+            'total_bills':    total_bills,
+            'contracts_31':   len(contract_rows),
+            'contract_value': total_contract_value,
+            'unsigned_32':    len(unsigned_rows),
+            'unsigned_value': total_unsigned_value,
+            'support_total':  len(support_rows),
+            'support_high':   high_priority_support,
+        }
+
+        # ── ASM list (for admin filter) ───────────────────────────────────────
+        asms_list = []
+        if role == 'admin' or is_master:
+            asms_list = [r['asm_name'] for r in query_db(
+                "SELECT DISTINCT asm_name FROM tb_stores WHERE asm_name IS NOT NULL ORDER BY asm_name")]
+
+        return jsonify({
+            'ok': True,
+            'report_date': report_date,
+            'week_start': week_start,
+            'can_export': role == 'admin' or is_master,
+            'can_filter_asm': role == 'admin' or is_master,
+            'user_asm': user_id if role == 'asm' else None,
+            'asms': asms_list,
+            'summary': summary,
+            'stores': stores_out,
+            'contracts': [dict(r) for r in contract_rows],
+            'unsigned':  [dict(r) for r in unsigned_rows],
+            'details':   [dict(r) for r in detail_rows],
+            'support':   [dict(r) for r in support_rows],
+        })
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+
 if __name__ == '__main__':
+    safe_migrate_db()   # chạy migration an toàn trước khi start
     # Default port 8080
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port, debug=True)

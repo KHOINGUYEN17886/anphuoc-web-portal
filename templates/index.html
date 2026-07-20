@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>An Phước — Web Portal Thu Thập Số Liệu Vận Hành</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -11,16 +13,17 @@
             theme: {
                 extend: {
                     colors: {
-                        navy: {
-                            900: '#0F172A',
-                            800: '#1E293B',
-                            700: '#334155'
-                        },
-                        gold: {
-                            DEFAULT: '#D4AF37',
-                            dark: '#AA8811',
-                            light: '#F3E5AB'
+                        brand: {
+                            red:    '#C41E3A',   // An Phước crimson red
+                            'red-d':'#A01830',   // darker red
+                            'red-l':'#FDECEA',   // light red bg
+                            gold:   '#C8A951',   // logo gold
+                            'gold-l':'#FBF4E0',  // light gold bg
+                            navy:   '#1B2A4A',   // heading navy
                         }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui'],
                     }
                 }
             }
@@ -28,185 +31,260 @@
     </script>
     <style>
         body {
-            background-color: #0F172A;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #F4F5F7;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
-        ::-webkit-scrollbar {
-            width: 6px;
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #F0F0F0; }
+        ::-webkit-scrollbar-thumb { background: #C41E3A; border-radius: 3px; }
+        .card { background: #fff; border: 1px solid #E5E7EB; border-radius: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+        .card-hover:hover { box-shadow: 0 4px 16px rgba(196,30,58,.10); border-color: #FBBCCA; }
+        .input-field {
+            background: #fff;
+            border: 1.5px solid #D1D5DB;
+            border-radius: .6rem;
+            padding: .45rem .75rem;
+            color: #111827;
+            font-size: .82rem;
+            transition: border-color .15s;
+            width: 100%;
         }
-        ::-webkit-scrollbar-track {
-            background: #1E293B;
+        .input-field:focus { outline: none; border-color: #C41E3A; box-shadow: 0 0 0 3px rgba(196,30,58,.10); }
+        .btn-primary {
+            background: linear-gradient(135deg,#C41E3A,#A01830);
+            color: #fff;
+            font-weight: 700;
+            border-radius: .75rem;
+            padding: .6rem 1.2rem;
+            font-size: .82rem;
+            transition: all .2s;
+            border: none;
+            cursor: pointer;
         }
-        ::-webkit-scrollbar-thumb {
-            background: #D4AF37;
-            border-radius: 3px;
+        .btn-primary:hover { background: linear-gradient(135deg,#A01830,#8B1225); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(196,30,58,.3); }
+        .btn-primary:disabled { opacity:.6; cursor:not-allowed; transform:none; }
+        .btn-gold {
+            background: linear-gradient(135deg,#C8A951,#a88a38);
+            color: #fff;
+            font-weight: 700;
+            border-radius: .75rem;
+            padding: .6rem 1.2rem;
+            font-size: .82rem;
+            transition: all .2s;
+            border: none;
+            cursor: pointer;
         }
+        .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(200,169,81,.35); }
+        .btn-outline {
+            background: transparent;
+            border: 1.5px solid #D1D5DB;
+            color: #374151;
+            font-weight: 600;
+            border-radius: .75rem;
+            padding: .5rem 1rem;
+            font-size: .82rem;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .btn-outline:hover { border-color: #C41E3A; color: #C41E3A; background: #FDECEA; }
+        .tab-btn { font-size: .78rem; font-weight: 600; padding: .5rem .9rem; border-bottom: 2.5px solid transparent; color: #6B7280; cursor: pointer; transition: all .15s; white-space: nowrap; }
+        .tab-btn.active { color: #C41E3A; border-bottom-color: #C41E3A; }
+        .tab-btn:hover:not(.active) { color: #374151; }
+        .status-badge { padding: .15rem .5rem; border-radius: 9999px; font-size: .68rem; font-weight: 700; }
+        .badge-green  { background:#DCFCE7; color:#166534; }
+        .badge-red    { background:#FEE2E2; color:#991B1B; }
+        .badge-amber  { background:#FEF3C7; color:#92400E; }
+        .badge-blue   { background:#DBEAFE; color:#1E40AF; }
+        .badge-gray   { background:#F3F4F6; color:#6B7280; }
+        .kpi-card { background: #fff; border-radius: 1rem; border: 1px solid #E5E7EB; padding: 1rem 1.2rem; transition: box-shadow .2s; }
+        .kpi-card:hover { box-shadow: 0 4px 16px rgba(196,30,58,.10); }
+        .section-title { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #9CA3AF; margin-bottom: .5rem; }
+        .tbl th { background: #1B2A4A; color: #fff; font-size: .72rem; font-weight: 700; padding: .5rem .75rem; text-align: left; }
+        .tbl td { font-size: .78rem; color: #374151; padding: .45rem .75rem; border-bottom: 1px solid #F3F4F6; }
+        .tbl tr:hover td { background: #FDECEA; }
+        .qr-tab-content { display: none; }
+        .qr-tab-content.active { display: block; }
     </style>
 </head>
-<body class="text-slate-100 min-h-screen flex flex-col pb-10">
+<body class="text-slate-800 min-h-screen flex flex-col pb-10">
 
     <!-- Header -->
-    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
-        <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+    <header class="border-b border-gray-200 bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <span class="text-2xl">🏪</span>
+                <div class="w-10 h-10 bg-gradient-to-br from-brand-red to-brand-red-d rounded-xl flex items-center justify-center text-white font-black text-lg shadow">
+                    AP
+                </div>
                 <div>
-                    <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-                        AN PHƯỚC <span class="text-xs px-2 py-0.5 bg-gold text-slate-900 rounded font-semibold">QLKD Portal</span>
+                    <h1 class="text-base font-extrabold tracking-tight text-brand-navy flex items-center gap-2">
+                        AN PHƯỚC <span class="text-[10px] px-2 py-0.5 bg-brand-gold text-white rounded font-bold uppercase tracking-wide">QLKD Portal</span>
                     </h1>
-                    <p class="text-xs text-slate-400">Thu thập số liệu vận hành & hợp đồng</p>
+                    <p class="text-xs text-gray-500">Thu thập số liệu vận hành & hợp đồng</p>
                 </div>
             </div>
-            <div id="btn-status-view" class="hidden text-xs text-gold border border-gold/30 hover:bg-gold/10 px-3 py-1.5 rounded-full cursor-pointer transition-all">
-                📊 Bảng Theo Dõi ASM
+            <div class="flex items-center gap-2">
+                <div id="btn-quick-report" class="hidden text-xs text-brand-red border border-brand-red/30 hover:bg-brand-red/5 px-3 py-1.5 rounded-full cursor-pointer transition-all font-semibold">
+                    📊 Báo Cáo Nhanh
+                </div>
+                <div id="btn-status-view" class="hidden text-xs text-brand-gold border border-brand-gold/30 hover:bg-brand-gold-l px-3 py-1.5 rounded-full cursor-pointer transition-all font-semibold">
+                    📤 Bảng Theo Dõi ASM
+                </div>
             </div>
         </div>
     </header>
 
     <!-- Main Content Container -->
-    <main class="flex-grow max-w-4xl w-full mx-auto px-4 py-6">
+    <main class="flex-grow max-w-5xl w-full mx-auto px-4 py-6">
 
         <!-- 1. LOGIN SECTION -->
-        <section id="login-section" class="max-w-md mx-auto my-10 bg-slate-800/50 border border-slate-700/60 rounded-2xl p-6 shadow-xl backdrop-blur-md">
-            <h2 class="text-xl font-bold mb-6 text-center text-white border-b border-slate-700/60 pb-3">Đăng Nhập Cửa Hàng</h2>
+        <section id="login-section" class="max-w-md mx-auto my-10 card rounded-2xl p-7 shadow-xl">
+            <!-- Logo -->
+            <div class="flex flex-col items-center mb-6">
+                <div class="w-16 h-16 bg-gradient-to-br from-brand-red to-brand-red-d rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-lg mb-3">AP</div>
+                <h2 class="text-xl font-extrabold text-brand-navy">An Phước — QLKD Portal</h2>
+                <p class="text-xs text-gray-400 mt-1">Nhập liệu vận hành & báo cáo tuần</p>
+            </div>
             
             <div class="space-y-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">Quản lý kinh doanh phụ trách (ASM)</label>
-                    <select id="select-region" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-gold transition-colors">
+                    <label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">Quản lý kinh doanh phụ trách (ASM)</label>
+                    <select id="select-region" class="input-field">
                         <option value="">-- Đang tải danh sách ASM... --</option>
                     </select>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">Cửa Hàng</label>
-                    <select id="select-store" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-gold transition-colors disabled:opacity-50" disabled>
+                    <label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">Cửa Hàng</label>
+                    <select id="select-store" class="input-field disabled:opacity-50" disabled>
                         <option value="">-- Chọn ASM trước --</option>
                     </select>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">Mã PIN Cửa Hàng</label>
-                    <input id="input-pin" type="password" maxlength="4" placeholder="Mã PIN 4 số" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-gold transition-colors text-center font-mono tracking-widest text-lg">
+                    <label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">Mã PIN Cửa Hàng</label>
+                    <input id="input-pin" type="password" maxlength="8" placeholder="Nhập mã PIN" class="input-field text-center font-mono tracking-widest text-lg">
                 </div>
 
                 <div class="pt-2">
-                    <button id="btn-login" class="w-full bg-gold hover:bg-gold-dark text-slate-900 font-bold py-3.5 rounded-xl transition-all shadow-lg active:scale-[0.98]">
-                        Vào Nhập Báo Cáo
+                    <button id="btn-login" class="btn-primary w-full py-3.5 text-base">
+                        Vào Nhập Báo Cáo →
                     </button>
                 </div>
             </div>
         </section>
 
         <!-- 2. DATA ENTRY PANEL -->
-        <section id="form-section" class="hidden space-y-6">
+        <section id="form-section" class="hidden space-y-5">
             <!-- Active Store Banner -->
-            <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div class="card rounded-2xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-l-4 border-brand-red">
                 <div>
-                    <span class="text-xs text-gold font-bold uppercase tracking-wider">Cửa hàng đang nhập liệu:</span>
-                    <h3 id="lbl-active-store" class="text-xl font-bold text-white">...</h3>
-                    <p id="lbl-store-meta" class="text-xs text-slate-400">...</p>
+                    <span class="text-xs text-brand-red font-bold uppercase tracking-wider">Cửa hàng đang nhập liệu:</span>
+                    <h3 id="lbl-active-store" class="text-xl font-extrabold text-brand-navy">...</h3>
+                    <p id="lbl-store-meta" class="text-xs text-gray-400">...</p>
                 </div>
                 <div class="flex items-center gap-2 self-start md:self-auto">
-                    <button id="btn-show-change-pin" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-3 py-2 rounded-lg font-semibold text-slate-300 transition-all">
+                    <button id="btn-quick-report-inline" class="btn-gold text-xs px-3 py-2">
+                        📊 Báo Cáo Nhanh
+                    </button>
+                    <button id="btn-show-change-pin" class="btn-outline text-xs px-3 py-2">
                         🔑 Đổi PIN
                     </button>
-                    <button id="btn-logout" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-3 py-2 rounded-lg font-semibold text-slate-300 transition-all">
+                    <button id="btn-logout" class="btn-outline text-xs px-3 py-2">
                         Đăng xuất
                     </button>
                 </div>
             </div>
 
             <!-- Tab Navigation -->
-            <div class="flex border-b border-slate-700">
-                <button id="tab-weekly-btn" class="py-2.5 px-6 font-bold text-sm border-b-2 border-gold text-gold focus:outline-none transition-all">
+            <div class="flex border-b border-gray-200 bg-white rounded-t-xl overflow-x-auto">
+                <button id="tab-weekly-btn" class="tab-btn active">
                     ✍️ Báo Cáo Tuần (Thứ 6)
                 </button>
-                <button id="tab-daily-btn" class="py-2.5 px-6 font-bold text-sm text-slate-400 hover:text-white focus:outline-none transition-all">
+                <button id="tab-daily-btn" class="tab-btn">
                     👣 Nhập Traffic Hàng Ngày
                 </button>
             </div>
 
             <!-- TAB 1: WEEKLY REPORT FORM -->
-            <div id="tab-weekly-content" class="space-y-6">
+            <div id="tab-weekly-content" class="space-y-5">
                 <!-- Date Picker & Edit Warning Banner -->
-                <div class="bg-slate-800/20 border border-slate-700/50 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
+                <div class="card rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
                     <div class="flex flex-wrap items-center gap-3">
                         <div class="flex items-center gap-2">
-                            <label class="text-xs font-bold text-slate-300 uppercase">Ngày khóa báo cáo (Thứ 6):</label>
-                            <input id="input-report-date" type="date" value="{{ default_date }}" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-gold">
+                            <label class="text-xs font-bold text-gray-500 uppercase">Ngày khóa báo cáo (Thứ 6):</label>
+                            <input id="input-report-date" type="date" value="{{ default_date }}" class="input-field w-auto text-xs">
                         </div>
-                        <div id="lbl-week-range" class="text-xs text-gold/90 font-medium bg-gold/5 border border-gold/15 px-3 py-1.5 rounded-lg">
+                        <div id="lbl-week-range" class="text-xs text-brand-red font-semibold bg-brand-red-l border border-brand-red/20 px-3 py-1.5 rounded-lg">
                             📅 Đang tính toán tuần báo cáo...
                         </div>
                     </div>
-                    <div id="edit-mode-banner" class="hidden text-xs bg-amber-500/10 text-amber-500 border border-amber-500/20 px-3 py-1.5 rounded-lg font-semibold">
+                    <div id="edit-mode-banner" class="hidden text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1.5 rounded-lg font-semibold">
                         🔄 Đang xem/sửa dữ liệu đã nộp cũ
                     </div>
                 </div>
 
                 <!-- SECTION A: TRAFFIC OVERRIDE -->
-                <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 shadow-lg">
-                    <div class="flex items-center gap-2 mb-4 border-b border-slate-700/60 pb-3">
+                <div class="card rounded-2xl p-5">
+                    <div class="flex items-center gap-2 mb-4 border-b border-gray-100 pb-3">
                         <span class="text-lg">👣</span>
-                        <h4 class="font-bold text-white uppercase">Lượt khách ghé cửa hàng & Bill tuần</h4>
+                        <h4 class="font-bold text-brand-navy uppercase text-sm">Lượt khách ghé cửa hàng & Bill tuần</h4>
                     </div>
-                    <div class="max-w-md">
+                    <div class="max-w-lg">
                         <div class="flex gap-4 mb-2">
                             <div class="flex-1">
-                                <label class="block text-xs font-semibold text-slate-400 mb-1.5">Traffic nộp nhanh cả tuần (Nếu chưa nhập lẻ ngày)</label>
-                                <input id="input-traffic" type="number" min="0" placeholder="Nhập số lượt khách" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-gold transition-colors text-lg font-bold">
+                                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Traffic nộp nhanh cả tuần (Nếu chưa nhập lẻ ngày)</label>
+                                <input id="input-traffic" type="number" min="0" placeholder="Nhập số lượt khách" class="input-field text-lg font-bold">
                             </div>
                             <div class="flex-1">
-                                <label class="block text-xs font-semibold text-slate-400 mb-1.5">Số Bill bán lẻ cả tuần (Để tính CR)</label>
-                                <input id="input-bills" type="number" min="0" placeholder="Nhập số bill bán lẻ" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-gold transition-colors text-lg font-bold">
+                                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Số Bill bán lẻ cả tuần (Để tính CR)</label>
+                                <input id="input-bills" type="number" min="0" placeholder="Nhập số bill" class="input-field text-lg font-bold">
                             </div>
                         </div>
                         <div class="flex gap-4 mb-2">
                             <div class="flex-1">
-                                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Trong đó: Bill online từ CÔNG TY</label>
-                                <input id="input-company-online-bills" type="number" min="0" placeholder="Để trống nếu = 0" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-gold transition-colors text-sm font-semibold">
+                                <label class="block text-[11px] font-semibold text-gray-400 mb-1">Trong đó: Bill online từ CÔNG TY</label>
+                                <input id="input-company-online-bills" type="number" min="0" placeholder="Để trống nếu = 0" class="input-field text-sm">
                             </div>
                             <div class="flex-1">
-                                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Trong đó: Bill online CỬA HÀNG tự bán</label>
-                                <input id="input-store-online-bills" type="number" min="0" placeholder="Để trống nếu = 0" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-gold transition-colors text-sm font-semibold">
+                                <label class="block text-[11px] font-semibold text-gray-400 mb-1">Trong đó: Bill online CỬa Hàng tự bán</label>
+                                <input id="input-store-online-bills" type="number" min="0" placeholder="Để trống nếu = 0" class="input-field text-sm">
                             </div>
                         </div>
-                        <div id="weekly-cr-alert" class="text-[11px] font-bold mt-2 px-3 py-2 rounded-xl border hidden animate-pulse"></div>
-                        <p class="text-[10px] text-slate-500 mt-1">Khuyên dùng: Hãy nhập lẻ hàng ngày ở Tab 2 để hệ thống tự cộng tổng và kiểm tra CR chính xác hơn.</p>
+                        <div id="weekly-cr-alert" class="text-[11px] font-bold mt-2 px-3 py-2 rounded-xl border hidden"></div>
+                        <p class="text-[10px] text-gray-400 mt-1">Khuyn dùng: Hãy nhập lẻ hàng ngày ở Tab 2 để hệ thống tự cộng tổng và kiểm tra CR chính xác hơn.</p>
                     </div>
                 </div>
 
                 <!-- SECTION B: CURRENT CONTRACT PROGRESS (Section 3.1) -->
-                <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 shadow-lg">
-                    <div class="flex items-center justify-between border-b border-slate-700/60 pb-3 mb-4">
+                <div class="card rounded-2xl p-5">
+                    <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
                         <div class="flex items-center gap-2">
                             <span class="text-lg">✍️</span>
-                            <h4 class="font-bold text-white uppercase">Tiến độ đàm phán hợp đồng hiện tại (3.1)</h4>
+                            <h4 class="font-bold text-brand-navy uppercase text-sm">Tiến độ đàm phán hợp đồng hiện tại (3.1)</h4>
                         </div>
-                        <button id="btn-add-contract" class="bg-gold/10 hover:bg-gold/25 border border-gold/40 text-gold text-xs font-bold px-3 py-1.5 rounded-lg transition-all">
+                        <button id="btn-add-contract" class="btn-outline text-xs">
                             + Thêm HĐ Mới
                         </button>
                     </div>
                     <div id="contracts-container" class="space-y-4"></div>
-                    <div id="contracts-empty" class="text-center py-6 text-slate-500 text-xs italic">
+                    <div id="contracts-empty" class="text-center py-6 text-gray-400 text-xs italic">
                         Không có hợp đồng nào đang đàm phán tuần này.
                     </div>
                 </div>
 
                 <!-- SECTION C: PRIOR PERIOD UNSIGNED CONTRACTS (Section 3.2) -->
-                <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 shadow-lg">
-                    <div class="flex items-center justify-between border-b border-slate-700/60 pb-3 mb-4">
+                <div class="card rounded-2xl p-5">
+                    <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
                         <div class="flex items-center gap-2">
                             <span class="text-lg">⏳</span>
-                            <h4 class="font-bold text-white uppercase">Hợp đồng cùng kỳ chưa tái ký (3.2)</h4>
+                            <h4 class="font-bold text-brand-navy uppercase text-sm">Hợp đồng cùng kỳ chưa tái ký (3.2)</h4>
                         </div>
-                        <button id="btn-add-unsigned" class="bg-gold/10 hover:bg-gold/25 border border-gold/40 text-gold text-xs font-bold px-3 py-1.5 rounded-lg transition-all">
+                        <button id="btn-add-unsigned" class="btn-outline text-xs">
                             + Thêm HĐ Cũ
                         </button>
                     </div>
                     <div id="unsigned-container" class="space-y-4"></div>
-                    <div id="unsigned-empty" class="text-center py-6 text-slate-500 text-xs italic">
+                    <div id="unsigned-empty" class="text-center py-6 text-gray-400 text-xs italic">
                         Không có hợp đồng cùng kỳ năm trước chậm ký.
                     </div>
                 </div>
@@ -660,42 +738,48 @@
             </div>
         </div>
     </div>
-    <!-- Template for Contract Card (3.1) -->
+    <!-- Template for Contract Card (3.1) — includes customer_name -->
     <template id="tmpl-contract-card">
-        <div class="contract-card bg-slate-900/50 border border-slate-700/60 rounded-xl p-4 relative space-y-3">
-            <button class="btn-remove-row absolute top-2 right-2 text-slate-500 hover:text-rose-500 text-sm font-bold w-6 h-6 rounded-full flex items-center justify-center border border-slate-800 hover:border-rose-500/20 bg-slate-900 transition-all">
+        <div class="contract-card card card-hover rounded-xl p-4 relative space-y-3">
+            <button class="btn-remove-row absolute top-2 right-2 text-gray-300 hover:text-brand-red text-sm font-bold w-6 h-6 rounded-full flex items-center justify-center border border-gray-200 hover:border-brand-red/30 bg-gray-50 transition-all">
                 &times;
             </button>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Số hợp đồng</label>
-                    <input type="text" class="val-contract-number w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-gold" placeholder="Đang GD" value="Đang GD">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Tên Khách Hàng</label>
+                    <input type="text" class="val-customer-name input-field" placeholder="Họ tên công ty / cá nhân">
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Giá trị HĐ (VNĐ)</label>
-                    <input type="number" class="val-contract w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-gold" placeholder="Ví dụ: 50000000">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Số hợp đồng</label>
+                    <input type="text" class="val-contract-number input-field" placeholder="Đang GD" value="Đang GD">
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Chủng loại hàng</label>
-                    <input type="text" class="val-category w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-gold" placeholder="Ví dụ: Sơ mi, Đồng phục">
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Số lượng (SP)</label>
-                    <input type="number" class="val-quantity w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-gold" placeholder="Ví dụ: 120">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Giá trị HĐ (VNĐ)</label>
+                    <input type="number" class="val-contract input-field" placeholder="Ví dụ: 50000000">
                 </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-3 pt-1">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Đã cọc đợt 1 (VNĐ)</label>
-                    <input type="number" class="val-deposit w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-gold" placeholder="0">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Chủng loại hàng</label>
+                    <input type="text" class="val-category input-field" placeholder="Ví dụ: Sơ mi, Đồng phục">
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Thanh toán đợt 2 (VNĐ)</label>
-                    <input type="number" class="val-inst2 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-gold" placeholder="0">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Số lượng (SP)</label>
+                    <input type="number" class="val-quantity input-field" placeholder="Ví dụ: 120">
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Tình trạng</label>
-                    <select class="val-status w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-gold">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Đã cọc đợt 1 (VNĐ)</label>
+                    <input type="number" class="val-deposit input-field" placeholder="0">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Thanh toán đợt 2 (VNĐ)</label>
+                    <input type="number" class="val-inst2 input-field" placeholder="0">
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Tình trạng</label>
+                    <select class="val-status input-field">
                         <option value="Đang đàm phán">Đang đàm phán</option>
                         <option value="Đang duyệt mẫu">Đang duyệt mẫu</option>
                         <option value="Chờ ký kết">Chờ ký kết</option>
@@ -704,41 +788,45 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Lý do chậm trễ / Ghi chú</label>
-                    <input type="text" class="val-reason w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-gold" placeholder="Ghi chú thêm...">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Lý do chậm trễ / Ghi chú</label>
+                    <input type="text" class="val-reason input-field" placeholder="Ghi chú thêm...">
                 </div>
             </div>
         </div>
     </template>
 
-    <!-- Template for Unsigned Contract Card (3.2) -->
+    <!-- Template for Unsigned Contract Card (3.2) — includes contract_number -->
     <template id="tmpl-unsigned-card">
-        <div class="unsigned-card bg-slate-900/50 border border-slate-700/60 rounded-xl p-4 relative space-y-3">
-            <button class="btn-remove-row absolute top-2 right-2 text-slate-500 hover:text-rose-500 text-sm font-bold w-6 h-6 rounded-full flex items-center justify-center border border-slate-800 hover:border-rose-500/20 bg-slate-900 transition-all">
+        <div class="unsigned-card card card-hover rounded-xl p-4 relative space-y-3">
+            <button class="btn-remove-row absolute top-2 right-2 text-gray-300 hover:text-brand-red text-sm font-bold w-6 h-6 rounded-full flex items-center justify-center border border-gray-200 hover:border-brand-red/30 bg-gray-50 transition-all">
                 &times;
             </button>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Giá trị HĐ năm ngoái (VNĐ)</label>
-                    <input type="number" class="val-prev-value w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-gold" placeholder="Giá trị cũ">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Số HĐ (nếu biết)</label>
+                    <input type="text" class="val-unsigned-contract-number input-field" placeholder="Đang GD" value="Đang GD">
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Thời gian dự kiến ký</label>
-                    <input type="text" class="val-expected-time w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-gold" placeholder="Ví dụ: Cuối tháng 7">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Giá trị HĐ năm ngoái (VNĐ)</label>
+                    <input type="number" class="val-prev-value input-field" placeholder="Giá trị cũ">
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Chủng loại</label>
-                    <input type="text" class="val-unsigned-category w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-gold" placeholder="Loại hàng">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Thời gian dự kiến ký</label>
+                    <input type="text" class="val-expected-time input-field" placeholder="Ví dụ: Cuối tháng 7">
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Số lượng (SP)</label>
-                    <input type="number" class="val-unsigned-qty w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-gold" placeholder="Số lượng">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Chủng loại</label>
+                    <input type="text" class="val-unsigned-category input-field" placeholder="Loại hàng">
                 </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Tình trạng</label>
-                    <select class="val-unsigned-status w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-gold">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Số lượng (SP)</label>
+                    <input type="number" class="val-unsigned-qty input-field" placeholder="Số lượng">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Tình trạng</label>
+                    <select class="val-unsigned-status input-field">
                         <option value="Chưa ký kết">Chưa ký kết</option>
                         <option value="Đang liên hệ lại">Đang liên hệ lại</option>
                         <option value="Đối tác trì hoãn">Đối tác trì hoãn</option>
@@ -746,8 +834,8 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Lý do chậm tái ký</label>
-                    <input type="text" class="val-unsigned-reason w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-gold" placeholder="Nhập lý do đối tác chưa ký...">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Lý do chậm tái ký</label>
+                    <input type="text" class="val-unsigned-reason input-field" placeholder="Nhập lý do đối tác chưa ký...">
                 </div>
             </div>
         </div>
@@ -789,6 +877,152 @@
             </div>
         </div>
     </template>
+
+    <!-- QUICK REPORT OVERLAY SECTION -->
+    <section id="quick-report-section" class="hidden fixed inset-0 bg-gray-50 z-40 overflow-y-auto">
+        <div class="max-w-6xl mx-auto px-4 py-6">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-brand-red to-brand-red-d rounded-xl flex items-center justify-center text-white font-black text-lg shadow">AP</div>
+                    <div>
+                        <h2 class="text-xl font-extrabold text-brand-navy">Báo Cáo Nhanh</h2>
+                        <p id="qr-subtitle" class="text-xs text-gray-500">Tổng hợp dữ liệu vận hành theo tuần</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div id="qr-filter-bar" class="hidden items-center gap-2">
+                        <label class="text-xs font-bold text-gray-500 uppercase">Lọc ASM:</label>
+                        <select id="qr-asm-filter" class="input-field w-auto text-xs">
+                            <option value="">-- Tất cả --</option>
+                        </select>
+                        <label class="text-xs font-bold text-gray-500 uppercase">Tuần báo cáo:</label>
+                        <input id="qr-date-filter" type="date" class="input-field w-auto text-xs">
+                    </div>
+                    <button id="btn-qr-back" class="btn-outline text-xs flex items-center gap-1">
+                        ← Quay lại
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex border-b border-gray-200 bg-white rounded-t-xl overflow-x-auto mb-0">
+                <button class="tab-btn active qr-tab-switch" data-tab="tong-hop">📊 Tổng Hợp</button>
+                <button class="tab-btn qr-tab-switch" data-tab="hop-dong">✍️ Hợp Đồng</button>
+                <button class="tab-btn qr-tab-switch" data-tab="van-hanh">⚙️ Vận Hành</button>
+                <button class="tab-btn qr-tab-switch" data-tab="ho-tro">🔔 Hỗ Trợ</button>
+            </div>
+
+            <!-- Tab 1: Tổng Hợp -->
+            <div id="qr-tab-tong-hop" class="qr-tab-content active bg-white rounded-b-xl p-5 border border-t-0 border-gray-200">
+                <div id="qr-kpi-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <!-- KPI cards injected by JS -->
+                </div>
+                <div class="section-title">Chi tiết theo cửa hàng</div>
+                <div class="overflow-x-auto">
+                    <table class="tbl w-full rounded-xl overflow-hidden">
+                        <thead>
+                            <tr>
+                                <th>Cửa Hàng</th>
+                                <th>ASM</th>
+                                <th>Traffic</th>
+                                <th>Bills</th>
+                                <th>CR (%)</th>
+                                <th>HĐ Đang GD</th>
+                                <th>GT HĐ (Tr.đ)</th>
+                                <th>Tuần BC</th>
+                                <th>Nộp lúc</th>
+                            </tr>
+                        </thead>
+                        <tbody id="qr-store-table-body">
+                            <tr><td colspan="9" class="text-center py-8 text-gray-400 italic">Đang tải dữ liệu...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab 2: Hợp Đồng -->
+            <div id="qr-tab-hop-dong" class="qr-tab-content bg-white rounded-b-xl p-5 border border-t-0 border-gray-200">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+                    <div class="kpi-card">
+                        <div class="section-title">HĐ đang đàm phán</div>
+                        <div id="qr-hd-count" class="text-3xl font-extrabold text-brand-red">-</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="section-title">Tổng GT đang GD (Tr.đ)</div>
+                        <div id="qr-hd-value" class="text-3xl font-extrabold text-brand-navy">-</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="section-title">HĐ cùng kỳ chưa tái ký</div>
+                        <div id="qr-unsigned-count" class="text-3xl font-extrabold text-amber-600">-</div>
+                    </div>
+                </div>
+                <div class="section-title mb-2">Danh sách HĐ đang đàm phán (3.1)</div>
+                <div class="overflow-x-auto mb-5">
+                    <table class="tbl w-full rounded-xl overflow-hidden">
+                        <thead>
+                            <tr><th>CH</th><th>Khách Hàng</th><th>Số HĐ</th><th>Chủng loại</th><th>GT (Tr.đ)</th><th>Đã cọc (Tr.đ)</th><th>Tình trạng</th><th>Ghi chú</th></tr>
+                        </thead>
+                        <tbody id="qr-contracts-body">
+                            <tr><td colspan="8" class="text-center py-6 text-gray-400 italic">Không có dữ liệu</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="section-title mb-2">HĐ cùng kỳ chưa tái ký (3.2)</div>
+                <div class="overflow-x-auto">
+                    <table class="tbl w-full rounded-xl overflow-hidden">
+                        <thead>
+                            <tr><th>CH</th><th>Số HĐ</th><th>Chủng loại</th><th>GT NNgoái (Tr.đ)</th><th>Dự kiến ký</th><th>Tình trạng</th><th>Lý do</th></tr>
+                        </thead>
+                        <tbody id="qr-unsigned-body">
+                            <tr><td colspan="7" class="text-center py-6 text-gray-400 italic">Không có dữ liệu</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab 3: Vận Hành -->
+            <div id="qr-tab-van-hanh" class="qr-tab-content bg-white rounded-b-xl p-5 border border-t-0 border-gray-200">
+                <div class="section-title mb-2">Tổng hợp vận hành – Nhân sự</div>
+                <div class="overflow-x-auto">
+                    <table class="tbl w-full rounded-xl overflow-hidden">
+                        <thead>
+                            <tr><th>Cửa Hàng</th><th>Mở/Đóng</th><th>Tác phong</th><th>Đón/Tiễn KH</th><th>KH Phàn nàn</th><th>Vi phạm khác</th><th>NS Định biên</th><th>NS Thực tế</th><th>Nghỉ phép</th><th>Nghỉ ngang</th></tr>
+                        </thead>
+                        <tbody id="qr-ops-body">
+                            <tr><td colspan="10" class="text-center py-6 text-gray-400 italic">Không có dữ liệu</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="section-title mt-5 mb-2">Hàng hóa – Thị trường</div>
+                <div class="overflow-x-auto">
+                    <table class="tbl w-full rounded-xl overflow-hidden">
+                        <thead>
+                            <tr><th>Cửa Hàng</th><th>Hàng hóa tồn kho</th><th>Hàng thông tin</th><th>Hàng trả kho</th><th>Đề xuất bổ sung</th><th>Đối thủ / Thị trường</th></tr>
+                        </thead>
+                        <tbody id="qr-inventory-body">
+                            <tr><td colspan="6" class="text-center py-6 text-gray-400 italic">Không có dữ liệu</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab 4: Hỗ Trợ -->
+            <div id="qr-tab-ho-tro" class="qr-tab-content bg-white rounded-b-xl p-5 border border-t-0 border-gray-200">
+                <div class="section-title mb-2">Yêu cầu hỗ trợ từ cửa hàng</div>
+                <div class="overflow-x-auto">
+                    <table class="tbl w-full rounded-xl overflow-hidden">
+                        <thead>
+                            <tr><th>Cửa Hàng</th><th>Phân Nhóm</th><th>Ưu Tiên</th><th>Nội dung</th><th>Hạn hoàn thành</th></tr>
+                        </thead>
+                        <tbody id="qr-support-body">
+                            <tr><td colspan="5" class="text-center py-6 text-gray-400 italic">Không có yêu cầu hỗ trợ</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <!-- JS Logic -->
     <script>
@@ -1459,15 +1693,16 @@
             const tmpl = document.getElementById('tmpl-contract-card');
             const clone = tmpl.content.cloneNode(true);
             
-            if (data.contract_value) {
+            if (data.contract_value || data.customer_name) {
+                if (clone.querySelector('.val-customer-name')) clone.querySelector('.val-customer-name').value = data.customer_name || '';
                 clone.querySelector('.val-contract-number').value = data.contract_number !== undefined ? data.contract_number : 'Đang GD';
-                clone.querySelector('.val-contract').value = data.contract_value;
-                clone.querySelector('.val-category').value = data.product_category;
-                clone.querySelector('.val-quantity').value = data.quantity;
-                clone.querySelector('.val-deposit').value = data.deposit_paid;
-                clone.querySelector('.val-inst2').value = data.installment_2;
-                clone.querySelector('.val-status').value = data.status;
-                clone.querySelector('.val-reason').value = data.reason;
+                clone.querySelector('.val-contract').value = data.contract_value || '';
+                clone.querySelector('.val-category').value = data.product_category || '';
+                clone.querySelector('.val-quantity').value = data.quantity || '';
+                clone.querySelector('.val-deposit').value = data.deposit_paid || '';
+                clone.querySelector('.val-inst2').value = data.installment_2 || '';
+                clone.querySelector('.val-status').value = data.status || 'Đang đàm phán';
+                clone.querySelector('.val-reason').value = data.reason || '';
             }
             
             clone.querySelector('.btn-remove-row').addEventListener('click', (e) => {
@@ -1482,13 +1717,14 @@
             const tmpl = document.getElementById('tmpl-unsigned-card');
             const clone = tmpl.content.cloneNode(true);
             
-            if (data.prev_year_value) {
-                clone.querySelector('.val-prev-value').value = data.prev_year_value;
-                clone.querySelector('.val-expected-time').value = data.expected_signing_time;
-                clone.querySelector('.val-unsigned-category').value = data.product_category;
-                clone.querySelector('.val-unsigned-qty').value = data.quantity;
-                clone.querySelector('.val-unsigned-status').value = data.status;
-                clone.querySelector('.val-unsigned-reason').value = data.reason;
+            if (data.prev_year_value || data.contract_number) {
+                if (clone.querySelector('.val-unsigned-contract-number')) clone.querySelector('.val-unsigned-contract-number').value = data.contract_number !== undefined ? data.contract_number : 'Đang GD';
+                clone.querySelector('.val-prev-value').value = data.prev_year_value || '';
+                clone.querySelector('.val-expected-time').value = data.expected_signing_time || '';
+                clone.querySelector('.val-unsigned-category').value = data.product_category || '';
+                clone.querySelector('.val-unsigned-qty').value = data.quantity || '';
+                clone.querySelector('.val-unsigned-status').value = data.status || 'Chưa ký kết';
+                clone.querySelector('.val-unsigned-reason').value = data.reason || '';
             }
             
             clone.querySelector('.btn-remove-row').addEventListener('click', (e) => {
@@ -1578,6 +1814,7 @@
             const contracts = [];
             const cCards = contractsContainer.querySelectorAll('.contract-card');
             for (let card of cCards) {
+                const customer_name = card.querySelector('.val-customer-name')?.value.trim() || '';
                 const contract_number = card.querySelector('.val-contract-number').value.trim() || 'Đang GD';
                 const contract_value = card.querySelector('.val-contract').value.trim();
                 const product_category = card.querySelector('.val-category').value.trim();
@@ -1591,13 +1828,14 @@
                     showToast("⚠️ Lỗi Nhập Liệu", "Hợp đồng yêu cầu điền đầy đủ Giá Trị và Chủng Loại.", "⚠️");
                     return;
                 }
-                contracts.push({ contract_number, contract_value, product_category, quantity, deposit_paid, installment_2, status, reason });
+                contracts.push({ customer_name, contract_number, contract_value, product_category, quantity, deposit_paid, installment_2, status, reason });
             }
 
             // Gather Unsigned Contracts
             const unsigned_contracts = [];
             const ucCards = unsignedContainer.querySelectorAll('.unsigned-card');
             for (let card of ucCards) {
+                const contract_number = card.querySelector('.val-unsigned-contract-number')?.value.trim() || 'Đang GD';
                 const prev_year_value = card.querySelector('.val-prev-value').value.trim();
                 const expected_signing_time = card.querySelector('.val-expected-time').value.trim();
                 const product_category = card.querySelector('.val-unsigned-category').value.trim();
@@ -1609,7 +1847,7 @@
                     showToast("⚠️ Lỗi Nhập Liệu", "Hợp đồng cũ chưa ký cần có giá trị.", "⚠️");
                     return;
                 }
-                unsigned_contracts.push({ prev_year_value, expected_signing_time, product_category, quantity, status, reason });
+                unsigned_contracts.push({ contract_number, prev_year_value, expected_signing_time, product_category, quantity, status, reason });
             }
 
             // Gather Part 4 Details (4.1 - 4.4)
@@ -2104,6 +2342,140 @@
             
             await loadSubmissionStatus();
         });
+
+        // ====================== QUICK REPORT ======================
+        const quickReportSec = document.getElementById('quick-report-section');
+        const btnQrBack = document.getElementById('btn-qr-back');
+        const btnQuickReport = document.getElementById('btn-quick-report');
+        const btnQuickReportInline = document.getElementById('btn-quick-report-inline');
+        const qrFilterBar = document.getElementById('qr-filter-bar');
+        const qrAsmFilter = document.getElementById('qr-asm-filter');
+        const qrDateFilter = document.getElementById('qr-date-filter');
+        const qrSubtitle = document.getElementById('qr-subtitle');
+
+        document.querySelectorAll('.qr-tab-switch').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.qr-tab-switch').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.qr-tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                const target = document.getElementById('qr-tab-' + btn.dataset.tab);
+                if (target) target.classList.add('active');
+            });
+        });
+
+        async function loadQuickReport() {
+            const role = currentStore ? currentStore.role : null;
+            const storeCode = currentStore ? currentStore.store_code : null;
+            const asmName = currentStore ? currentStore.asm_name : null;
+            const dateVal = qrDateFilter ? qrDateFilter.value : '';
+            const asmVal = qrAsmFilter ? qrAsmFilter.value : '';
+            try {
+                const params = new URLSearchParams({
+                    role: role||'store',
+                    store_code: storeCode||'',
+                    asm: asmName||'',
+                    date: dateVal,
+                    filter_asm: asmVal
+                });
+                const resp = await fetch('/api/quick_report?' + params.toString());
+                if (!resp.ok) throw new Error('API error');
+                const data = await resp.json();
+
+                // KPI Grid
+                const kpiGrid = document.getElementById('qr-kpi-grid');
+                if (kpiGrid) kpiGrid.innerHTML = `
+                    <div class="kpi-card"><div class="section-title">CH đã nộp</div><div class="text-3xl font-extrabold text-brand-red">${data.stores_submitted??'-'}</div></div>
+                    <div class="kpi-card"><div class="section-title">Tổng Traffic</div><div class="text-3xl font-extrabold text-brand-navy">${(data.total_traffic||0).toLocaleString()}</div></div>
+                    <div class="kpi-card"><div class="section-title">Tổng Bill</div><div class="text-3xl font-extrabold text-brand-navy">${(data.total_bills||0).toLocaleString()}</div></div>
+                    <div class="kpi-card"><div class="section-title">CR TB</div><div class="text-3xl font-extrabold text-brand-gold">${data.avg_cr??'-'}%</div></div>
+                `;
+
+                // Store table
+                const storeBody = document.getElementById('qr-store-table-body');
+                const rows = data.store_rows||[];
+                if (storeBody) {
+                    if (!rows.length) storeBody.innerHTML='<tr><td colspan="9" class="text-center py-8 text-gray-400 italic">Chưa có dữ liệu</td></tr>';
+                    else storeBody.innerHTML = rows.map(r => {
+                        const cr = r.traffic>0 ? ((r.bills/r.traffic)*100).toFixed(1) : '-';
+                        const sub = r.submitted_at ? new Date(r.submitted_at).toLocaleString('vi-VN') : '-';
+                        return `<tr><td class="font-semibold">${r.store_code}</td><td>${r.asm_name||''}</td><td>${(r.traffic||0).toLocaleString()}</td><td>${(r.bills||0).toLocaleString()}</td><td>${cr!=='-'?`<span class="status-badge ${parseFloat(cr)>=15?'badge-green':parseFloat(cr)>=10?'badge-amber':'badge-red'}">${cr}%</span>`:'-'}</td><td>${r.contract_count??0}</td><td>${r.contract_value_total?(r.contract_value_total/1e6).toFixed(1):0}</td><td class="text-xs text-gray-400">${r.report_week||'-'}</td><td class="text-xs text-gray-400">${sub}</td></tr>`;
+                    }).join('');
+                }
+
+                // Contracts (3.1)
+                const cBody = document.getElementById('qr-contracts-body');
+                const contracts = data.contracts||[];
+                const hdCount = document.getElementById('qr-hd-count');
+                const hdVal = document.getElementById('qr-hd-value');
+                if(hdCount) hdCount.textContent = contracts.length;
+                if(hdVal) hdVal.textContent = contracts.length>0?(contracts.reduce((s,c)=>s+(c.contract_value||0),0)/1e6).toFixed(1):'0';
+                if(cBody) cBody.innerHTML = !contracts.length ? '<tr><td colspan="8" class="text-center py-6 text-gray-400 italic">Không có</td></tr>'
+                    : contracts.map(c=>`<tr><td class="font-semibold">${c.store_code}</td><td>${c.customer_name||'-'}</td><td><span class="status-badge badge-blue">${c.contract_number||'Đang GD'}</span></td><td>${c.product_category||'-'}</td><td>${c.contract_value?(c.contract_value/1e6).toFixed(2):'-'}</td><td>${c.deposit_paid?(c.deposit_paid/1e6).toFixed(2):'0'}</td><td><span class="status-badge ${c.status==='Hoàn tất'?'badge-green':c.status==='Chờ ký kết'?'badge-amber':'badge-blue'}">${c.status||'-'}</span></td><td class="text-xs text-gray-500">${c.reason||''}</td></tr>`).join('');
+
+                // Unsigned (3.2)
+                const uBody = document.getElementById('qr-unsigned-body');
+                const unsigned = data.unsigned_contracts||[];
+                const ucnt = document.getElementById('qr-unsigned-count');
+                if(ucnt) ucnt.textContent = unsigned.length;
+                if(uBody) uBody.innerHTML = !unsigned.length ? '<tr><td colspan="7" class="text-center py-6 text-gray-400 italic">Không có</td></tr>'
+                    : unsigned.map(u=>`<tr><td class="font-semibold">${u.store_code}</td><td><span class="status-badge badge-gray">${u.contract_number||'Đang GD'}</span></td><td>${u.product_category||'-'}</td><td>${u.prev_year_value?(u.prev_year_value/1e6).toFixed(2):'-'}</td><td>${u.expected_signing_time||'-'}</td><td><span class="status-badge ${u.status==='Đã hủy bỏ'?'badge-red':'badge-amber'}">${u.status||'-'}</span></td><td class="text-xs text-gray-500">${u.reason||''}</td></tr>`).join('');
+
+                // Ops
+                const oBody = document.getElementById('qr-ops-body');
+                const ops = data.operational||[];
+                if(oBody) oBody.innerHTML = !ops.length ? '<tr><td colspan="10" class="text-center py-6 text-gray-400 italic">Không có</td></tr>'
+                    : ops.map(o=>{const bf=v=>v==='Đạt'?'<span class="status-badge badge-green">Đạt</span>':'<span class="status-badge badge-red">KĐ</span>';
+                    return `<tr><td class="font-semibold">${o.store_code}</td><td>${bf(o.op_open_status)}</td><td>${bf(o.op_uniform_status)}</td><td>${bf(o.op_greet_status)}</td><td>${bf(o.op_feedback_status)}</td><td>${bf(o.op_other_status)}</td><td>${o.hr_target||'-'}</td><td>${o.hr_actual||'-'}</td><td class="text-xs">${(o.hr_leave_note||'-').substring(0,40)}</td><td class="text-xs">${(o.hr_absent_note||'-').substring(0,30)}</td></tr>`;}).join('');
+
+                // Inventory
+                const iBody = document.getElementById('qr-inventory-body');
+                const inv = data.inventory||[];
+                if(iBody) iBody.innerHTML = !inv.length ? '<tr><td colspan="6" class="text-center py-6 text-gray-400 italic">Không có</td></tr>'
+                    : inv.map(i=>`<tr><td class="font-semibold">${i.store_code}</td><td class="text-xs">${(i.inv_stock_status||'-').substring(0,60)}</td><td class="text-xs">${(i.inv_info_goods||'-').substring(0,50)}</td><td class="text-xs">${(i.inv_return_warehouse||'-').substring(0,50)}</td><td class="text-xs">${(i.inv_proposal||'-').substring(0,50)}</td><td class="text-xs">${(i.market_competitor_info||'-').substring(0,60)}</td></tr>`).join('');
+
+                // Support
+                const sBody = document.getElementById('qr-support-body');
+                const supp = data.support||[];
+                const pb=p=>p==='Cao'?'badge-red':p==='Trung bình'?'badge-amber':'badge-gray';
+                if(sBody) sBody.innerHTML = !supp.length ? '<tr><td colspan="5" class="text-center py-6 text-gray-400 italic">Không có yêu cầu</td></tr>'
+                    : supp.map(s=>`<tr><td class="font-semibold">${s.store_code}</td><td><span class="status-badge badge-blue">${s.category||'-'}</span></td><td><span class="status-badge ${pb(s.priority)}">${s.priority||'-'}</span></td><td>${s.item||'-'}</td><td class="text-xs">${s.deadline||'-'}</td></tr>`).join('');
+
+            } catch(e) { console.error('QR Error:', e); }
+        }
+
+        function openQuickReport() {
+            const role = currentStore ? currentStore.role : 'store';
+            if (role === 'admin' || role === 'asm') {
+                if (qrFilterBar) { qrFilterBar.classList.remove('hidden'); qrFilterBar.classList.add('flex'); }
+                if (role === 'admin' && qrAsmFilter && qrAsmFilter.options.length <= 1) {
+                    fetch('/api/stores').then(r=>r.json()).then(stores => {
+                        const asms = [...new Set(stores.map(s=>s.asm_name).filter(Boolean))].sort();
+                        asms.forEach(a => { const o=document.createElement('option'); o.value=a; o.textContent=a; qrAsmFilter.appendChild(o); });
+                    }).catch(()=>{});
+                }
+            }
+            if (qrDateFilter && !qrDateFilter.value) {
+                qrDateFilter.value = new Date().toISOString().split('T')[0];
+            }
+            if (qrSubtitle) qrSubtitle.textContent = `Xem báo cáo: ${currentStore?.store_name||'Tất cả cửa hàng'}`;
+            loginSec.classList.add('hidden');
+            formSec.classList.add('hidden');
+            statusSec.classList.add('hidden');
+            if (quickReportSec) quickReportSec.classList.remove('hidden');
+            loadQuickReport();
+        }
+
+        if (btnQuickReport) btnQuickReport.addEventListener('click', openQuickReport);
+        if (btnQuickReportInline) btnQuickReportInline.addEventListener('click', openQuickReport);
+        if (btnQrBack) btnQrBack.addEventListener('click', () => {
+            if (quickReportSec) quickReportSec.classList.add('hidden');
+            if (currentStore && (currentStore.role==='asm'||currentStore.role==='admin')) statusSec.classList.remove('hidden');
+            else if (currentStore) formSec.classList.remove('hidden');
+            else loginSec.classList.remove('hidden');
+        });
+        if (qrDateFilter) qrDateFilter.addEventListener('change', loadQuickReport);
+        if (qrAsmFilter) qrAsmFilter.addEventListener('change', loadQuickReport);
+        // ====================== END QUICK REPORT ======================
 
         btnStatusBack.addEventListener('click', () => {
             statusSec.classList.add('hidden');
