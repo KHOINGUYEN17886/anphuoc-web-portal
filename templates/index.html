@@ -290,192 +290,191 @@
                 </div>
 
                 <!-- SECTION D: OPERATIONAL, HR, MERCHANDISE & MARKET (Section 4.1 - 4.4) -->
-                <!-- Accordion style collapsible sections -->
-                <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 shadow-lg space-y-4">
-                    <div class="flex items-center gap-2 border-b border-slate-700/60 pb-3 mb-2">
+                <div class="card rounded-2xl p-5 space-y-5">
+                    <div class="flex items-center gap-2 border-b border-gray-100 pb-3">
                         <span class="text-lg">⚙️</span>
-                        <h4 class="font-bold text-white uppercase">Phần 4: Vận Hành - Nhân Sự - Hàng Hóa - Thị Trường</h4>
+                        <h4 class="font-bold text-brand-navy uppercase text-sm">Phần 4: Vận Hành - Nhân Sự - Hàng Hóa - Thị Trường</h4>
                     </div>
 
                     <!-- 4.1. Operational Checklist -->
-                    <div class="border border-slate-700/50 rounded-xl p-4 bg-slate-900/30 space-y-4">
-                        <h5 class="text-xs font-bold text-gold uppercase tracking-wide border-b border-slate-800 pb-1.5">4.1. Đánh giá vận hành cửa hàng</h5>
+                    <div class="border border-gray-200 rounded-xl p-4 bg-gray-50/50 space-y-4">
+                        <h5 class="text-xs font-bold text-brand-red uppercase tracking-wide border-b border-gray-200 pb-1.5">4.1. Đánh giá vận hành cửa hàng</h5>
                         
                         <!-- 5 Items -->
-                        <div class="space-y-4 divide-y divide-slate-800">
+                        <div class="space-y-3 divide-y divide-gray-100">
                             <!-- Item 1 -->
                             <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-2">
-                                <span class="text-xs font-semibold text-slate-200">1. Mở / đóng cửa đúng quy định</span>
+                                <span class="text-xs font-semibold text-gray-700">1. Mở / đóng cửa đúng quy định</span>
                                 <div class="flex items-center gap-2">
-                                    <select id="op-open-status" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs focus:border-gold">
+                                    <select id="op-open-status" class="input-field w-auto text-xs">
                                         <option value="Đạt">Đạt</option>
                                         <option value="Không đạt">Không đạt</option>
                                     </select>
-                                    <input id="op-open-note" type="text" placeholder="Số lần, lý do vi phạm..." class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1 text-xs text-slate-200 w-48 md:w-64 focus:border-gold">
+                                    <input id="op-open-note" type="text" placeholder="Số lần, lý do vi phạm..." class="input-field text-xs w-48 md:w-64">
                                 </div>
                             </div>
                             <!-- Item 2 -->
                             <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-3">
-                                <span class="text-xs font-semibold text-slate-200">2. Tác phong / Đồng phục</span>
+                                <span class="text-xs font-semibold text-gray-700">2. Tác phong / Đồng phục</span>
                                 <div class="flex items-center gap-2">
-                                    <select id="op-uniform-status" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs focus:border-gold">
+                                    <select id="op-uniform-status" class="input-field w-auto text-xs">
                                         <option value="Đạt">Đạt</option>
                                         <option value="Không đạt">Không đạt</option>
                                     </select>
-                                    <input id="op-uniform-note" type="text" placeholder="Tên NV, lỗi vi phạm..." class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1 text-xs text-slate-200 w-48 md:w-64 focus:border-gold">
+                                    <input id="op-uniform-note" type="text" placeholder="Tên NV, lỗi vi phạm..." class="input-field text-xs w-48 md:w-64">
                                 </div>
                             </div>
                             <!-- Item 3 -->
                             <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-3">
-                                <span class="text-xs font-semibold text-slate-200">3. Mở cửa đón / tiễn khách</span>
+                                <span class="text-xs font-semibold text-gray-700">3. Mở cửa đón / tiễn khách</span>
                                 <div class="flex items-center gap-2">
-                                    <select id="op-greet-status" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs focus:border-gold">
+                                    <select id="op-greet-status" class="input-field w-auto text-xs">
                                         <option value="Đạt">Đạt</option>
                                         <option value="Không đạt">Không đạt</option>
                                     </select>
-                                    <input id="op-greet-note" type="text" placeholder="Ghi chú chi tiết..." class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1 text-xs text-slate-200 w-48 md:w-64 focus:border-gold">
+                                    <input id="op-greet-note" type="text" placeholder="Ghi chú chi tiết..." class="input-field text-xs w-48 md:w-64">
                                 </div>
                             </div>
                             <!-- Item 4 -->
                             <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-3">
-                                <span class="text-xs font-semibold text-slate-200">4. Khách hàng góp ý / Phàn nàn</span>
+                                <span class="text-xs font-semibold text-gray-700">4. Khách hàng góp ý / Phàn nàn</span>
                                 <div class="flex items-center gap-2">
-                                    <select id="op-feedback-status" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs focus:border-gold">
+                                    <select id="op-feedback-status" class="input-field w-auto text-xs">
                                         <option value="Đạt">Đạt</option>
                                         <option value="Không đạt">Không đạt</option>
                                     </select>
-                                    <input id="op-feedback-note" type="text" placeholder="Nội dung góp ý..." class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1 text-xs text-slate-200 w-48 md:w-64 focus:border-gold">
+                                    <input id="op-feedback-note" type="text" placeholder="Nội dung góp ý..." class="input-field text-xs w-48 md:w-64">
                                 </div>
                             </div>
                             <!-- Item 5 -->
                             <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-3">
-                                <span class="text-xs font-semibold text-slate-200">5. Vi phạm QĐVH khác</span>
+                                <span class="text-xs font-semibold text-gray-700">5. Vi phạm QĐVH khác</span>
                                 <div class="flex items-center gap-2">
-                                    <select id="op-other-status" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs focus:border-gold">
+                                    <select id="op-other-status" class="input-field w-auto text-xs">
                                         <option value="Đạt">Đạt</option>
                                         <option value="Không đạt">Không đạt</option>
                                     </select>
-                                    <input id="op-other-note" type="text" placeholder="Lỗi vi phạm khác..." class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1 text-xs text-slate-200 w-48 md:w-64 focus:border-gold">
+                                    <input id="op-other-note" type="text" placeholder="Lỗi vi phạm khác..." class="input-field text-xs w-48 md:w-64">
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- 4.2. HR Section -->
-                    <div class="border border-slate-700/50 rounded-xl p-4 bg-slate-900/30 space-y-4">
-                        <h5 class="text-xs font-bold text-gold uppercase tracking-wide border-b border-slate-800 pb-1.5">4.2. Tình hình nhân sự tại CH</h5>
+                    <div class="border border-gray-200 rounded-xl p-4 bg-gray-50/50 space-y-4">
+                        <h5 class="text-xs font-bold text-brand-red uppercase tracking-wide border-b border-gray-200 pb-1.5">4.2. Tình hình nhân sự tại CH</h5>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <div>
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Định biên nhân sự</label>
-                                <input id="hr-target" type="number" min="0" placeholder="Số lượng đích" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:border-gold">
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Định biên nhân sự</label>
+                                <input id="hr-target" type="number" min="0" placeholder="Số lượng đích" class="input-field text-xs">
                             </div>
                             <div>
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">SL NV Thực tế (gồm cả TS/Phep)</label>
-                                <input id="hr-actual" type="number" min="0" placeholder="Số lượng thực tế" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:border-gold">
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">SL NV Thực tế (gồm TS/Phép)</label>
+                                <input id="hr-actual" type="number" min="0" placeholder="Số lượng thực tế" class="input-field text-xs">
                             </div>
                             <div>
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">SL Nhân viên Bảo vệ</label>
-                                <input id="hr-guard" type="number" min="0" placeholder="SL bảo vệ" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:border-gold">
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">SL Nhân viên Bảo vệ</label>
+                                <input id="hr-guard" type="number" min="0" placeholder="SL bảo vệ" class="input-field text-xs">
                             </div>
                         </div>
-                        <div class="space-y-3 pt-2 border-t border-slate-800">
+                        <div class="space-y-3 pt-2 border-t border-gray-200">
                             <div>
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Thông tin nhân viên nghỉ việc (nếu có)</label>
-                                <textarea id="hr-resigned-note" rows="2" placeholder="Ghi rõ: Họ Tên - MSNV - Chức vụ - Ngày nghỉ - Nguyên nhân..." class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 focus:border-gold"></textarea>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Thông tin nhân viên nghỉ việc (nếu có)</label>
+                                <textarea id="hr-resigned-note" rows="2" placeholder="Ghi rõ: Họ Tên - MSNV - Chức vụ - Ngày nghỉ - Nguyên nhân..." class="input-field text-xs"></textarea>
                             </div>
                             <div>
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Thông tin nhân viên nghỉ phép trong tuần (nếu có)</label>
-                                <textarea id="hr-leave-note" rows="2" placeholder="Ghi rõ: Họ tên - Ngày phép (từ... đến...) - Lý do..." class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 focus:border-gold"></textarea>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Thông tin nhân viên nghỉ phép trong tuần (nếu có)</label>
+                                <textarea id="hr-leave-note" rows="2" placeholder="Ghi rõ: Họ tên - Ngày phép (từ... đến...) - Lý do..." class="input-field text-xs"></textarea>
                             </div>
                             <div>
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Thông tin nghỉ không phép (nếu có)</label>
-                                <textarea id="hr-absent-note" rows="1" placeholder="Họ tên, MSNV, thời gian nghỉ..." class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 focus:border-gold"></textarea>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Thông tin nghỉ không phép (nếu có)</label>
+                                <textarea id="hr-absent-note" rows="1" placeholder="Họ tên, MSNV, thời gian nghỉ..." class="input-field text-xs"></textarea>
                             </div>
                         </div>
                     </div>
 
                     <!-- 4.3. Inventory Section -->
-                    <div class="border border-slate-700/50 rounded-xl p-4 bg-slate-900/30 space-y-3">
-                        <h5 class="text-xs font-bold text-gold uppercase tracking-wide border-b border-slate-800 pb-1.5">4.3. Tình hình hàng hóa</h5>
+                    <div class="border border-gray-200 rounded-xl p-4 bg-gray-50/50 space-y-3">
+                        <h5 class="text-xs font-bold text-brand-red uppercase tracking-wide border-b border-gray-200 pb-1.5">4.3. Tình hình hàng hóa</h5>
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">1. Hàng hóa (Nhóm hàng thừa - thiếu, chủng loại, SL...)</label>
-                            <textarea id="inv-stock-status" rows="2" placeholder="Ví dụ: Thiếu sơ mi nam size 39, thừa quần tây size 31..." class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 focus:border-gold"></textarea>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">1. Hàng hóa (Nhóm hàng thừa - thiếu, chủng loại, SL...)</label>
+                            <textarea id="inv-stock-status" rows="2" placeholder="Ví dụ: Thiếu sơ mi nam size 39, thừa quần tây size 31..." class="input-field text-xs"></textarea>
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">2. Hàng thông tin (SL tiếp nhận, lỗi hàng tồn đọng chưa giải quyết...)</label>
-                            <textarea id="inv-info-goods" rows="2" placeholder="Ghi rõ hàng của KH hay của CH, mã hàng, lỗi cụ thể..." class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 focus:border-gold"></textarea>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">2. Hàng thông tin (SL tiếp nhận, lỗi hàng tồn đọng chưa giải quyết...)</label>
+                            <textarea id="inv-info-goods" rows="2" placeholder="Ghi rõ hàng của KH hay của CH, mã hàng, lỗi cụ thể..." class="input-field text-xs"></textarea>
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">3. Hàng trả kho (Số lượng chưa chuyển về công ty, hàng thu hồi...)</label>
-                            <textarea id="inv-return-warehouse" rows="2" placeholder="Ghi rõ còn bao nhiêu hàng chưa trả kho..." class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 focus:border-gold"></textarea>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">3. Hàng trả kho (Số lượng chưa chuyển về công ty, hàng thu hồi...)</label>
+                            <textarea id="inv-return-warehouse" rows="2" placeholder="Ghi rõ còn bao nhiêu hàng chưa trả kho..." class="input-field text-xs"></textarea>
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">4. Đề xuất bổ sung hàng (nếu có)</label>
-                            <textarea id="inv-proposal" rows="1" placeholder="Nêu rõ mã hàng, nhóm hàng cần bổ sung gấp..." class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 focus:border-gold"></textarea>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">4. Đề xuất bổ sung hàng (nếu có)</label>
+                            <textarea id="inv-proposal" rows="1" placeholder="Nêu rõ mã hàng, nhóm hàng cần bổ sung gấp..." class="input-field text-xs"></textarea>
                         </div>
                     </div>
 
                     <!-- 4.4. Market Section -->
-                    <div class="border border-slate-700/50 rounded-xl p-4 bg-slate-900/30 space-y-3">
-                        <h5 class="text-xs font-bold text-gold uppercase tracking-wide border-b border-slate-800 pb-1.5">4.4. Ý kiến khách hàng & Thị trường</h5>
+                    <div class="border border-gray-200 rounded-xl p-4 bg-gray-50/50 space-y-3">
+                        <h5 class="text-xs font-bold text-brand-red uppercase tracking-wide border-b border-gray-200 pb-1.5">4.4. Ý kiến khách hàng & Thị trường</h5>
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Ý kiến/Góp ý của KH về sản phẩm (cụ thể đến tên/mã sp)</label>
-                            <textarea id="market-product-feedback" rows="2" placeholder="KH chê phom dáng, chất vải hoặc phàn nàn đường chỉ..." class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 focus:border-gold"></textarea>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Ý kiến/Góp ý của KH về sản phẩm (cụ thể đến tên/mã sp)</label>
+                            <textarea id="market-product-feedback" rows="2" placeholder="KH chê phom dáng, chất vải hoặc phàn nàn đường chỉ..." class="input-field text-xs"></textarea>
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Sản phẩm KH tìm mua nhưng công ty chưa có</label>
-                            <textarea id="market-missing-products" rows="1" placeholder="Ví dụ: Vớ thể thao cao cổ, nẹp cà vạt bản nhỏ..." class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 focus:border-gold"></textarea>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Sản phẩm KH tìm mua nhưng công ty chưa có</label>
+                            <textarea id="market-missing-products" rows="1" placeholder="Ví dụ: Vớ thể thao cao cổ, nẹp cà vạt bản nhỏ..." class="input-field text-xs"></textarea>
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Thông tin đối thủ cạnh tranh gần CH (CTKM, mức giá, sp cạnh tranh...)</label>
-                            <textarea id="market-competitors" rows="2" placeholder="Đối thủ cách 100m đang giảm giá 50% hàng hè..." class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 focus:border-gold"></textarea>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Thông tin đối thủ cạnh tranh gần CH (CTKM, mức giá, sp cạnh tranh...)</label>
+                            <textarea id="market-competitors" rows="2" placeholder="Đối thủ cách 100m đang giảm giá 50% hàng hè..." class="input-field text-xs"></textarea>
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Ý kiến khác của Cửa hàng trưởng</label>
-                            <textarea id="market-other-feedback" rows="1" placeholder="Các kiến nghị khác..." class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 focus:border-gold"></textarea>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Ý kiến khác của Cửa hàng trưởng</label>
+                            <textarea id="market-other-feedback" rows="1" placeholder="Các kiến nghị khác..." class="input-field text-xs"></textarea>
                         </div>
                     </div>
                 </div>
 
                 <!-- SECTION E: SUPPORT REQUESTS (Section 4.5) -->
-                <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 shadow-lg">
-                    <div class="flex items-center justify-between border-b border-slate-700/60 pb-3 mb-4">
+                <div class="card rounded-2xl p-5">
+                    <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
                         <div class="flex items-center gap-2">
                             <span class="text-lg">📢</span>
-                            <h4 class="font-bold text-white uppercase">Vấn đề tồn đọng cần hỗ trợ (4.5)</h4>
+                            <h4 class="font-bold text-brand-navy uppercase text-sm">Vấn đề tồn đọng cần hỗ trợ (4.5)</h4>
                         </div>
-                        <button id="btn-add-support" class="bg-gold/10 hover:bg-gold/25 border border-gold/40 text-gold text-xs font-bold px-3 py-1.5 rounded-lg transition-all">
+                        <button id="btn-add-support" class="btn-outline text-xs">
                             + Thêm Kiến Nghị
                         </button>
                     </div>
                     <div id="support-container" class="space-y-4"></div>
-                    <div id="support-empty" class="text-center py-6 text-slate-500 text-xs italic">
+                    <div id="support-empty" class="text-center py-6 text-gray-400 text-xs italic">
                         Không có vấn đề tồn đọng nào cần hỗ trợ tuần này.
                     </div>
                 </div>
 
                 <!-- Submit Button -->
-                <div class="pt-4">
-                    <button id="btn-submit" class="w-full bg-gold hover:bg-gold-dark text-slate-900 font-bold py-4 rounded-2xl transition-all shadow-lg text-lg tracking-wide active:scale-[0.99] flex items-center justify-center gap-2">
+                <div class="pt-2">
+                    <button id="btn-submit" class="btn-primary w-full py-4 text-base tracking-wide flex items-center justify-center gap-2 shadow-lg">
                         <span>🚀</span> NỘP BÁO CÁO VẬN HÀNH TUẦN
                     </button>
                 </div>
             </div>
 
             <!-- TAB 2: DAILY TRAFFIC FORM -->
-            <div id="tab-daily-content" class="hidden space-y-6">
-                <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 shadow-lg">
-                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-700/60 pb-3 mb-4">
+            <div id="tab-daily-content" class="hidden space-y-5">
+                <div class="card rounded-2xl p-5">
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3 mb-4">
                         <div class="flex items-center gap-2">
                             <span class="text-lg">📆</span>
-                            <h4 class="font-bold text-white uppercase">Nhập Traffic Hàng Ngày</h4>
+                            <h4 class="font-bold text-brand-navy uppercase text-sm">Nhập Traffic Hàng Ngày</h4>
                         </div>
                         <div class="flex items-center gap-3">
-                            <select id="select-traffic-year" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs">
+                            <select id="select-traffic-year" class="input-field w-auto text-xs">
                                 <option value="2026">2026</option>
                                 <option value="2025">2025</option>
                             </select>
-                            <select id="select-traffic-month" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs">
+                            <select id="select-traffic-month" class="input-field w-auto text-xs">
                                 <option value="1">Tháng 1</option>
                                 <option value="2">Tháng 2</option>
                                 <option value="3">Tháng 3</option>
@@ -492,7 +491,7 @@
                         </div>
                     </div>
 
-                    <p class="text-xs text-slate-400 mb-4">
+                    <p class="text-xs text-gray-500 mb-4">
                         💡 Điền số lượt khách vào cửa hàng của từng ngày (để trống nếu là ngày nghỉ lễ hoặc chưa có số liệu). Dữ liệu ca tối muộn có thể nhập bù vào sáng ngày hôm sau.
                     </p>
 
@@ -501,8 +500,8 @@
                         <!-- Dynamic day inputs will be generated here -->
                     </div>
 
-                    <div class="pt-6 border-t border-slate-800 mt-6">
-                        <button id="btn-save-daily-traffic" class="w-full bg-gold hover:bg-gold-dark text-slate-900 font-bold py-3 rounded-xl transition-all shadow-lg text-sm tracking-wide">
+                    <div class="pt-5 border-t border-gray-100 mt-5">
+                        <button id="btn-save-daily-traffic" class="btn-primary w-full py-3.5 text-sm tracking-wide">
                             💾 LƯU SỐ LIỆU TRAFFIC CẢ THÁNG
                         </button>
                     </div>
@@ -511,178 +510,180 @@
         </section>
 
         <!-- 3. DASHBOARD / STATUS VIEW (ASM Dashboard) -->
-        <section id="status-section" class="hidden space-y-6">
-            <div class="flex items-center justify-between bg-slate-900/60 border border-slate-800 rounded-2xl p-4">
+        <section id="status-section" class="hidden space-y-5">
+            <div class="card rounded-2xl p-4 flex items-center justify-between border-l-4 border-brand-red">
                 <div>
-                    <h3 id="status-dashboard-title" class="text-lg font-bold text-white flex items-center gap-2">
-                        📊 Báo Cáo Theo Dõi Dành Cho ASM
+                    <h3 id="status-dashboard-title" class="text-lg font-extrabold text-brand-navy flex items-center gap-2">
+                        📊 Báo Cáo Theo Dõi Dành Cho ADMIN
                     </h3>
-                    <p class="text-xs text-slate-400">Xem tiến độ nộp bài và nhắc nhở nộp thiếu</p>
+                    <p class="text-xs text-gray-500">Xem tiến độ nộp bài và nhắc nhở nộp thiếu</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button id="btn-status-change-pin" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-3 py-2 rounded-lg font-semibold text-slate-300 transition-all">
+                    <button id="btn-status-change-pin" class="btn-outline text-xs px-3 py-2">
                         🔑 Đổi PIN
                     </button>
-                    <button id="btn-status-back" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-4 py-2 rounded-xl transition-all text-slate-300 font-bold">
+                    <button id="btn-status-back" class="btn-outline text-xs px-4 py-2 font-bold">
                         ⬅ Quay Lại
                     </button>
                 </div>
             </div>
 
             <!-- Admin & ASM Excel Export Control Bar -->
-            <div id="admin-control-bar" class="flex flex-wrap items-center justify-between bg-slate-900/40 border border-slate-800 rounded-2xl p-4 gap-3">
+            <div id="admin-control-bar" class="card rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
                 <div id="admin-asm-filter-container" class="flex items-center gap-2">
-                    <label class="text-xs font-semibold text-slate-400">Lọc theo ASM:</label>
-                    <select id="admin-asm-filter" class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-gold">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Lọc theo ASM:</label>
+                    <select id="admin-asm-filter" class="input-field w-auto text-xs">
                         <option value="">-- Tất cả ASM --</option>
                     </select>
                 </div>
-                <button id="btn-export-excel" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md">
+                <button id="btn-export-excel" class="btn-gold text-xs px-4 py-2.5 flex items-center gap-1.5 shadow-md">
                     📥 Xuất Excel Báo Cáo Tuần
                 </button>
             </div>
 
             <!-- Tab switcher inside status page -->
-            <div class="flex border-b border-slate-800 bg-slate-900/20 px-4 pt-2 rounded-t-xl">
-                <button id="status-tab-weekly-btn" class="py-2.5 px-4 font-bold text-xs border-b-2 border-gold text-gold mr-2">
+            <div class="flex border-b border-gray-200 bg-white rounded-t-xl overflow-x-auto">
+                <button id="status-tab-weekly-btn" class="tab-btn active">
                     Báo cáo tuần 3.1 & 4
                 </button>
-                <button id="status-tab-daily-btn" class="py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2">
+                <button id="status-tab-daily-btn" class="tab-btn">
                     Tiến độ Traffic hàng ngày
                 </button>
-                <button id="status-tab-support-btn" class="py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2">
+                <button id="status-tab-support-btn" class="tab-btn">
                     Yêu cầu hỗ trợ (4.5)
                 </button>
-                <button id="status-tab-passcodes-btn" class="py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white hidden">
+                <button id="status-tab-passcodes-btn" class="tab-btn hidden">
                     🔑 Quản lý PIN
                 </button>
             </div>
 
             <!-- ASM Tab 1: Weekly Submission Status -->
-            <div id="status-tab-weekly-content" class="bg-slate-800/40 border border-slate-700/50 rounded-b-2xl p-5 shadow-lg space-y-4">
-                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-700/60 pb-3">
+            <div id="status-tab-weekly-content" class="card rounded-b-2xl p-5 border-t-0 space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
                     <div class="flex items-center gap-2">
-                        <label class="text-xs font-semibold text-slate-400">Tuần Báo Cáo:</label>
-                        <input id="status-report-date" type="date" value="{{ default_date }}" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200">
+                        <label class="text-xs font-bold text-gray-500 uppercase">Tuần Báo Cáo:</label>
+                        <input id="status-report-date" type="date" value="{{ default_date }}" class="input-field w-auto text-xs">
                     </div>
-                    <div class="flex items-center gap-3 text-xs">
-                        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> Đã nộp (<span id="count-submitted">0</span>)</span>
-                        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-rose-500"></span> Chưa nộp (<span id="count-pending">0</span>)</span>
+                    <div class="flex items-center gap-4 text-xs font-semibold">
+                        <span class="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Đã nộp (<span id="count-submitted">0</span>)</span>
+                        <span class="flex items-center gap-1.5 text-rose-700 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Chưa nộp (<span id="count-pending">0</span>)</span>
                     </div>
                 </div>
 
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-xs">
+                    <table class="tbl w-full rounded-xl overflow-hidden text-xs">
                         <thead>
-                            <tr class="border-b border-slate-700 text-slate-400 font-semibold">
-                                <th class="py-2.5 px-3">Cụm</th>
-                                <th class="py-2.5 px-3">Tên Cửa Hàng</th>
-                                <th class="py-2.5 px-3">ASM Quản Lý</th>
-                                <th class="py-2.5 px-3 text-center">Trạng Thế</th>
-                                <th id="th-admin-action" class="py-2.5 px-3 text-center hidden">Hành động</th>
+                            <tr>
+                                <th>Cụm</th>
+                                <th>Tên Cửa Hàng</th>
+                                <th>ASM Quản Lý</th>
+                                <th class="text-center">Trạng Thái</th>
+                                <th class="text-center">Tỷ Lệ CR (%)</th>
+                                <th class="text-center">Cảnh Báo Số Liệu</th>
+                                <th id="th-admin-action" class="text-center hidden">Hành Động</th>
                             </tr>
                         </thead>
-                        <tbody id="status-table-body" class="divide-y divide-slate-800"></tbody>
+                        <tbody id="status-table-body" class="divide-y divide-gray-100"></tbody>
                     </table>
                 </div>
             </div>
 
             <!-- ASM Tab 2: Daily Traffic Reminder -->
-            <div id="status-tab-daily-content" class="hidden bg-slate-800/40 border border-slate-700/50 rounded-b-2xl p-5 shadow-lg space-y-4">
-                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-700/60 pb-3">
+            <div id="status-tab-daily-content" class="hidden card rounded-b-2xl p-5 border-t-0 space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
                     <div class="flex flex-wrap items-center gap-3 text-xs">
                         <div>
-                            <label class="block text-[10px] text-slate-400 font-bold uppercase mb-1">Từ ngày</label>
-                            <input id="status-traffic-start" type="date" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200">
+                            <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Từ ngày</label>
+                            <input id="status-traffic-start" type="date" class="input-field w-auto text-xs">
                         </div>
                         <div>
-                            <label class="block text-[10px] text-slate-400 font-bold uppercase mb-1">Đến hết hôm qua</label>
-                            <input id="status-traffic-end" type="date" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200">
+                            <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Đến hết hôm qua</label>
+                            <input id="status-traffic-end" type="date" class="input-field w-auto text-xs">
                         </div>
                     </div>
-                    <button id="btn-refresh-traffic-status" class="bg-gold text-slate-900 font-bold px-4 py-2 rounded-xl text-xs hover:bg-gold-dark">
+                    <button id="btn-refresh-traffic-status" class="btn-gold text-xs px-3.5 py-2">
                         🔄 Cập Nhật Lại
                     </button>
                 </div>
 
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-xs">
+                    <table class="tbl w-full rounded-xl overflow-hidden text-xs">
                         <thead>
-                            <tr class="border-b border-slate-700 text-slate-400 font-semibold">
-                                <th class="py-2.5 px-3">Cửa Hàng</th>
-                                <th class="py-2.5 px-3 text-center">Đã Nhập</th>
-                                <th class="py-2.5 px-3 text-center">Tỷ Lệ</th>
-                                <th class="py-2.5 px-3">Các ngày bị thiếu (Chỉ hiện tối đa 10 ngày)</th>
+                            <tr>
+                                <th>Cửa Hàng</th>
+                                <th class="text-center">Đã Nhập</th>
+                                <th class="text-center">Tỷ Lệ</th>
+                                <th>Các ngày bị thiếu (Chỉ hiện tối đa 10 ngày)</th>
                             </tr>
                         </thead>
-                        <tbody id="status-traffic-table-body" class="divide-y divide-slate-800"></tbody>
+                        <tbody id="status-traffic-table-body" class="divide-y divide-gray-100"></tbody>
                     </table>
                 </div>
             </div>
 
             <!-- ASM Tab 3: Support Requests (Section 4.5) -->
-            <div id="status-tab-support-content" class="hidden bg-slate-800/40 border border-slate-700/50 rounded-b-2xl p-5 shadow-lg space-y-4">
-                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-700/60 pb-3">
+            <div id="status-tab-support-content" class="hidden card rounded-b-2xl p-5 border-t-0 space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
                     <div class="flex items-center gap-2">
-                        <label class="text-xs font-semibold text-slate-400">Tuần Báo Cáo:</label>
-                        <input id="status-support-report-date" type="date" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200">
+                        <label class="text-xs font-bold text-gray-500 uppercase">Tuần Báo Cáo:</label>
+                        <input id="status-support-report-date" type="date" class="input-field w-auto text-xs">
                     </div>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-[11px]">
+                    <table class="tbl w-full rounded-xl overflow-hidden text-xs">
                         <thead>
-                            <tr class="border-b border-slate-700 text-slate-400 font-semibold">
-                                <th class="py-2.5 px-3">Cửa Hàng</th>
-                                <th class="py-2.5 px-3">Phân Loại</th>
-                                <th class="py-2.5 px-3 text-center">Mức Độ</th>
-                                <th class="py-2.5 px-3">Nội Dung Yêu Cầu Hỗ Trợ (Phần 4.5)</th>
-                                <th class="py-2.5 px-3">Thời Hạn</th>
-                                <th class="py-2.5 px-3">Người Phụ Trách</th>
+                            <tr>
+                                <th>Cửa Hàng</th>
+                                <th>Phân Loại</th>
+                                <th class="text-center">Mức Độ</th>
+                                <th>Nội Dung Yêu Cầu Hỗ Trợ (Phần 4.5)</th>
+                                <th>Thời Hạn</th>
+                                <th>Người Phụ Trách</th>
                             </tr>
                         </thead>
-                        <tbody id="status-support-table-body" class="divide-y divide-slate-800">
-                            <tr><td colspan="6" class="text-center py-6 text-slate-500">Đang tải yêu cầu hỗ trợ...</td></tr>
+                        <tbody id="status-support-table-body" class="divide-y divide-gray-100">
+                            <tr><td colspan="6" class="text-center py-6 text-gray-400">Đang tải yêu cầu hỗ trợ...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
 
             <!-- ASM Tab 4: Passcode Management (Admin Only) -->
-            <div id="status-tab-passcodes-content" class="hidden bg-slate-800/40 border border-slate-700/50 rounded-b-2xl p-5 shadow-lg space-y-6">
+            <div id="status-tab-passcodes-content" class="hidden card rounded-b-2xl p-5 border-t-0 space-y-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- ASM PINs -->
                     <div class="space-y-3">
-                        <h4 class="font-bold text-white text-xs uppercase border-b border-slate-700/60 pb-2">🔑 Mã PIN Quản lý (ASM)</h4>
+                        <h4 class="font-extrabold text-brand-navy text-xs uppercase border-b border-gray-200 pb-2">🔑 Mã PIN Quản lý (ASM)</h4>
                         <div class="overflow-x-auto max-h-[400px]">
-                            <table class="w-full text-left border-collapse text-xs">
+                            <table class="tbl w-full rounded-xl overflow-hidden text-xs">
                                 <thead>
-                                    <tr class="border-b border-slate-700 text-slate-400 font-semibold">
-                                        <th class="py-2.5 px-3">Tên ASM</th>
-                                        <th class="py-2.5 px-3">Mã PIN</th>
-                                        <th class="py-2.5 px-3 text-center">Hành động</th>
+                                    <tr>
+                                        <th>Tên ASM</th>
+                                        <th>Mã PIN</th>
+                                        <th class="text-center">Hành động</th>
                                     </tr>
                                 </thead>
-                                <tbody id="table-passcodes-asms" class="divide-y divide-slate-800">
-                                    <tr><td colspan="3" class="text-center py-4 text-slate-500">Đang tải...</td></tr>
+                                <tbody id="table-passcodes-asms" class="divide-y divide-gray-100">
+                                    <tr><td colspan="3" class="text-center py-4 text-gray-400">Đang tải...</td></tr>
                                 </tbody>
                             </table>
                         </div>
                     </div>
                     <!-- Store PINs -->
                     <div class="space-y-3">
-                        <h4 class="font-bold text-white text-xs uppercase border-b border-slate-700/60 pb-2">🏪 Mã PIN Cửa Hàng (CHT)</h4>
+                        <h4 class="font-extrabold text-brand-navy text-xs uppercase border-b border-gray-200 pb-2">🏪 Mã PIN Cửa Hàng (CHT)</h4>
                         <div class="overflow-x-auto max-h-[400px]">
-                            <table class="w-full text-left border-collapse text-xs">
+                            <table class="tbl w-full rounded-xl overflow-hidden text-xs">
                                 <thead>
-                                    <tr class="border-b border-slate-700 text-slate-400 font-semibold">
-                                        <th class="py-2.5 px-3">Mã CH</th>
-                                        <th class="py-2.5 px-3">Tên Cửa Hàng</th>
-                                        <th class="py-2.5 px-3">Mã PIN</th>
-                                        <th class="py-2.5 px-3 text-center">Hành động</th>
+                                    <tr>
+                                        <th>Mã CH</th>
+                                        <th>Tên Cửa Hàng</th>
+                                        <th>Mã PIN</th>
+                                        <th class="text-center">Hành động</th>
                                     </tr>
                                 </thead>
-                                <tbody id="table-passcodes-stores" class="divide-y divide-slate-800">
-                                    <tr><td colspan="4" class="text-center py-4 text-slate-500">Đang tải...</td></tr>
+                                <tbody id="table-passcodes-stores" class="divide-y divide-gray-100">
+                                    <tr><td colspan="4" class="text-center py-4 text-gray-400">Đang tải...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -694,45 +695,45 @@
     </main>
 
     <!-- Footer Credit -->
-    <footer class="mt-auto text-center text-[10px] text-slate-600 border-t border-slate-900 pt-6">
+    <footer class="mt-auto text-center text-[11px] text-gray-400 border-t border-gray-200 pt-6 py-4">
         An Phước Group &copy; 2026 — Retail Commander Intelligence Engine.
     </footer>
 
     <!-- Alert / Toast Modal -->
-    <div id="toast-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm hidden">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center space-y-4">
+    <div id="toast-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm hidden">
+        <div class="bg-white border border-gray-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center space-y-4">
             <div id="toast-icon" class="text-4xl">✅</div>
-            <h3 id="toast-title" class="text-lg font-bold text-white">Thành Công!</h3>
-            <p id="toast-message" class="text-xs text-slate-300">Dữ liệu đã được cập nhật thành công.</p>
-            <button id="btn-toast-close" class="bg-gold text-slate-900 font-bold px-6 py-2 rounded-xl text-xs hover:bg-gold-dark transition-all">
+            <h3 id="toast-title" class="text-lg font-bold text-brand-navy">Thành Công!</h3>
+            <p id="toast-message" class="text-xs text-gray-600">Dữ liệu đã được cập nhật thành công.</p>
+            <button id="btn-toast-close" class="btn-primary px-6 py-2 text-xs">
                 Đóng
             </button>
         </div>
     </div>
     <!-- CHANGE PIN MODAL -->
-    <div id="change-pin-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-800 border border-slate-700 max-w-sm w-full rounded-2xl p-6 shadow-2xl space-y-4">
-            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+    <div id="change-pin-modal" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white border border-gray-200 max-w-sm w-full rounded-2xl p-6 shadow-2xl space-y-4">
+            <h3 class="text-lg font-bold text-brand-navy flex items-center gap-2">
                 🔑 Thay Đổi Mã PIN Đăng Nhập
             </h3>
-            <p id="change-pin-subtitle" class="text-xs text-slate-400">Vui lòng điền mã PIN hiện tại và mã PIN mới.</p>
+            <p id="change-pin-subtitle" class="text-xs text-gray-500">Vui lòng điền mã PIN hiện tại và mã PIN mới.</p>
             
             <div class="space-y-3">
                 <div id="div-old-pin">
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Mã PIN hiện tại</label>
-                    <input id="change-pin-old" type="password" maxlength="8" placeholder="Nhập PIN cũ" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 text-sm focus:outline-none focus:border-gold">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Mã PIN hiện tại</label>
+                    <input id="change-pin-old" type="password" maxlength="8" placeholder="Nhập PIN cũ" class="input-field">
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Mã PIN mới (tối thiểu 4 số)</label>
-                    <input id="change-pin-new" type="password" maxlength="8" placeholder="Nhập PIN mới" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 text-sm focus:outline-none focus:border-gold">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Mã PIN mới (tối thiểu 4 số)</label>
+                    <input id="change-pin-new" type="password" maxlength="8" placeholder="Nhập PIN mới" class="input-field">
                 </div>
             </div>
             
             <div class="flex gap-3 pt-2">
-                <button id="btn-change-pin-cancel" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-2 rounded-xl text-xs transition-all">
+                <button id="btn-change-pin-cancel" class="btn-outline flex-1 text-xs py-2">
                     Hủy
                 </button>
-                <button id="btn-change-pin-save" class="flex-1 bg-gold hover:bg-gold-dark text-slate-900 font-bold py-2 rounded-xl text-xs transition-all">
+                <button id="btn-change-pin-save" class="btn-primary flex-1 text-xs py-2">
                     Lưu Mã PIN Mới
                 </button>
             </div>
@@ -843,14 +844,14 @@
 
     <!-- Template for Support Request Row (4.5) -->
     <template id="tmpl-support-card">
-        <div class="support-card bg-slate-900/50 border border-slate-700/60 rounded-xl p-4 relative space-y-3">
-            <button class="btn-remove-row absolute top-2 right-2 text-slate-500 hover:text-rose-500 text-sm font-bold w-6 h-6 rounded-full flex items-center justify-center border border-slate-800 hover:border-rose-500/20 bg-slate-900 transition-all">
+        <div class="support-card card card-hover rounded-xl p-4 relative space-y-3">
+            <button class="btn-remove-row absolute top-2 right-2 text-gray-300 hover:text-brand-red text-sm font-bold w-6 h-6 rounded-full flex items-center justify-center border border-gray-200 hover:border-brand-red/30 bg-gray-50 transition-all">
                 &times;
             </button>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Phân Nhóm</label>
-                    <select class="val-support-category w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:border-gold">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Phân Nhóm</label>
+                    <select class="val-support-category input-field">
                         <option value="DOANH THU">Doanh Thu / Tăng Trưởng</option>
                         <option value="KHÁCH HÀNG">Khách Hàng</option>
                         <option value="HÀNG HÓA">Hàng Hóa</option>
@@ -859,21 +860,21 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Mức Độ Ưu Tiên</label>
-                    <select class="val-support-priority w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:border-gold">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Mức Độ Ưu Tiên</label>
+                    <select class="val-support-priority input-field">
                         <option value="Trung bình">Trung bình</option>
                         <option value="Thấp">Thấp</option>
                         <option value="Cao">Cao</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Thời hạn hoàn thành (nếu có)</label>
-                    <input type="text" class="val-support-deadline w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:border-gold" placeholder="Ví dụ: 15/07/2026">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Thời hạn hoàn thành (nếu có)</label>
+                    <input type="text" class="val-support-deadline input-field" placeholder="Ví dụ: 15/07/2026">
                 </div>
             </div>
             <div>
-                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Hạng mục / Nội dung cần cấp trên hỗ trợ</label>
-                <input type="text" class="val-support-item w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:border-gold" placeholder="Ghi cụ thể sự việc, đề xuất hỗ trợ...">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Hạng mục / Nội dung cần cấp trên hỗ trợ</label>
+                <input type="text" class="val-support-item input-field" placeholder="Ghi cụ thể sự việc, đề xuất hỗ trợ...">
             </div>
         </div>
     </template>
@@ -1338,21 +1339,24 @@
                             const billForCR = b - co;
                             const cr = (billForCR / trf) * 100;
                             
-                            let crText = `Tỷ lệ chuyển đổi (CR) tuần: <strong>${cr.toFixed(1)}%</strong>`;
+                            let crText = `<div class="font-extrabold text-sm mb-1">Tỷ lệ chuyển đổi (CR) tuần: ${cr.toFixed(1)}%</div>`;
                             if (co > 0 || so > 0) {
-                                crText += `<br><span class="text-[10px] text-slate-400 font-normal">CR thực tế tại quầy (đã loại trừ ${co} bill online C.ty): <strong>${cr.toFixed(1)}%</strong> (Tổng bill: ${b}, Bill tự bán: ${so})</span>`;
+                                crText += `<div class="text-xs font-normal">CR thực tế tại quầy (đã trừ ${co} bill online C.ty): <strong>${cr.toFixed(1)}%</strong> (Tổng bill: ${b}, Bill tự bán: ${so})</div>`;
                             }
                             
                             alertDiv.innerHTML = crText;
                             alertDiv.classList.remove('hidden');
                             if (cr > 100) {
-                                alertDiv.className = "text-[11px] font-bold text-rose-400 mt-2 bg-rose-950/20 px-3 py-2 rounded-xl border border-rose-800/40";
+                                alertDiv.className = "text-xs font-bold text-rose-900 bg-rose-50 mt-2 p-3 rounded-xl border border-rose-300 shadow-sm";
+                                alertDiv.innerHTML += `<div class="mt-1 text-[11px] font-bold text-rose-700">⚠️ CR BẤT THƯỜNG (>100%): Số bill bán lẻ lớn hơn số lượt khách! Vui lòng kiểm tra lại lượt khách hoặc số bill trước khi nộp.</div>`;
                             } else if (cr < 50 || cr >= 90) {
-                                alertDiv.className = "text-[11px] font-bold text-amber-400 mt-2 bg-amber-950/20 px-3 py-2 rounded-xl border border-amber-800/40";
+                                alertDiv.className = "text-xs font-bold text-amber-900 bg-amber-50 mt-2 p-3 rounded-xl border border-amber-300 shadow-sm";
+                                alertDiv.innerHTML += `<div class="mt-1 text-[11px] font-bold text-amber-700">⚠️ CẢNH BÁO CR LỆCH CHUẨN (${cr.toFixed(1)}%): Mức chuẩn là 80-87%. Hãy xác nhận kỹ lại số liệu lượt khách hoặc số bill.</div>`;
                             } else if (cr >= 80 && cr <= 87) {
-                                alertDiv.className = "text-[11px] font-bold text-emerald-400 mt-2 bg-emerald-950/20 px-3 py-2 rounded-xl border border-emerald-800/40";
+                                alertDiv.className = "text-xs font-bold text-emerald-900 bg-emerald-50 mt-2 p-3 rounded-xl border border-emerald-300 shadow-sm";
+                                alertDiv.innerHTML += `<div class="mt-1 text-[11px] font-semibold text-emerald-700">✅ CR ĐẠT CHUẨN (80-87%): Tỷ lệ chuyển đổi nằm trong mức tiêu chuẩn.</div>`;
                             } else {
-                                alertDiv.className = "text-[11px] font-bold text-slate-300 mt-2 bg-slate-900/60 px-3 py-2 rounded-xl border border-slate-800";
+                                alertDiv.className = "text-xs font-semibold text-gray-800 bg-blue-50 mt-2 p-3 rounded-xl border border-blue-200 shadow-sm";
                             }
                         }
                         
@@ -1450,10 +1454,10 @@
         async function generateDailyTrafficInputs() {
             if (!currentStore) return;
             
-            const year = selectTrafficYear.value;
-            const month = selectTrafficMonth.value;
+            const month = Number(selectTrafficMonth.value);
+            const year = Number(selectTrafficYear.value);
             
-            dailyTrafficGrid.innerHTML = '<div class="col-span-full text-center py-6 text-slate-500">Đang tải lịch sử traffic...</div>';
+            dailyTrafficGrid.innerHTML = '<div class="col-span-full text-center py-6 text-gray-400">Đang tải lịch sử traffic...</div>';
             
             try {
                 const res = await fetch(`/api/get_daily_traffic?store_code=${currentStore.code}&year=${year}&month=${month}&pin=${currentStore.pin}`);
@@ -1481,41 +1485,41 @@
                             
                             if (t === 0) {
                                 crPercent = billForCR > 0 ? 'CR > 100%' : '0%';
-                                badgeClass = billForCR > 0 ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-800 text-slate-400';
+                                badgeClass = billForCR > 0 ? 'status-badge badge-red font-extrabold' : 'status-badge badge-gray';
                             } else {
                                 const cr = (billForCR / t) * 100;
                                 crPercent = cr.toFixed(1) + '%';
-                                if (cr > 100) badgeClass = 'bg-rose-500/20 text-rose-400';
-                                else if (cr < 50 || cr >= 90) badgeClass = 'bg-amber-500/20 text-amber-400';
-                                else if (cr >= 80 && cr <= 87) badgeClass = 'bg-emerald-500/20 text-emerald-400';
-                                else badgeClass = 'bg-slate-800 text-slate-400';
+                                if (cr > 100) badgeClass = 'status-badge badge-red font-extrabold';
+                                else if (cr < 50 || cr >= 90) badgeClass = 'status-badge badge-amber font-bold';
+                                else if (cr >= 80 && cr <= 87) badgeClass = 'status-badge badge-green font-bold';
+                                else badgeClass = 'status-badge badge-blue font-bold';
                             }
                         }
                         
-                        const bgClass = trfVal !== '' ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-slate-900/60 border-slate-700';
+                        const bgClass = trfVal !== '' ? 'bg-emerald-50/30 border-emerald-200' : 'bg-white border-gray-200';
                         
                         dailyTrafficGrid.innerHTML += `
-                            <div class="p-3 border rounded-xl flex flex-col justify-between gap-1.5 transition-all ${bgClass}" data-card-date="${dateStr}">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-[10px] font-bold text-slate-400">${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}</span>
-                                    <span class="text-[9px] font-bold cr-badge px-1 py-0.5 rounded text-slate-400 ${badgeClass}">${crPercent}</span>
+                            <div class="p-3 border rounded-xl flex flex-col justify-between gap-1.5 transition-all shadow-xs ${bgClass}" data-card-date="${dateStr}">
+                                <div class="flex justify-between items-center pb-1 border-b border-gray-100">
+                                    <span class="text-[11px] font-extrabold text-brand-navy">${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}</span>
+                                    <span class="text-[9px] font-bold cr-badge px-1.5 py-0.5 rounded ${badgeClass}">${crPercent}</span>
                                 </div>
-                                <div class="flex flex-col gap-1">
+                                <div class="flex flex-col gap-1.5 pt-1">
                                     <div class="flex items-center gap-1">
-                                        <span class="text-[8px] text-slate-500 w-8">Khách:</span>
-                                        <input type="number" min="0" data-date="${dateStr}" data-type="traffic" value="${trfVal}" placeholder="Trống" class="daily-traffic-input w-full bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-0.5 text-xs text-slate-200 font-bold focus:outline-none focus:border-gold">
+                                        <span class="text-[9px] font-bold text-gray-500 w-10">Khách:</span>
+                                        <input type="number" min="0" data-date="${dateStr}" data-type="traffic" value="${trfVal}" placeholder="Trống" class="daily-traffic-input input-field text-xs py-1 px-2 font-extrabold text-gray-900">
                                     </div>
                                     <div class="flex items-center gap-1">
-                                        <span class="text-[8px] text-slate-500 w-8">Bill:</span>
-                                        <input type="number" min="0" data-date="${dateStr}" data-type="bills" value="${billsVal}" placeholder="Trống" class="daily-bills-input w-full bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-0.5 text-xs text-slate-200 font-bold focus:outline-none focus:border-gold">
+                                        <span class="text-[9px] font-bold text-gray-500 w-10">Bill:</span>
+                                        <input type="number" min="0" data-date="${dateStr}" data-type="bills" value="${billsVal}" placeholder="Trống" class="daily-bills-input input-field text-xs py-1 px-2 font-extrabold text-gray-900">
                                     </div>
                                     <div class="flex items-center gap-1">
-                                        <span class="text-[8px] text-slate-500 w-8">OL C.ty:</span>
-                                        <input type="number" min="0" data-date="${dateStr}" data-type="company_online_bills" value="${coVal}" placeholder="0" class="daily-company-online-input w-full bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-0.5 text-[10px] text-slate-300 focus:outline-none focus:border-gold">
+                                        <span class="text-[9px] font-medium text-gray-400 w-10">OL C.ty:</span>
+                                        <input type="number" min="0" data-date="${dateStr}" data-type="company_online_bills" value="${coVal}" placeholder="0" class="daily-company-online-input input-field text-[10px] py-0.5 px-2 text-gray-700">
                                     </div>
                                     <div class="flex items-center gap-1">
-                                        <span class="text-[8px] text-slate-500 w-8">OL CH:</span>
-                                        <input type="number" min="0" data-date="${dateStr}" data-type="store_online_bills" value="${soVal}" placeholder="0" class="daily-store-online-input w-full bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-0.5 text-[10px] text-slate-300 focus:outline-none focus:border-gold">
+                                        <span class="text-[9px] font-medium text-gray-400 w-10">OL CH:</span>
+                                        <input type="number" min="0" data-date="${dateStr}" data-type="store_online_bills" value="${soVal}" placeholder="0" class="daily-store-online-input input-field text-[10px] py-0.5 px-2 text-gray-700">
                                     </div>
                                 </div>
                             </div>
@@ -1537,7 +1541,7 @@
                             const co = coInp.value.trim();
                             const so = soInp.value.trim();
                             
-                            card.className = "p-3 border rounded-xl flex flex-col justify-between gap-1.5 transition-all bg-amber-500/5 border-amber-500/50";
+                            card.className = "p-3 border rounded-xl flex flex-col justify-between gap-1.5 transition-all bg-amber-50 border-amber-300 shadow-xs";
                             
                             if (trf !== '' && bill !== '') {
                                 const tVal = Number(trf);
@@ -1549,11 +1553,11 @@
                                 if (tVal === 0) {
                                     if (billForCR > 0) {
                                         crBadge.innerText = 'CR > 100%';
-                                        crBadge.className = 'text-[9px] font-bold cr-badge px-1 py-0.5 rounded bg-rose-500/20 text-rose-400';
-                                        card.className = "p-3 border rounded-xl flex flex-col justify-between gap-1.5 transition-all bg-rose-500/5 border-rose-500/40";
+                                        crBadge.className = 'status-badge badge-red font-extrabold';
+                                        card.className = "p-3 border rounded-xl flex flex-col justify-between gap-1.5 transition-all bg-rose-50 border-rose-300 shadow-xs";
                                     } else {
                                         crBadge.innerText = '0%';
-                                        crBadge.className = 'text-[9px] font-bold cr-badge px-1 py-0.5 rounded bg-slate-800 text-slate-400';
+                                        crBadge.className = 'status-badge badge-gray';
                                     }
                                 } else {
                                     const cr = (billForCR / tVal) * 100;
@@ -1951,22 +1955,25 @@
                 const billForCR = bVal - coVal;
                 const cr = tVal > 0 ? (billForCR / tVal) * 100 : 0;
                 
-                let crText = `Tỷ lệ chuyển đổi (CR) tuần: <strong>${cr.toFixed(1)}%</strong>`;
+                let crText = `<div class="font-extrabold text-sm mb-1">Tỷ lệ chuyển đổi (CR) tuần: ${cr.toFixed(1)}%</div>`;
                 if (coVal > 0 || soVal > 0) {
-                    crText += `<br><span class="text-[10px] text-slate-400 font-normal">CR thực tế tại quầy (loại trừ ${coVal} bill online C.ty): <strong>${cr.toFixed(1)}%</strong> (Tổng bill: ${bVal}, Bill tự bán: ${soVal})</span>`;
+                    crText += `<div class="text-xs font-normal">CR thực tế tại quầy (đã trừ ${coVal} bill online C.ty): <strong>${cr.toFixed(1)}%</strong> (Tổng bill: ${bVal}, Bill tự bán: ${soVal})</div>`;
                 }
                 
                 alertDiv.innerHTML = crText;
                 alertDiv.classList.remove('hidden');
                 
                 if (cr > 100) {
-                    alertDiv.className = "text-[11px] font-bold text-rose-400 mt-2 bg-rose-950/20 px-3 py-2 rounded-xl border border-rose-800/40";
+                    alertDiv.className = "text-xs font-bold text-rose-900 bg-rose-50 mt-2 p-3 rounded-xl border border-rose-300 shadow-sm";
+                    alertDiv.innerHTML += `<div class="mt-1 text-[11px] font-bold text-rose-700">⚠️ CR BẤT THƯỜNG (>100%): Số bill lớn hơn lượt khách! Vui lòng kiểm tra lại.</div>`;
                 } else if (cr < 50 || cr >= 90) {
-                    alertDiv.className = "text-[11px] font-bold text-amber-400 mt-2 bg-amber-950/20 px-3 py-2 rounded-xl border border-amber-800/40";
+                    alertDiv.className = "text-xs font-bold text-amber-900 bg-amber-50 mt-2 p-3 rounded-xl border border-amber-300 shadow-sm";
+                    alertDiv.innerHTML += `<div class="mt-1 text-[11px] font-bold text-amber-700">⚠️ CẢNH BÁO CR LỆCH CHUẨN (${cr.toFixed(1)}%): Mức chuẩn là 80-87%. Hãy xác nhận lại lượt khách hoặc bill.</div>`;
                 } else if (cr >= 80 && cr <= 87) {
-                    alertDiv.className = "text-[11px] font-bold text-emerald-400 mt-2 bg-emerald-950/20 px-3 py-2 rounded-xl border border-emerald-800/40";
+                    alertDiv.className = "text-xs font-bold text-emerald-900 bg-emerald-50 mt-2 p-3 rounded-xl border border-emerald-300 shadow-sm";
+                    alertDiv.innerHTML += `<div class="mt-1 text-[11px] font-semibold text-emerald-700">✅ CR ĐẠT CHUẨN (80-87%): Tỷ lệ chuyển đổi nằm trong mức tiêu chuẩn.</div>`;
                 } else {
-                    alertDiv.className = "text-[11px] font-bold text-slate-300 mt-2 bg-slate-900/60 px-3 py-2 rounded-xl border border-slate-800";
+                    alertDiv.className = "text-xs font-semibold text-gray-800 bg-blue-50 mt-2 p-3 rounded-xl border border-blue-200 shadow-sm";
                 }
             } else {
                 alertDiv.classList.add('hidden');
@@ -2039,7 +2046,7 @@
                     formSec.classList.remove('hidden');
                     
                     lblActiveStore.innerText = currentStore.name;
-                    lblStoreMeta.innerHTML = `<span class="bg-gold text-slate-900 px-2 py-0.5 rounded font-bold mr-2 text-[10px]">ĐANG ĐĂNG NHẬP HỘ BỞI ADMIN</span> Mã: ${currentStore.code} | ASM quản lý: ${currentStore.asm}`;
+                    lblStoreMeta.innerHTML = `<span class="bg-brand-gold text-brand-navy px-2.5 py-0.5 rounded-full font-bold mr-2 text-[10px] shadow-xs border border-amber-300">✍️ ĐANG ĐĂNG NHẬP HỘ BỞI ADMIN</span> Mã: ${currentStore.code} | ASM quản lý: ${currentStore.asm}`;
                     
                     await loadWeeklyReportData();
                 }
@@ -2202,8 +2209,8 @@
 
         // Passcodes load function
         async function loadPasscodes() {
-            tablePasscodesAsms.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-slate-500">Đang tải...</td></tr>';
-            tablePasscodesStores.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-slate-500">Đang tải...</td></tr>';
+            tablePasscodesAsms.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-400">Đang tải...</td></tr>';
+            tablePasscodesStores.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-400">Đang tải...</td></tr>';
             try {
                 const res = await fetch(`/api/get_all_passcodes?admin_pin=${currentStore.pin}`);
                 const data = await res.json();
@@ -2211,11 +2218,11 @@
                     tablePasscodesAsms.innerHTML = '';
                     data.asms.forEach(asm => {
                         tablePasscodesAsms.innerHTML += `
-                            <tr class="border-b border-slate-800/80 hover:bg-slate-700/10">
-                                <td class="py-3 px-3 text-slate-300 font-bold">${asm.asm_name}</td>
-                                <td class="py-3 px-3 font-mono text-gold font-semibold">${asm.passcode}</td>
+                            <tr class="border-b border-gray-100 hover:bg-brand-red-l">
+                                <td class="py-3 px-3 text-gray-900 font-bold">${asm.asm_name}</td>
+                                <td class="py-3 px-3 font-mono text-brand-red font-extrabold text-sm">${asm.passcode}</td>
                                 <td class="py-3 px-3 text-center">
-                                    <button class="bg-gold/20 hover:bg-gold/30 text-gold text-[10px] font-bold px-2.5 py-1.5 rounded-lg border border-gold/30 active:scale-95 transition-all"
+                                    <button class="btn-outline text-[11px] px-2.5 py-1"
                                         onclick="showChangePinModalAdmin('asm', '${asm.asm_name}')">
                                         ✏️ Sửa PIN
                                     </button>
@@ -2227,12 +2234,12 @@
                     tablePasscodesStores.innerHTML = '';
                     data.stores.forEach(s => {
                         tablePasscodesStores.innerHTML += `
-                            <tr class="border-b border-slate-800/80 hover:bg-slate-700/10">
-                                <td class="py-3 px-3 text-slate-300 font-mono font-bold">${s.store_code}</td>
-                                <td class="py-3 px-3 text-slate-400">${s.store_name}</td>
-                                <td class="py-3 px-3 font-mono text-gold font-semibold">${s.passcode || '1234'}</td>
+                            <tr class="border-b border-gray-100 hover:bg-brand-red-l">
+                                <td class="py-3 px-3 text-gray-900 font-mono font-bold">${s.store_code}</td>
+                                <td class="py-3 px-3 text-gray-600 font-medium">${s.store_name}</td>
+                                <td class="py-3 px-3 font-mono text-brand-red font-extrabold text-sm">${s.passcode || '1234'}</td>
                                 <td class="py-3 px-3 text-center">
-                                    <button class="bg-gold/20 hover:bg-gold/30 text-gold text-[10px] font-bold px-2.5 py-1.5 rounded-lg border border-gold/30 active:scale-95 transition-all"
+                                    <button class="btn-outline text-[11px] px-2.5 py-1"
                                         onclick="showChangePinModalAdmin('store', '${s.store_code}')">
                                         ✏️ Sửa PIN
                                     </button>
@@ -2248,14 +2255,15 @@
             }
         }
 
+        function setStatusTabActive(activeBtn) {
+            [statusTabWeeklyBtn, statusTabDailyBtn, statusTabSupportBtn, statusTabPasscodesBtn].forEach(b => {
+                if (b) b.classList.remove('active');
+            });
+            if (activeBtn) activeBtn.classList.add('active');
+        }
+
         statusTabWeeklyBtn.addEventListener('click', () => {
-            statusTabWeeklyBtn.className = "py-2.5 px-4 font-bold text-xs border-b-2 border-gold text-gold mr-2";
-            statusTabDailyBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
-            statusTabSupportBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
-            statusTabPasscodesBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white hidden";
-            if (currentStore && currentStore.role === 'admin') {
-                statusTabPasscodesBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
-            }
+            setStatusTabActive(statusTabWeeklyBtn);
             statusTabWeeklyContent.classList.remove('hidden');
             statusTabDailyContent.classList.add('hidden');
             statusTabSupportContent.classList.add('hidden');
@@ -2263,13 +2271,7 @@
         });
 
         statusTabDailyBtn.addEventListener('click', async () => {
-            statusTabDailyBtn.className = "py-2.5 px-4 font-bold text-xs border-b-2 border-gold text-gold mr-2";
-            statusTabWeeklyBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
-            statusTabSupportBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
-            statusTabPasscodesBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white hidden";
-            if (currentStore && currentStore.role === 'admin') {
-                statusTabPasscodesBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
-            }
+            setStatusTabActive(statusTabDailyBtn);
             statusTabDailyContent.classList.remove('hidden');
             statusTabWeeklyContent.classList.add('hidden');
             statusTabSupportContent.classList.add('hidden');
@@ -2279,13 +2281,7 @@
         });
 
         statusTabSupportBtn.addEventListener('click', async () => {
-            statusTabSupportBtn.className = "py-2.5 px-4 font-bold text-xs border-b-2 border-gold text-gold mr-2";
-            statusTabWeeklyBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
-            statusTabDailyBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
-            statusTabPasscodesBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white hidden";
-            if (currentStore && currentStore.role === 'admin') {
-                statusTabPasscodesBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
-            }
+            setStatusTabActive(statusTabSupportBtn);
             statusTabSupportContent.classList.remove('hidden');
             statusTabWeeklyContent.classList.add('hidden');
             statusTabDailyContent.classList.add('hidden');
@@ -2295,10 +2291,7 @@
         });
 
         statusTabPasscodesBtn.addEventListener('click', async () => {
-            statusTabPasscodesBtn.className = "py-2.5 px-4 font-bold text-xs border-b-2 border-gold text-gold mr-2";
-            statusTabWeeklyBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
-            statusTabDailyBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
-            statusTabSupportBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
+            setStatusTabActive(statusTabPasscodesBtn);
             statusTabPasscodesContent.classList.remove('hidden');
             statusTabWeeklyContent.classList.add('hidden');
             statusTabDailyContent.classList.add('hidden');
@@ -2495,37 +2488,6 @@
             }
         });
 
-        statusTabWeeklyBtn.addEventListener('click', () => {
-            statusTabWeeklyBtn.className = "py-2.5 px-4 font-bold text-xs border-b-2 border-gold text-gold mr-2";
-            statusTabDailyBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
-            statusTabSupportBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white";
-            statusTabWeeklyContent.classList.remove('hidden');
-            statusTabDailyContent.classList.add('hidden');
-            statusTabSupportContent.classList.add('hidden');
-        });
-
-        statusTabDailyBtn.addEventListener('click', async () => {
-            statusTabDailyBtn.className = "py-2.5 px-4 font-bold text-xs border-b-2 border-gold text-gold mr-2";
-            statusTabWeeklyBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
-            statusTabSupportBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white";
-            statusTabDailyContent.classList.remove('hidden');
-            statusTabWeeklyContent.classList.add('hidden');
-            statusTabSupportContent.classList.add('hidden');
-            
-            await loadDailyTrafficSummary();
-        });
-
-        statusTabSupportBtn.addEventListener('click', async () => {
-            statusTabSupportBtn.className = "py-2.5 px-4 font-bold text-xs border-b-2 border-gold text-gold";
-            statusTabWeeklyBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
-            statusTabDailyBtn.className = "py-2.5 px-4 font-bold text-xs text-slate-400 hover:text-white mr-2";
-            statusTabSupportContent.classList.remove('hidden');
-            statusTabWeeklyContent.classList.add('hidden');
-            statusTabDailyContent.classList.add('hidden');
-            
-            await loadSupportRequests();
-        });
-
         statusReportDate.addEventListener('change', loadSubmissionStatus);
         statusSupportReportDate.addEventListener('change', loadSupportRequests);
         btnRefreshTrafficStatus.addEventListener('click', loadDailyTrafficSummary);
@@ -2533,7 +2495,7 @@
         // ASM Tab 1 load
         async function loadSubmissionStatus() {
             const dateVal = statusReportDate.value;
-            statusTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-slate-500">Đang tải trạng thái...</td></tr>';
+            statusTableBody.innerHTML = '<tr><td colspan="7" class="text-center py-6 text-gray-400">Đang tải trạng thái...</td></tr>';
             
             try {
                 let url = `/api/submission_status?report_date=${dateVal}`;
@@ -2565,17 +2527,49 @@
                     
                     data.status.forEach(s => {
                         const statusBadge = s.submitted 
-                            ? '<span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-500 rounded-full font-bold border border-emerald-500/20">ĐÃ NỘP</span>' 
-                            : '<span class="px-2.5 py-1 bg-rose-500/10 text-rose-500 rounded-full font-bold border border-rose-500/20">CHƯA NỘP</span>';
+                            ? '<span class="status-badge badge-green font-bold">ĐÃ NỘP</span>' 
+                            : '<span class="status-badge badge-red font-bold">CHƯA NỘP</span>';
                         
                         if (s.submitted) subCount++; else pendCount++;
                         if (s.store_code === 'BGD') return;
+
+                        // Calculate CR & Warnings if submitted
+                        let crBadge = '-';
+                        let warningBadge = '<span class="status-badge badge-gray">Bình thường</span>';
+                        
+                        if (s.submitted && s.traffic !== undefined && s.bills !== undefined) {
+                            const trf = Number(s.traffic || 0);
+                            const b = Number(s.bills || 0);
+                            const co = Number(s.company_online_bills || 0);
+                            const netBill = b - co;
+                            
+                            if (trf > 0) {
+                                const cr = (netBill / trf) * 100;
+                                const crValStr = cr.toFixed(1) + '%';
+                                if (cr > 100) {
+                                    crBadge = `<span class="status-badge badge-red font-extrabold">${crValStr}</span>`;
+                                    warningBadge = `<span class="status-badge badge-red font-extrabold" title="Số bill > Lượt khách">⚠️ CR > 100% (Sai số liệu)</span>`;
+                                } else if (cr < 50 || cr >= 90) {
+                                    crBadge = `<span class="status-badge badge-amber font-extrabold">${crValStr}</span>`;
+                                    warningBadge = `<span class="status-badge badge-amber font-bold" title="Mức chuẩn 80-87%">⚠️ CR Lệch (${crValStr})</span>`;
+                                } else if (cr >= 80 && cr <= 87) {
+                                    crBadge = `<span class="status-badge badge-green font-bold">${crValStr}</span>`;
+                                    warningBadge = `<span class="status-badge badge-green">✅ Đạt chuẩn</span>`;
+                                } else {
+                                    crBadge = `<span class="status-badge badge-blue font-bold">${crValStr}</span>`;
+                                }
+                            } else if (trf === 0 && b > 0) {
+                                warningBadge = `<span class="status-badge badge-red font-bold">⚠️ Chưa nhập Traffic</span>`;
+                            }
+                        } else if (!s.submitted) {
+                            warningBadge = `<span class="status-badge badge-red">Chưa nộp bài</span>`;
+                        }
 
                         let actionTd = '';
                         if (isAdmin) {
                             actionTd = `
                                 <td class="py-3 px-3 text-center">
-                                    <button class="bg-gold/20 hover:bg-gold/30 text-gold text-[10px] font-bold px-2.5 py-1.5 rounded-lg border border-gold/30 active:scale-95 transition-all"
+                                    <button class="btn-outline text-[11px] px-2.5 py-1"
                                         onclick="impersonateStore('${s.store_code}', '${s.store_name}', '${s.asm_name}')">
                                         ✍️ Nhập Hộ
                                     </button>
@@ -2584,11 +2578,13 @@
                         }
 
                         statusTableBody.innerHTML += `
-                            <tr class="hover:bg-slate-800/30 transition-colors">
-                                <td class="py-3 px-3 text-slate-400 font-medium">${s.region}</td>
-                                <td class="py-3 px-3 text-white font-semibold">${s.store_name}</td>
-                                <td class="py-3 px-3 text-slate-300">${s.asm_name}</td>
+                            <tr class="hover:bg-brand-red-l transition-colors">
+                                <td class="py-3 px-3 text-gray-500 font-medium">${s.region}</td>
+                                <td class="py-3 px-3 text-brand-navy font-bold">${s.store_name}</td>
+                                <td class="py-3 px-3 text-gray-700">${s.asm_name}</td>
                                 <td class="py-3 px-3 text-center">${statusBadge}</td>
+                                <td class="py-3 px-3 text-center">${crBadge}</td>
+                                <td class="py-3 px-3 text-center">${warningBadge}</td>
                                 ${actionTd}
                             </tr>
                         `;
@@ -2597,7 +2593,7 @@
                     countPending.innerText = pendCount;
                 }
             } catch (err) {
-                statusTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-rose-400">Lỗi kết nối.</td></tr>';
+                statusTableBody.innerHTML = '<tr><td colspan="7" class="text-center py-6 text-brand-red">Lỗi kết nối API.</td></tr>';
             }
         }
 
@@ -2614,7 +2610,7 @@
             const start = statusTrafficStart.value;
             const end = statusTrafficEnd.value;
             
-            statusTrafficTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-slate-500">Đang tính toán tiến độ...</td></tr>';
+            statusTrafficTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-gray-400">Đang tính toán tiến độ...</td></tr>';
             
             try {
                 const res = await fetch(`/api/asm_traffic_summary?asm=${encodeURIComponent(asm)}&start_date=${start}&end_date=${end}`);
@@ -2624,37 +2620,38 @@
                     statusTrafficTableBody.innerHTML = '';
                     data.summary.forEach(s => {
                         const ratio = s.total_required > 0 ? Math.round((s.total_filled / s.total_required) * 100) : 0;
-                        const pctClass = ratio >= 90 ? 'text-emerald-500' : (ratio >= 60 ? 'text-amber-500' : 'text-rose-500');
+                        const pctClass = ratio >= 90 ? 'text-emerald-600' : (ratio >= 60 ? 'text-amber-600' : 'text-brand-red');
                         
-                        // Limit display of missing dates to 10 items
                         const maxShow = 10;
                         let missingStr = s.missing_dates.slice(0, maxShow).join(', ');
                         if (s.missing_dates.length > maxShow) {
                             missingStr += `, và ${s.missing_dates.length - maxShow} ngày khác...`;
                         }
                         if (s.missing_dates.length === 0) {
-                            missingStr = '<span class="text-emerald-500 font-bold">✅ ĐÃ ĐỦ SỐ LIỆU</span>';
+                            missingStr = '<span class="status-badge badge-green">✅ ĐÃ ĐỦ SỐ LIỆU</span>';
+                        } else {
+                            missingStr = `<span class="text-brand-red font-mono text-xs font-semibold">${missingStr}</span>`;
                         }
                         
                         statusTrafficTableBody.innerHTML += `
-                            <tr class="hover:bg-slate-800/30 transition-colors">
-                                <td class="py-3 px-3 text-white font-semibold">${s.store_name}</td>
-                                <td class="py-3 px-3 text-center text-slate-300 font-medium">${s.total_filled}/${s.total_required} ngày</td>
-                                <td class="py-3 px-3 text-center font-bold ${pctClass}">${ratio}%</td>
-                                <td class="py-3 px-3 text-rose-400 font-mono text-[10px] whitespace-normal break-words">${missingStr}</td>
+                            <tr class="hover:bg-brand-red-l transition-colors">
+                                <td class="py-3 px-3 text-brand-navy font-bold">${s.store_name}</td>
+                                <td class="py-3 px-3 text-center text-gray-700 font-medium">${s.total_filled}/${s.total_required} ngày</td>
+                                <td class="py-3 px-3 text-center font-extrabold ${pctClass}">${ratio}%</td>
+                                <td class="py-3 px-3 whitespace-normal break-words">${missingStr}</td>
                             </tr>
                         `;
                     });
                 }
             } catch (err) {
-                statusTrafficTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-rose-400">Lỗi kết nối API.</td></tr>';
+                statusTrafficTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-brand-red">Lỗi kết nối API.</td></tr>';
             }
         }
 
         // ASM Tab 3 load
         async function loadSupportRequests() {
             const dateVal = statusSupportReportDate.value;
-            statusSupportTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-slate-500">Đang tải yêu cầu hỗ trợ...</td></tr>';
+            statusSupportTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-gray-400">Đang tải yêu cầu hỗ trợ...</td></tr>';
             
             try {
                 let url = `/api/get_support_requests?report_date=${dateVal}`;
@@ -2667,34 +2664,32 @@
                 if (data.ok) {
                     statusSupportTableBody.innerHTML = '';
                     if (data.requests.length === 0) {
-                        statusSupportTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-slate-500">✅ Không có yêu cầu hỗ trợ nào trong tuần này.</td></tr>';
+                        statusSupportTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-gray-400 italic">✅ Không có yêu cầu hỗ trợ nào trong tuần này.</td></tr>';
                         return;
                     }
                     
                     data.requests.forEach(r => {
-                        let priorityClass = 'bg-slate-700/30 text-slate-400 border-slate-700/40';
+                        let priorityBadge = '<span class="status-badge badge-gray">Trung bình</span>';
                         if (r.priority === 'Cao') {
-                            priorityClass = 'bg-rose-500/10 text-rose-500 border-rose-500/25 font-bold';
+                            priorityBadge = '<span class="status-badge badge-red">Cao</span>';
                         } else if (r.priority === 'Trung bình') {
-                            priorityClass = 'bg-amber-500/10 text-amber-500 border-amber-500/25';
+                            priorityBadge = '<span class="status-badge badge-amber">Trung bình</span>';
                         }
                         
                         statusSupportTableBody.innerHTML += `
-                            <tr class="hover:bg-slate-800/30 transition-colors">
-                                <td class="py-3 px-3 text-white font-semibold">${r.store_name}</td>
-                                <td class="py-3 px-3 text-slate-300 font-medium">${r.category}</td>
-                                <td class="py-3 px-3 text-center">
-                                    <span class="px-2 py-0.5 text-[10px] rounded-full border ${priorityClass}">${r.priority}</span>
-                                </td>
-                                <td class="py-3 px-3 text-slate-200 whitespace-normal break-words max-w-xs">${r.issue_item}</td>
-                                <td class="py-3 px-3 text-slate-400 font-mono">${r.deadline || '-'}</td>
-                                <td class="py-3 px-3 text-slate-300 font-medium">${r.person_in_charge || '-'}</td>
+                            <tr class="hover:bg-brand-red-l transition-colors">
+                                <td class="py-3 px-3 text-brand-navy font-bold">${r.store_name}</td>
+                                <td class="py-3 px-3 text-gray-700 font-medium">${r.category}</td>
+                                <td class="py-3 px-3 text-center">${priorityBadge}</td>
+                                <td class="py-3 px-3 text-gray-800 whitespace-normal break-words max-w-xs">${r.issue_item}</td>
+                                <td class="py-3 px-3 text-gray-500 font-mono text-xs">${r.deadline || '-'}</td>
+                                <td class="py-3 px-3 text-gray-700 font-medium">${r.person_in_charge || '-'}</td>
                             </tr>
                         `;
                     });
                 }
             } catch (err) {
-                statusSupportTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-rose-400">Lỗi kết nối API.</td></tr>';
+                statusSupportTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-brand-red">Lỗi kết nối API.</td></tr>';
             }
         }
 
