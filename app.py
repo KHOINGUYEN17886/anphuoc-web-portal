@@ -190,6 +190,19 @@ def safe_migrate_db():
             cht_name VARCHAR(100) DEFAULT '',
             updated_at VARCHAR(30) DEFAULT ''
         )
+        """,
+        f"""
+        CREATE TABLE IF NOT EXISTS tb_store_support_staff (
+            id {pk_auto},
+            store_code VARCHAR(50) NOT NULL,
+            employee_code VARCHAR(50) DEFAULT '',
+            employee_name VARCHAR(100) NOT NULL,
+            from_store_code VARCHAR(50) NOT NULL,
+            reason VARCHAR(100) DEFAULT 'Cửa hàng thiếu nhân sự',
+            start_date VARCHAR(20) DEFAULT '',
+            end_date VARCHAR(20) DEFAULT '',
+            created_at VARCHAR(30) DEFAULT ''
+        )
         """
     ]
     
@@ -259,6 +272,74 @@ def remove_vn_accents(text):
     for pat, rep in patterns.items():
         text = re.sub(pat, rep, text)
     return text.strip()
+
+def parse_excel_date(val):
+    if not val:
+        return ''
+    if isinstance(val, (int, float)):
+        try:
+            d = date(1899, 12, 30) + timedelta(days=int(val))
+            return d.strftime('%Y-%m-%d')
+        except Exception:
+            return ''
+    elif isinstance(val, (date, datetime)):
+        return val.strftime('%Y-%m-%d')
+    else:
+        val_str = str(val).strip()
+        if not val_str:
+            return ''
+        if '/' in val_str:
+            parts = val_str.split('/')
+            if len(parts) == 3:
+                try:
+                    return f"{parts[2].zfill(4)}-{parts[1].zfill(2)}-{parts[0].zfill(2)}"
+                except Exception:
+                    pass
+        return val_str
+
+def calculate_tenure_py(start_date_str):
+    if not start_date_str:
+        return 'Mới nhận việc'
+    try:
+        start_date_str = str(start_date_str).strip()
+        if '/' in start_date_str:
+            parts = start_date_str.split('/')
+            if len(parts) == 3:
+                d = date(int(parts[2]), int(parts[1]), int(parts[0]))
+            else:
+                return '—'
+        else:
+            d = datetime.strptime(start_date_str[:10], '%Y-%m-%d').date()
+            
+        today = date.today()
+        if d > today:
+            return 'Mới nhận việc'
+            
+        years = today.year - d.year
+        months = today.month - d.month
+        days = today.day - d.day
+        
+        if days < 0:
+            months -= 1
+            first_of_this_month = today.replace(day=1)
+            last_month_last_day = first_of_this_month - timedelta(days=1)
+            days += last_month_last_day.day
+            
+        if months < 0:
+            years -= 1
+            months += 12
+            
+        parts = []
+        if years > 0:
+            parts.append(f"{years} năm")
+        if months > 0:
+            parts.append(f"{months} tháng")
+        if days > 0 or not parts:
+            parts.append(f"{days} ngày")
+            
+        return ' '.join(parts)
+    except Exception:
+        return '—'
 
 ALIAS_MAP = {
     '8 cong hoa': '8CONGHOA',
@@ -379,14 +460,18 @@ def seed_hr_baseline_data():
                 emp_code = str(row[0]).strip() if row[0] else ''
                 emp_name = str(row[1]).strip() if row[1] else ''
                 title = str(row[3]).strip() if row[3] else 'Nhân viên bán hàng'
+                date_hire_raw = row[4] if len(row) > 4 else None
+                dob_raw = str(row[5]).strip() if (len(row) > 5 and row[5]) else ''
                 gender = str(row[6]).strip() if (len(row) > 6 and row[6]) else 'Nữ'
                 location = str(row[8]).strip() if (len(row) > 8 and row[8]) else ''
+                
+                date_hire = parse_excel_date(date_hire_raw)
                 
                 if emp_code and emp_name:
                     st_code = match_store(location)
                     if not st_code:
                         st_code = 'ONLINE'
-                    staff_tuples.append((emp_code, st_code, emp_name, gender, title))
+                    staff_tuples.append((emp_code, st_code, emp_name, gender, dob_raw, title, date_hire, date_hire))
             
             if staff_tuples:
                 batch_size = 100
@@ -396,9 +481,9 @@ def seed_hr_baseline_data():
                         conn = get_db_connection()
                         cur = conn.cursor()
                         sql = """
-                            INSERT INTO tb_store_employees (employee_code, store_code, full_name, gender, position, status)
-                            VALUES (?, ?, ?, ?, ?, 'ACTIVE')
-                            ON CONFLICT(employee_code) DO UPDATE SET store_code=EXCLUDED.store_code, full_name=EXCLUDED.full_name, gender=EXCLUDED.gender, position=EXCLUDED.position
+                            INSERT INTO tb_store_employees (employee_code, store_code, full_name, gender, dob, position, appointment_date, created_at, status)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')
+                            ON CONFLICT(employee_code) DO UPDATE SET store_code=EXCLUDED.store_code, full_name=EXCLUDED.full_name, gender=EXCLUDED.gender, dob=EXCLUDED.dob, position=EXCLUDED.position, appointment_date=EXCLUDED.appointment_date
                         """
                         if DATABASE_URL and psycopg2:
                             sql = sql.replace('?', '%s')
@@ -411,6 +496,11 @@ def seed_hr_baseline_data():
                         
     except Exception as e:
         print(f"⚠️ [Seed Baseline HR] Error: {e}")
+
+try:
+    safe_migrate_db()
+except Exception as _mig_err:
+    print(f"⚠️ [Startup Migration Error]: {_mig_err}")
 
 def async_sync_and_alert(store_code, report_date, support_requests):
     def worker():
@@ -1345,8 +1435,22 @@ def get_store_hr():
     cht_name = target_rec['cht_name'] if (target_rec and target_rec['cht_name']) else ''
     
     employees = query_db("SELECT * FROM tb_store_employees WHERE store_code = ? AND status != 'RESIGNED' ORDER BY position, full_name", (store_code,))
+    for emp in employees:
+        emp['tenure'] = calculate_tenure_py(emp.get('appointment_date') or emp.get('created_at'))
+        
     actual_hc = len(employees)
     surplus_deficit = actual_hc - target_hc
+    
+    # Auto-ensure employees with position 'Nhân viên thử việc' have a probation record
+    for emp in employees:
+        if emp.get('position') == 'Nhân viên thử việc':
+            e_code = emp.get('employee_code')
+            p_exist = query_db("SELECT id FROM tb_employee_probation WHERE employee_code = ?", (e_code,), one=True)
+            if not p_exist:
+                execute_db("""
+                    INSERT INTO tb_employee_probation (employee_code, store_code, start_date, trainer_name, probation_result)
+                    VALUES (?, ?, ?, 'CHT/CHP', 'Đang thử việc')
+                """, (e_code, store_code, emp.get('appointment_date') or date.today().strftime('%Y-%m-%d')))
     
     probationers = query_db("""
         SELECT p.*, e.full_name, e.gender, e.position, e.avatar_url
@@ -1354,6 +1458,8 @@ def get_store_hr():
         JOIN tb_store_employees e ON p.employee_code = e.employee_code
         WHERE p.store_code = ? AND (p.probation_result IS NULL OR p.probation_result = '' OR p.probation_result = 'Đang thử việc')
     """, (store_code,))
+    
+    support_staff = query_db("SELECT * FROM tb_store_support_staff WHERE store_code = ? ORDER BY id DESC", (store_code,))
     
     shift_cfg = query_db("SELECT * FROM tb_store_shift_config WHERE store_code = ?", (store_code,), one=True)
     if not shift_cfg:
@@ -1377,6 +1483,7 @@ def get_store_hr():
         'cht_name': cht_name,
         'employees': employees,
         'probationers': probationers,
+        'support_staff': support_staff,
         'shift_config': shift_cfg,
         'hr_tickets': hr_tickets
     })
@@ -1395,6 +1502,43 @@ def save_store_hr():
     if not store or (store['passcode'] != pin and pin != master_pin):
         return jsonify({'ok': False, 'error': 'Mã PIN không đúng'}), 401
         
+    # Process offboard / transfer actions
+    offboard_actions = data.get('offboard_actions', [])
+    report_date = get_report_date().strftime('%Y-%m-%d')
+    for act in offboard_actions:
+        emp_code = act.get('employee_code', '').strip()
+        reason = act.get('reason', '').strip()
+        target_store = act.get('target_store_code', '').strip()
+        note = act.get('note', '').strip()
+        
+        if not emp_code:
+            continue
+            
+        emp = query_db("SELECT full_name, position FROM tb_store_employees WHERE employee_code = ?", (emp_code,), one=True)
+        emp_name = emp['full_name'] if emp else emp_code
+        pos = emp['position'] if emp else 'Nhân viên bán hàng'
+        seq = datetime.now().strftime('%H%M%S')
+        ticket_code = f"HR-{store_code}-{report_date.replace('-', '')}-{seq}"
+        
+        if reason == 'TRANSFER' and target_store:
+            execute_db("UPDATE tb_store_employees SET store_code = ?, appointment_date = ?, updated_at = CURRENT_TIMESTAMP WHERE employee_code = ?", (target_store, date.today().strftime('%Y-%m-%d'), emp_code))
+            execute_db("""
+                INSERT INTO tb_hr_lifecycle_tickets (ticket_code, store_code, report_date, employee_code, employee_name, position, event_type, effective_date, reason_note, status)
+                VALUES (?, ?, ?, ?, ?, ?, 'Chuyển cửa hàng', ?, ?, 'Mới ghi nhận')
+            """, (ticket_code, store_code, report_date, emp_code, emp_name, pos, date.today().strftime('%Y-%m-%d'), f"Chuyển sang cửa hàng {target_store}. Ghi chú: {note}"))
+        elif reason == 'RESIGNED':
+            execute_db("UPDATE tb_store_employees SET status = 'RESIGNED', updated_at = CURRENT_TIMESTAMP WHERE employee_code = ?", (emp_code,))
+            execute_db("""
+                INSERT INTO tb_hr_lifecycle_tickets (ticket_code, store_code, report_date, employee_code, employee_name, position, event_type, effective_date, reason_note, status)
+                VALUES (?, ?, ?, ?, ?, ?, 'Nghỉ việc', ?, ?, 'Mới ghi nhận')
+            """, (ticket_code, store_code, report_date, emp_code, emp_name, pos, date.today().strftime('%Y-%m-%d'), f"Nhân sự nghỉ việc. Ghi chú: {note}"))
+        elif reason == 'MATERNITY_LEAVE':
+            execute_db("UPDATE tb_store_employees SET status = 'MATERNITY_LEAVE', updated_at = CURRENT_TIMESTAMP WHERE employee_code = ?", (emp_code,))
+            execute_db("""
+                INSERT INTO tb_hr_lifecycle_tickets (ticket_code, store_code, report_date, employee_code, employee_name, position, event_type, effective_date, reason_note, status)
+                VALUES (?, ?, ?, ?, ?, ?, 'Nghỉ thai sản', ?, ?, 'Mới ghi nhận')
+            """, (ticket_code, store_code, report_date, emp_code, emp_name, pos, date.today().strftime('%Y-%m-%d'), f"Nhân sự nghỉ thai sản. Ghi chú: {note}"))
+
     employees = data.get('employees', [])
     for emp in employees:
         emp_code = emp.get('employee_code', '').strip()
@@ -1422,6 +1566,15 @@ def save_store_hr():
                 INSERT INTO tb_store_employees (employee_code, store_code, full_name, gender, dob, phone_number, position, appointment_date, avatar_url, status)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (emp_code, store_code, full_name, gender, dob, phone, position, app_date, avatar, status))
+            
+        # Probation auto-link if position is 'Nhân viên thử việc'
+        if position == 'Nhân viên thử việc':
+            p_exist = query_db("SELECT id FROM tb_employee_probation WHERE employee_code = ?", (emp_code,), one=True)
+            if not p_exist:
+                execute_db("""
+                    INSERT INTO tb_employee_probation (employee_code, store_code, start_date, trainer_name, probation_result)
+                    VALUES (?, ?, ?, 'CHT/CHP', 'Đang thử việc')
+                """, (emp_code, store_code, app_date or date.today().strftime('%Y-%m-%d')))
             
     probation_updates = data.get('probation_updates', [])
     for p in probation_updates:
@@ -1475,6 +1628,22 @@ def save_store_hr():
                 INSERT INTO tb_hr_lifecycle_tickets (ticket_code, store_code, report_date, employee_name, position, event_type, effective_date, reason_note, handover_status, status)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Mới ghi nhận')
             """, (ticket_code, store_code, report_date, emp_name, pos, evt_type, eff_date, reason, handover))
+            
+    support_staff_updates = data.get('support_staff_updates', [])
+    execute_db("DELETE FROM tb_store_support_staff WHERE store_code = ?", (store_code,))
+    for ss in support_staff_updates:
+        s_name = ss.get('employee_name', '').strip()
+        from_st = ss.get('from_store_code', '').strip()
+        if not s_name or not from_st:
+            continue
+        s_code = ss.get('employee_code', '')
+        r_desc = ss.get('reason', 'Cửa hàng thiếu nhân sự')
+        st_d = ss.get('start_date', '')
+        ed_d = ss.get('end_date', '')
+        execute_db("""
+            INSERT INTO tb_store_support_staff (store_code, employee_code, employee_name, from_store_code, reason, start_date, end_date, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        """, (store_code, s_code, s_name, from_st, r_desc, st_d, ed_d))
             
     return jsonify({'ok': True, 'message': 'Đã lưu hồ sơ nhân sự thành công'})
 
@@ -2436,10 +2605,11 @@ def export_excel():
                 'Ngày Sinh': emp['dob'] or '',
                 'Số Điện Thoại': emp['phone_number'] or '',
                 'Chức Danh': emp['position'],
-                'Ngày Nhận Chức (CHT/CHP)': emp['appointment_date'] or '',
+                'Ngày Nhận Chức / Vốn Làm': emp['appointment_date'] or '',
+                'Thâm Niên Làm Việc': calculate_tenure_py(emp.get('appointment_date') or emp.get('created_at')),
                 'Trạng Thái Work': emp['status']
             })
-        df_store_hr = pd.DataFrame(store_hr_data) if store_hr_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'ASM Phụ Trách', 'Khu Vực', 'Định Biên CH', 'Mã Nhân Viên', 'Họ và Tên', 'Giới Tính', 'Ngày Sinh', 'Số Điện Thoại', 'Chức Danh', 'Ngày Nhận Chức (CHT/CHP)', 'Trạng Thái Work'])
+        df_store_hr = pd.DataFrame(store_hr_data) if store_hr_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'ASM Phụ Trách', 'Khu Vực', 'Định Biên CH', 'Mã Nhân Viên', 'Họ và Tên', 'Giới Tính', 'Ngày Sinh', 'Số Điện Thoại', 'Chức Danh', 'Ngày Nhận Chức / Vốn Làm', 'Thâm Niên Làm Việc', 'Trạng Thái Work'])
 
         # Sheet 10: Theo Dõi Thử Việc & Đào Tạo
         hr_prob_rows = query_db(f"""
