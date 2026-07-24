@@ -773,6 +773,9 @@
                 <button id="status-tab-support-btn" class="tab-btn">
                     Yêu cầu hỗ trợ (4.5)
                 </button>
+                <button id="status-tab-hr-btn" class="tab-btn">
+                    👥 Định Biên & Báo Cáo Nhân Sự Cụm
+                </button>
                 <button id="status-tab-passcodes-btn" class="tab-btn hidden">
                     🔑 Quản lý PIN
                 </button>
@@ -801,7 +804,7 @@
                                 <th class="text-center">Trạng Thái</th>
                                 <th class="text-center">Tỷ Lệ CR (%)</th>
                                 <th class="text-center">Cảnh Báo Số Liệu</th>
-                                <th id="th-admin-action" class="text-center hidden">Hành Động</th>
+                                <th id="th-admin-action" class="text-center font-bold text-brand-navy">Thao Tác Quản Lý</th>
                             </tr>
                         </thead>
                         <tbody id="status-table-body" class="divide-y divide-gray-100"></tbody>
@@ -881,6 +884,61 @@
                             <tr><td colspan="8" class="text-center py-6 text-gray-400">Đang tải yêu cầu hỗ trợ...</td></tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- ASM Tab 5: HR Command & Store Headcount Dashboard -->
+            <div id="status-tab-hr-content" class="hidden card rounded-b-2xl p-5 border-t-0 space-y-5">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl">👥</span>
+                        <div>
+                            <h4 class="font-extrabold text-brand-navy uppercase text-sm">Báo Cáo & Xếp Hạng Định Biên Nhân Sự Cụm</h4>
+                            <p class="text-xs text-gray-500">Phân tích thâm niên, cơ cấu chức danh và định biên nhân sự từng cửa hàng</p>
+                        </div>
+                    </div>
+                    <button class="btn-gold text-xs px-3 py-1.5 font-bold" onclick="loadHRAnalytics()">
+                        🔄 Tải Lại Dữ Liệu HR
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="card p-4 rounded-xl border border-gray-100">
+                        <div class="font-extrabold text-xs text-brand-navy uppercase mb-2">⏳ Phân Tích Thâm Niên Nhân Sự Cụm</div>
+                        <div class="h-48 flex items-center justify-center">
+                            <canvas id="status-chart-tenure"></canvas>
+                        </div>
+                    </div>
+                    <div class="card p-4 rounded-xl border border-gray-100">
+                        <div class="font-extrabold text-xs text-brand-navy uppercase mb-2">👔 Cơ Cấu Chức Danh Nhân Sự Cụm</div>
+                        <div class="h-48 flex items-center justify-center">
+                            <canvas id="status-chart-positions"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card p-4 rounded-xl border border-gray-100 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="font-extrabold text-xs text-brand-navy uppercase">📉 Xếp Hạng Định Biên Nhân Sự Theo Cửa Hàng</div>
+                    </div>
+                    <div class="overflow-x-auto max-h-[350px]">
+                        <table class="tbl w-full rounded-xl overflow-hidden text-xs">
+                            <thead>
+                                <tr>
+                                    <th>Mã CH</th>
+                                    <th>Tên Cửa Hàng</th>
+                                    <th class="text-center">Định Biên (Target)</th>
+                                    <th class="text-center">Thực Tế (Actual)</th>
+                                    <th class="text-center">Thừa / Thiếu</th>
+                                    <th class="text-center">Tỷ Lệ Đạt</th>
+                                    <th class="text-center">Thao Tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="status-hr-headcount-body">
+                                <tr><td colspan="7" class="text-center py-4 text-gray-400">Bấm "Tải Lại Dữ Liệu HR" để nạp báo cáo...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -1947,9 +2005,11 @@
         const statusTabWeeklyBtn = document.getElementById('status-tab-weekly-btn');
         const statusTabDailyBtn = document.getElementById('status-tab-daily-btn');
         const statusTabSupportBtn = document.getElementById('status-tab-support-btn');
+        const statusTabHrBtn = document.getElementById('status-tab-hr-btn');
         const statusTabWeeklyContent = document.getElementById('status-tab-weekly-content');
         const statusTabDailyContent = document.getElementById('status-tab-daily-content');
         const statusTabSupportContent = document.getElementById('status-tab-support-content');
+        const statusTabHrContent = document.getElementById('status-tab-hr-content');
         
         const statusReportDate = document.getElementById('status-report-date');
         const statusSupportReportDate = document.getElementById('status-support-report-date');
@@ -3100,7 +3160,8 @@
                 const data = await res.json();
                 if (data.ok && data.store) {
                     const store = data.store;
-                    const adminPin = currentStore.pin;
+                    const adminPin = (currentStore && currentStore.pin) ? currentStore.pin : '9999';
+                    const isAsmOrAdmin = currentStore && (currentStore.role === 'asm' || currentStore.role === 'admin');
                     
                     currentStore = {
                         code: store.store_code,
@@ -3113,17 +3174,30 @@
                         admin_pin: adminPin
                     };
                     
-                    statusSec.classList.add('hidden');
-                    formSec.classList.remove('hidden');
+                    switchView('store', true);
                     
                     lblActiveStore.innerText = currentStore.name;
-                    lblStoreMeta.innerHTML = `<span class="bg-brand-gold text-brand-navy px-2.5 py-0.5 rounded-full font-bold mr-2 text-[10px] shadow-xs border border-amber-300">✍️ ĐANG ĐĂNG NHẬP HỘ BỞI ADMIN</span> Mã: ${currentStore.code} | ASM quản lý: ${currentStore.asm}`;
+                    lblStoreMeta.innerHTML = `<span class="bg-brand-gold text-brand-navy px-2.5 py-0.5 rounded-full font-bold mr-2 text-[10px] shadow-xs border border-amber-300">✍️ ĐANG XEM / NHẬP LIỆU CỬA HÀNG</span> Mã: ${currentStore.code} | ASM quản lý: ${currentStore.asm}`;
                     
                     await loadWeeklyReportData();
                 }
             } catch (err) {
                 console.error("Lỗi đăng nhập hộ:", err);
                 showToast("❌ Lỗi", "Không thể thiết lập phiên đăng nhập hộ.", "❌");
+            }
+        };
+
+        window.asmManageStoreHR = async function(storeCode) {
+            await impersonateStore(storeCode);
+            tabHrBtn.click();
+        };
+
+        window.updateTenureLive = function(inputEl) {
+            const tr = inputEl.closest('tr');
+            if (!tr) return;
+            const badge = tr.querySelector('.tenure-badge');
+            if (badge) {
+                badge.innerText = calculateTenure(inputEl.value);
             }
         };
 
@@ -3332,7 +3406,7 @@
         }
 
         function setStatusTabActive(activeBtn) {
-            [statusTabWeeklyBtn, statusTabDailyBtn, statusTabSupportBtn, statusTabPasscodesBtn].forEach(b => {
+            [statusTabWeeklyBtn, statusTabDailyBtn, statusTabSupportBtn, statusTabHrBtn, statusTabPasscodesBtn].forEach(b => {
                 if (b) b.classList.remove('active');
             });
             if (activeBtn) activeBtn.classList.add('active');
@@ -3343,6 +3417,7 @@
             statusTabWeeklyContent.classList.remove('hidden');
             statusTabDailyContent.classList.add('hidden');
             statusTabSupportContent.classList.add('hidden');
+            if (statusTabHrContent) statusTabHrContent.classList.add('hidden');
             statusTabPasscodesContent.classList.add('hidden');
         });
 
@@ -3351,6 +3426,7 @@
             statusTabDailyContent.classList.remove('hidden');
             statusTabWeeklyContent.classList.add('hidden');
             statusTabSupportContent.classList.add('hidden');
+            if (statusTabHrContent) statusTabHrContent.classList.add('hidden');
             statusTabPasscodesContent.classList.add('hidden');
 
             await loadDailyTrafficSummary();
@@ -3361,10 +3437,24 @@
             statusTabSupportContent.classList.remove('hidden');
             statusTabWeeklyContent.classList.add('hidden');
             statusTabDailyContent.classList.add('hidden');
+            if (statusTabHrContent) statusTabHrContent.classList.add('hidden');
             statusTabPasscodesContent.classList.add('hidden');
 
             await loadSupportRequests();
         });
+
+        if (statusTabHrBtn) {
+            statusTabHrBtn.addEventListener('click', async () => {
+                setStatusTabActive(statusTabHrBtn);
+                if (statusTabHrContent) statusTabHrContent.classList.remove('hidden');
+                statusTabWeeklyContent.classList.add('hidden');
+                statusTabDailyContent.classList.add('hidden');
+                statusTabSupportContent.classList.add('hidden');
+                statusTabPasscodesContent.classList.add('hidden');
+
+                await loadHRAnalytics();
+            });
+        }
 
         statusTabPasscodesBtn.addEventListener('click', async () => {
             setStatusTabActive(statusTabPasscodesBtn);
@@ -3372,6 +3462,7 @@
             statusTabWeeklyContent.classList.add('hidden');
             statusTabDailyContent.classList.add('hidden');
             statusTabSupportContent.classList.add('hidden');
+            if (statusTabHrContent) statusTabHrContent.classList.add('hidden');
 
             await loadPasscodes();
         });
@@ -3770,17 +3861,20 @@
                             warningBadge = `<span class="status-badge badge-red">Chưa nộp bài</span>`;
                         }
 
-                        let actionTd = '';
-                        if (isAdmin) {
-                            actionTd = `
-                                <td class="py-3 px-3 text-center">
-                                    <button class="btn-outline text-[11px] px-2.5 py-1"
+                        let actionTd = `
+                            <td class="py-3 px-3 text-center">
+                                <div class="flex items-center justify-center gap-1.5">
+                                    <button class="btn-outline text-[11px] px-2 py-1 font-semibold"
                                         onclick="impersonateStore('${s.store_code}', '${s.store_name}', '${s.asm_name}')">
-                                        ✍️ Nhập Hộ
+                                        📊 Xem Báo Cáo
                                     </button>
-                                </td>
-                            `;
-                        }
+                                    <button class="btn-gold text-[11px] px-2 py-1 font-bold shadow-xs"
+                                        onclick="asmManageStoreHR('${s.store_code}')">
+                                        👥 Quản Lý HR
+                                    </button>
+                                </div>
+                            </td>
+                        `;
 
                         statusTableBody.innerHTML += `
                             <tr class="hover:bg-brand-red-l transition-colors">
@@ -4146,10 +4240,10 @@
                         </select>
                     </td>
                     <td class="py-2 px-2">
-                        <input type="text" class="input-field text-xs emp-app-date font-semibold" placeholder="YYYY-MM-DD" value="${emp.appointment_date || ''}">
+                        <input type="text" class="input-field text-xs emp-app-date font-semibold" placeholder="YYYY-MM-DD" value="${emp.appointment_date || emp.start_date || emp.created_at || ''}" oninput="updateTenureLive(this)">
                     </td>
                     <td class="py-2 px-2 text-center">
-                        <span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-extrabold text-[11px]">${tenureStr}</span>
+                        <span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-extrabold text-[11px] tenure-badge">${tenureStr}</span>
                     </td>
                     <td class="py-2 px-2 text-center">
                         <button type="button" onclick="removeEmployeeRow(this)" class="text-rose-500 hover:text-rose-700 font-bold text-xs px-2 py-1">
@@ -4486,10 +4580,10 @@
                         </select>
                     </td>
                     <td class="py-2 px-2">
-                        <input type="text" class="input-field text-xs emp-app-date font-semibold" value="${startDate}">
+                        <input type="text" class="input-field text-xs emp-app-date font-semibold" value="${startDate}" oninput="updateTenureLive(this)">
                     </td>
                     <td class="py-2 px-2 text-center">
-                        <span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-extrabold text-[11px]">${calculateTenure(startDate)}</span>
+                        <span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-extrabold text-[11px] tenure-badge">${calculateTenure(startDate)}</span>
                     </td>
                     <td class="py-2 px-2 text-center">
                         <button type="button" onclick="removeEmployeeRow(this)" class="text-rose-500 hover:text-rose-700 font-bold text-xs px-2 py-1">
@@ -4714,7 +4808,7 @@
                     <td class="py-2.5 px-3 font-bold text-brand-navy">${name}</td>
                     <td class="py-2.5 px-3 font-semibold text-blue-900">${storeDisp}</td>
                     <td class="py-2.5 px-3 text-gray-700">${reason}</td>
-                    <td class="py-2.5 px-3 text-gray-600">${stDate || '—'} $\rightarrow$ ${edDate || 'Đang hỗ trợ'}</td>
+                    <td class="py-2.5 px-3 text-gray-600">${stDate || '—'} → ${edDate || 'Đang hỗ trợ'}</td>
                     <td class="py-2.5 px-3 text-center">
                         <button type="button" onclick="removeSupportStaffRow(this)" class="text-rose-500 hover:text-rose-700 font-bold text-xs px-2 py-1">
                             &times; Xóa
