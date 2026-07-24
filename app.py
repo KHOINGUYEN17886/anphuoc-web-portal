@@ -1,6 +1,7 @@
 import os
 import calendar
 from datetime import date, datetime, timedelta
+from collections import defaultdict
 from flask import Flask, render_template, request, jsonify, send_file
 import sqlite3
 import threading
@@ -12,6 +13,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import io
 import pandas as pd
+import openpyxl
 
 # Import psycopg2 for PostgreSQL if on cloud
 try:
@@ -106,39 +108,118 @@ def get_report_date():
 
 # ── Safe DB Migration ─────────────────────────────────────────────────────────
 def safe_migrate_db():
-    """Chạy ALTER TABLE an toàn — idempotent, không mất data cũ."""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    is_pg = bool(DATABASE_URL and psycopg2)
+    pk_auto = "SERIAL PRIMARY KEY" if is_pg else "INTEGER PRIMARY KEY AUTOINCREMENT"
+    
+    table_sqls = [
+        f"""
+        CREATE TABLE IF NOT EXISTS tb_store_employees (
+            id {pk_auto},
+            employee_code VARCHAR(50) UNIQUE NOT NULL,
+            store_code VARCHAR(50) NOT NULL,
+            full_name VARCHAR(100) NOT NULL,
+            gender VARCHAR(10) DEFAULT 'Nữ',
+            dob VARCHAR(20) DEFAULT '',
+            phone_number VARCHAR(30) DEFAULT '',
+            position VARCHAR(50) NOT NULL,
+            appointment_date VARCHAR(20) DEFAULT '',
+            avatar_url TEXT DEFAULT '',
+            status VARCHAR(30) DEFAULT 'ACTIVE',
+            created_at VARCHAR(30) DEFAULT '',
+            updated_at VARCHAR(30) DEFAULT ''
+        )
+        """,
+        f"""
+        CREATE TABLE IF NOT EXISTS tb_store_shift_config (
+            store_code VARCHAR(50) PRIMARY KEY,
+            shift_1_name VARCHAR(50) DEFAULT 'Ca 1 (Sáng)',
+            shift_1_hours VARCHAR(50) DEFAULT '08:30 - 16:30',
+            shift_2_name VARCHAR(50) DEFAULT 'Ca 2 (Chiều)',
+            shift_2_hours VARCHAR(50) DEFAULT '14:00 - 22:00',
+            has_split_shift INTEGER DEFAULT 0,
+            split_shift_hours VARCHAR(50) DEFAULT '10:00 - 14:00 & 17:00 - 21:00',
+            updated_at VARCHAR(30) DEFAULT ''
+        )
+        """,
+        f"""
+        CREATE TABLE IF NOT EXISTS tb_hr_lifecycle_tickets (
+            id {pk_auto},
+            ticket_code VARCHAR(50) UNIQUE NOT NULL,
+            store_code VARCHAR(50) NOT NULL,
+            report_date VARCHAR(20) NOT NULL,
+            employee_code VARCHAR(50) DEFAULT '',
+            employee_name VARCHAR(100) NOT NULL,
+            position VARCHAR(50) NOT NULL,
+            event_type VARCHAR(30) NOT NULL,
+            effective_date VARCHAR(20) NOT NULL,
+            reason_note TEXT DEFAULT '',
+            handover_status VARCHAR(50) DEFAULT 'Chưa bàn giao',
+            status VARCHAR(30) DEFAULT 'Mới ghi nhận',
+            store_progress_note TEXT DEFAULT '',
+            asm_hr_note TEXT DEFAULT '',
+            created_at VARCHAR(30) DEFAULT '',
+            updated_at VARCHAR(30) DEFAULT ''
+        )
+        """,
+        f"""
+        CREATE TABLE IF NOT EXISTS tb_employee_probation (
+            id {pk_auto},
+            employee_code VARCHAR(50) UNIQUE NOT NULL,
+            store_code VARCHAR(50) NOT NULL,
+            start_date VARCHAR(20) NOT NULL,
+            trainer_employee_code VARCHAR(50) DEFAULT '',
+            trainer_name VARCHAR(100) DEFAULT '',
+            train_op_rules INTEGER DEFAULT 0,
+            train_work_process INTEGER DEFAULT 0,
+            train_products INTEGER DEFAULT 0,
+            train_display INTEGER DEFAULT 0,
+            train_inventory INTEGER DEFAULT 0,
+            training_notes TEXT DEFAULT '',
+            probation_end_date VARCHAR(20) DEFAULT '',
+            probation_result VARCHAR(50) DEFAULT 'Đang thử việc',
+            updated_at VARCHAR(30) DEFAULT ''
+        )
+        """,
+        f"""
+        CREATE TABLE IF NOT EXISTS tb_store_headcount_targets (
+            store_code VARCHAR(50) PRIMARY KEY,
+            target_headcount INTEGER DEFAULT 0,
+            cht_name VARCHAR(100) DEFAULT '',
+            updated_at VARCHAR(30) DEFAULT ''
+        )
+        """
+    ]
+    
+    for sql in table_sqls:
+        try:
+            cur.execute(sql)
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+
     migrations = [
-        # customer_name cho HĐ 3.1
         "ALTER TABLE tb_contracts ADD COLUMN customer_name TEXT DEFAULT ''",
-        # contract_number cho HĐ 3.2 (unsigned)
         "ALTER TABLE tb_unsigned_contracts ADD COLUMN contract_number TEXT DEFAULT 'Đang GD'",
-        # Support Request Ticket Lifecycle fields (Section 4.5)
         "ALTER TABLE tb_support_requests ADD COLUMN ticket_code TEXT DEFAULT ''",
         "ALTER TABLE tb_support_requests ADD COLUMN status TEXT DEFAULT 'Đang xử lý'",
         "ALTER TABLE tb_support_requests ADD COLUMN store_progress_note TEXT DEFAULT ''",
         "ALTER TABLE tb_support_requests ADD COLUMN asm_hq_note TEXT DEFAULT ''",
         "ALTER TABLE tb_support_requests ADD COLUMN created_at TEXT DEFAULT ''",
         "ALTER TABLE tb_support_requests ADD COLUMN updated_at TEXT DEFAULT ''",
-        # Non-Purchase Reason Analytics fields
         "ALTER TABLE tb_traffic ADD COLUMN non_purchase_reasons TEXT DEFAULT ''",
         "ALTER TABLE tb_operational_reports ADD COLUMN weekly_top_reasons TEXT DEFAULT ''",
+        "ALTER TABLE tb_operational_reports ADD COLUMN weekly_hr_summary TEXT DEFAULT ''",
     ]
-    conn = get_db_connection()
-    cur = conn.cursor()
     for sql in migrations:
         try:
             cur.execute(sql)
             conn.commit()
-            print(f"✅ [Migration] {sql[:60]}...")
         except Exception as e:
             conn.rollback()
-            # Column already exists — safe to ignore
-            if 'duplicate' in str(e).lower() or 'already exists' in str(e).lower():
-                pass
-            else:
-                print(f"⚠️  [Migration] Bỏ qua: {e}")
                 
-    # Generate ticket_code for any existing rows without a ticket_code
     try:
         if DATABASE_URL and psycopg2:
             cur.execute("""
@@ -158,6 +239,70 @@ def safe_migrate_db():
 
     cur.close()
     conn.close()
+    
+    seed_hr_baseline_data()
+
+def seed_hr_baseline_data():
+    try:
+        existing_targets = query_db("SELECT COUNT(*) as cnt FROM tb_store_headcount_targets", one=True)
+        if existing_targets and existing_targets.get('cnt', 0) == 0:
+            stores_info_path = r"C:\All_Report\1_Mapping\StoresInfo.xlsx"
+            if os.path.exists(stores_info_path) and openpyxl:
+                wb = openpyxl.load_workbook(stores_info_path, data_only=True)
+                ws = wb.active
+                for row in list(ws.iter_rows(min_row=2, values_only=True)):
+                    code = str(row[1]).strip() if row[1] else ''
+                    cht = str(row[4]).strip() if row[4] else ''
+                    target_hc = int(row[12]) if (len(row) > 12 and row[12] is not None) else 0
+                    if code:
+                        execute_db("""
+                            INSERT INTO tb_store_headcount_targets (store_code, target_headcount, cht_name)
+                            VALUES (?, ?, ?)
+                            ON CONFLICT(store_code) DO UPDATE SET target_headcount=EXCLUDED.target_headcount, cht_name=EXCLUDED.cht_name
+                        """, (code, target_hc, cht))
+
+        existing_employees = query_db("SELECT COUNT(*) as cnt FROM tb_store_employees", one=True)
+        if existing_employees and existing_employees.get('cnt', 0) == 0:
+            staff_list_path = r"C:\All_Report\1_Mapping\StaffList_Store_20.04.26.xlsx"
+            if os.path.exists(staff_list_path) and openpyxl:
+                stores = query_db("SELECT store_code, store_name FROM tb_stores")
+                store_name_to_code = {s['store_name'].strip().lower(): s['store_code'] for s in stores}
+                
+                if os.path.exists(r"C:\All_Report\1_Mapping\StoresInfo.xlsx"):
+                    wb_s = openpyxl.load_workbook(r"C:\All_Report\1_Mapping\StoresInfo.xlsx", data_only=True)
+                    ws_s = wb_s.active
+                    for row in list(ws_s.iter_rows(min_row=2, values_only=True)):
+                        c = str(row[1]).strip() if row[1] else ''
+                        n1 = str(row[2]).strip() if row[2] else ''
+                        n2 = str(row[3]).strip() if row[3] else ''
+                        if c:
+                            if n1: store_name_to_code[n1.lower()] = c
+                            if n2: store_name_to_code[n2.lower()] = c
+
+                wb_emp = openpyxl.load_workbook(staff_list_path, data_only=True)
+                ws_emp = wb_emp.active
+                for row in list(ws_emp.iter_rows(min_row=3, values_only=True)):
+                    emp_code = str(row[0]).strip() if row[0] else ''
+                    emp_name = str(row[1]).strip() if row[1] else ''
+                    title = str(row[3]).strip() if row[3] else 'Nhân viên bán hàng'
+                    gender = str(row[6]).strip() if (len(row) > 6 and row[6]) else 'Nữ'
+                    location = str(row[8]).strip() if (len(row) > 8 and row[8]) else ''
+                    
+                    if emp_code and emp_name:
+                        matched_store_code = store_name_to_code.get(location.lower(), '')
+                        if not matched_store_code and location:
+                            matched_store_code = location.upper()
+                        if not matched_store_code:
+                            matched_store_code = 'LETRONGTAN'
+                            
+                        execute_db("""
+                            INSERT INTO tb_store_employees (employee_code, store_code, full_name, gender, position, status)
+                            VALUES (?, ?, ?, ?, ?, 'ACTIVE')
+                            ON CONFLICT(employee_code) DO NOTHING
+                        """, (emp_code, matched_store_code, emp_name, gender, title))
+                        
+    except Exception as e:
+        print(f"⚠️ [Seed Baseline HR] Error: {e}")
 
 def async_sync_and_alert(store_code, report_date, support_requests):
     def worker():
@@ -1040,6 +1185,307 @@ def get_non_purchase_analytics():
         return jsonify({'ok': False, 'error': str(e)})
 
 # ──────────────────────────────────────────────────────────────────────────────
+# NEW APIs: STORE HR & ONBOARDING TRAINING MODULE
+# ──────────────────────────────────────────────────────────────────────────────
+@app.route('/api/get_store_hr', methods=['GET'])
+def get_store_hr():
+    store_code = request.args.get('store_code', '').strip()
+    pin = request.args.get('pin', '').strip()
+    
+    if not store_code or not pin:
+        return jsonify({'ok': False, 'error': 'Thiếu mã cửa hàng hoặc mã PIN'}), 400
+        
+    store = query_db("SELECT * FROM tb_stores WHERE store_code = ?", (store_code,), one=True)
+    master_pin = os.environ.get('MASTER_PIN', '8888')
+    if not store or (store['passcode'] != pin and pin != master_pin):
+        return jsonify({'ok': False, 'error': 'Mã PIN không đúng'}), 401
+        
+    target_rec = query_db("SELECT target_headcount, cht_name FROM tb_store_headcount_targets WHERE store_code = ?", (store_code,), one=True)
+    target_hc = target_rec['target_headcount'] if target_rec else 0
+    cht_name = target_rec['cht_name'] if (target_rec and target_rec['cht_name']) else ''
+    
+    employees = query_db("SELECT * FROM tb_store_employees WHERE store_code = ? AND status != 'RESIGNED' ORDER BY position, full_name", (store_code,))
+    actual_hc = len(employees)
+    surplus_deficit = actual_hc - target_hc
+    
+    probationers = query_db("""
+        SELECT p.*, e.full_name, e.gender, e.position, e.avatar_url
+        FROM tb_employee_probation p
+        JOIN tb_store_employees e ON p.employee_code = e.employee_code
+        WHERE p.store_code = ? AND (p.probation_result IS NULL OR p.probation_result = '' OR p.probation_result = 'Đang thử việc')
+    """, (store_code,))
+    
+    shift_cfg = query_db("SELECT * FROM tb_store_shift_config WHERE store_code = ?", (store_code,), one=True)
+    if not shift_cfg:
+        shift_cfg = {
+            'shift_1_name': 'Ca 1 (Sáng)',
+            'shift_1_hours': '08:30 - 16:30',
+            'shift_2_name': 'Ca 2 (Chiều)',
+            'shift_2_hours': '14:00 - 22:00',
+            'has_split_shift': 0,
+            'split_shift_hours': '10:00 - 14:00 & 17:00 - 21:00'
+        }
+        
+    hr_tickets = query_db("SELECT * FROM tb_hr_lifecycle_tickets WHERE store_code = ? AND status != 'Hoàn tất' ORDER BY created_at DESC", (store_code,))
+    
+    return jsonify({
+        'ok': True,
+        'store_code': store_code,
+        'target_headcount': target_hc,
+        'actual_headcount': actual_hc,
+        'surplus_deficit': surplus_deficit,
+        'cht_name': cht_name,
+        'employees': employees,
+        'probationers': probationers,
+        'shift_config': shift_cfg,
+        'hr_tickets': hr_tickets
+    })
+
+@app.route('/api/save_store_hr', methods=['POST'])
+def save_store_hr():
+    data = request.json or {}
+    store_code = data.get('store_code', '').strip()
+    pin = data.get('pin', '').strip()
+    
+    if not store_code or not pin:
+        return jsonify({'ok': False, 'error': 'Thiếu mã cửa hàng hoặc mã PIN'}), 400
+        
+    store = query_db("SELECT * FROM tb_stores WHERE store_code = ?", (store_code,), one=True)
+    master_pin = os.environ.get('MASTER_PIN', '8888')
+    if not store or (store['passcode'] != pin and pin != master_pin):
+        return jsonify({'ok': False, 'error': 'Mã PIN không đúng'}), 401
+        
+    employees = data.get('employees', [])
+    for emp in employees:
+        emp_code = emp.get('employee_code', '').strip()
+        full_name = emp.get('full_name', '').strip()
+        if not emp_code or not full_name:
+            continue
+            
+        gender = emp.get('gender', 'Nữ')
+        dob = emp.get('dob', '')
+        phone = emp.get('phone_number', '')
+        position = emp.get('position', 'Nhân viên bán hàng')
+        app_date = emp.get('appointment_date', '')
+        avatar = emp.get('avatar_url', '')
+        status = emp.get('status', 'ACTIVE')
+        
+        existing = query_db("SELECT id FROM tb_store_employees WHERE employee_code = ?", (emp_code,), one=True)
+        if existing:
+            execute_db("""
+                UPDATE tb_store_employees
+                SET store_code=?, full_name=?, gender=?, dob=?, phone_number=?, position=?, appointment_date=?, avatar_url=?, status=?, updated_at=CURRENT_TIMESTAMP
+                WHERE employee_code=?
+            """, (store_code, full_name, gender, dob, phone, position, app_date, avatar, status, emp_code))
+        else:
+            execute_db("""
+                INSERT INTO tb_store_employees (employee_code, store_code, full_name, gender, dob, phone_number, position, appointment_date, avatar_url, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (emp_code, store_code, full_name, gender, dob, phone, position, app_date, avatar, status))
+            
+    probation_updates = data.get('probation_updates', [])
+    for p in probation_updates:
+        emp_code = p.get('employee_code', '').strip()
+        if not emp_code:
+            continue
+        start_date = p.get('start_date', date.today().strftime('%Y-%m-%d'))
+        trainer_code = p.get('trainer_employee_code', '')
+        trainer_name = p.get('trainer_name', '')
+        t_op = 1 if p.get('train_op_rules') else 0
+        t_wp = 1 if p.get('train_work_process') else 0
+        t_pr = 1 if p.get('train_products') else 0
+        t_dp = 1 if p.get('train_display') else 0
+        t_inv = 1 if p.get('train_inventory') else 0
+        notes = p.get('training_notes', '')
+        end_date = p.get('probation_end_date', '')
+        result = p.get('probation_result', 'Đang thử việc')
+        
+        existing_p = query_db("SELECT id FROM tb_employee_probation WHERE employee_code = ?", (emp_code,), one=True)
+        if existing_p:
+            execute_db("""
+                UPDATE tb_employee_probation
+                SET start_date=?, trainer_employee_code=?, trainer_name=?, train_op_rules=?, train_work_process=?, train_products=?, train_display=?, train_inventory=?, training_notes=?, probation_end_date=?, probation_result=?, updated_at=CURRENT_TIMESTAMP
+                WHERE employee_code=?
+            """, (start_date, trainer_code, trainer_name, t_op, t_wp, t_pr, t_dp, t_inv, notes, end_date, result, emp_code))
+        else:
+            execute_db("""
+                INSERT INTO tb_employee_probation (employee_code, store_code, start_date, trainer_employee_code, trainer_name, train_op_rules, train_work_process, train_products, train_display, train_inventory, training_notes, probation_end_date, probation_result)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (emp_code, store_code, start_date, trainer_code, trainer_name, t_op, t_wp, t_pr, t_dp, t_inv, notes, end_date, result))
+            
+        if result == 'Nhận':
+            execute_db("UPDATE tb_store_employees SET status='ACTIVE' WHERE employee_code=?", (emp_code,))
+        elif result == 'Không đạt - Chuyển trả PTC':
+            execute_db("UPDATE tb_store_employees SET status='RESIGNED' WHERE employee_code=?", (emp_code,))
+            
+    new_ticket = data.get('new_ticket')
+    if new_ticket:
+        report_date = get_report_date().strftime('%Y-%m-%d')
+        seq = datetime.now().strftime('%H%M%S')
+        ticket_code = f"HR-{store_code}-{report_date.replace('-', '')}-{seq}"
+        emp_name = new_ticket.get('employee_name', '').strip()
+        pos = new_ticket.get('position', 'Nhân viên bán hàng')
+        evt_type = new_ticket.get('event_type', 'RESIGNED')
+        eff_date = new_ticket.get('effective_date', report_date)
+        reason = new_ticket.get('reason_note', '')
+        handover = new_ticket.get('handover_status', 'Chưa bàn giao')
+        
+        if emp_name:
+            execute_db("""
+                INSERT INTO tb_hr_lifecycle_tickets (ticket_code, store_code, report_date, employee_name, position, event_type, effective_date, reason_note, handover_status, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Mới ghi nhận')
+            """, (ticket_code, store_code, report_date, emp_name, pos, evt_type, eff_date, reason, handover))
+            
+    return jsonify({'ok': True, 'message': 'Đã lưu hồ sơ nhân sự thành công'})
+
+@app.route('/api/save_shift_config', methods=['POST'])
+def save_shift_config():
+    data = request.json or {}
+    store_code = data.get('store_code', '').strip()
+    pin = data.get('pin', '').strip()
+    
+    if not store_code or not pin:
+        return jsonify({'ok': False, 'error': 'Thiếu mã cửa hàng hoặc mã PIN'}), 400
+        
+    store = query_db("SELECT * FROM tb_stores WHERE store_code = ?", (store_code,), one=True)
+    master_pin = os.environ.get('MASTER_PIN', '8888')
+    if not store or (store['passcode'] != pin and pin != master_pin):
+        return jsonify({'ok': False, 'error': 'Mã PIN không đúng'}), 401
+        
+    s1_name = data.get('shift_1_name', 'Ca 1 (Sáng)')
+    s1_hours = data.get('shift_1_hours', '08:30 - 16:30')
+    s2_name = data.get('shift_2_name', 'Ca 2 (Chiều)')
+    s2_hours = data.get('shift_2_hours', '14:00 - 22:00')
+    has_split = 1 if data.get('has_split_shift') else 0
+    split_hours = data.get('split_shift_hours', '10:00 - 14:00 & 17:00 - 21:00')
+    
+    existing = query_db("SELECT store_code FROM tb_store_shift_config WHERE store_code = ?", (store_code,), one=True)
+    if existing:
+        execute_db("""
+            UPDATE tb_store_shift_config
+            SET shift_1_name=?, shift_1_hours=?, shift_2_name=?, shift_2_hours=?, has_split_shift=?, split_shift_hours=?, updated_at=CURRENT_TIMESTAMP
+            WHERE store_code=?
+        """, (s1_name, s1_hours, s2_name, s2_hours, has_split, split_hours, store_code))
+    else:
+        execute_db("""
+            INSERT INTO tb_store_shift_config (store_code, shift_1_name, shift_1_hours, shift_2_name, shift_2_hours, has_split_shift, split_shift_hours)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (store_code, s1_name, s1_hours, s2_name, s2_hours, has_split, split_hours))
+        
+    return jsonify({'ok': True, 'message': 'Đã cập nhật khung giờ ca làm việc'})
+
+@app.route('/api/update_hr_ticket', methods=['POST'])
+def update_hr_ticket():
+    data = request.json or {}
+    ticket_code = data.get('ticket_code', '').strip()
+    status = data.get('status', '').strip()
+    store_progress_note = data.get('store_progress_note', '').strip()
+    asm_hr_note = data.get('asm_hr_note', '').strip()
+    
+    if not ticket_code:
+        return jsonify({'ok': False, 'error': 'Thiếu mã ticket'}), 400
+        
+    ticket = query_db("SELECT * FROM tb_hr_lifecycle_tickets WHERE ticket_code = ?", (ticket_code,), one=True)
+    if not ticket:
+        return jsonify({'ok': False, 'error': 'Không tìm thấy ticket sự vụ'}), 404
+        
+    if status:
+        execute_db("UPDATE tb_hr_lifecycle_tickets SET status = ? WHERE ticket_code = ?", (status, ticket_code))
+    if store_progress_note:
+        execute_db("UPDATE tb_hr_lifecycle_tickets SET store_progress_note = ? WHERE ticket_code = ?", (store_progress_note, ticket_code))
+    if asm_hr_note:
+        execute_db("UPDATE tb_hr_lifecycle_tickets SET asm_hr_note = ? WHERE ticket_code = ?", (asm_hr_note, ticket_code))
+        
+    execute_db("UPDATE tb_hr_lifecycle_tickets SET updated_at = CURRENT_TIMESTAMP WHERE ticket_code = ?", (ticket_code,))
+    
+    return jsonify({'ok': True, 'message': 'Đã cập nhật ticket sự vụ nhân sự thành công'})
+
+@app.route('/api/get_hr_analytics', methods=['GET'])
+def get_hr_analytics():
+    report_date = request.args.get('report_date', get_report_date().strftime('%Y-%m-%d'))
+    asm = request.args.get('asm', 'ALL').strip()
+    
+    if asm and asm != 'ALL':
+        stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores WHERE asm_name = ? ORDER BY store_code", (asm,))
+    else:
+        stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores ORDER BY store_code")
+        
+    store_codes = [s['store_code'] for s in stores]
+    if not store_codes:
+        return jsonify({'ok': True, 'summary': {}, 'store_hr_rows': [], 'hr_tickets': []})
+        
+    placeholders = ",".join(["?"] * len(store_codes))
+    
+    targets = query_db(f"SELECT store_code, target_headcount, cht_name FROM tb_store_headcount_targets WHERE store_code IN ({placeholders})", store_codes)
+    target_map = {t['store_code']: t for t in targets}
+    
+    employees = query_db(f"SELECT store_code, status FROM tb_store_employees WHERE store_code IN ({placeholders}) AND status != 'RESIGNED'", store_codes)
+    emp_count_map = defaultdict(int)
+    for e in employees:
+        emp_count_map[e['store_code']] += 1
+        
+    probationers = query_db(f"SELECT store_code FROM tb_employee_probation WHERE store_code IN ({placeholders}) AND (probation_result IS NULL OR probation_result = '' OR probation_result = 'Đang thử việc')", store_codes)
+    prob_count_map = defaultdict(int)
+    for p in probationers:
+        prob_count_map[p['store_code']] += 1
+        
+    tickets = query_db(f"SELECT * FROM tb_hr_lifecycle_tickets WHERE store_code IN ({placeholders}) AND status != 'Hoàn tất' ORDER BY created_at DESC", store_codes)
+    ticket_count_map = defaultdict(int)
+    under_review_cnt = 0
+    for tk in tickets:
+        ticket_count_map[tk['store_code']] += 1
+        if tk['status'] == 'Đang xem xét':
+            under_review_cnt += 1
+            
+    store_rows = []
+    tot_target = 0
+    tot_actual = 0
+    tot_probation = 0
+    
+    for s in stores:
+        code = s['store_code']
+        t_rec = target_map.get(code, {})
+        tgt = t_rec.get('target_headcount', 0)
+        cht = t_rec.get('cht_name', '')
+        act = emp_count_map[code]
+        prob = prob_count_map[code]
+        diff = act - tgt
+        
+        tot_target += tgt
+        tot_actual += act
+        tot_probation += prob
+        
+        store_rows.append({
+            'store_code': code,
+            'store_name': s['store_name'],
+            'region': s['region'],
+            'asm_name': s['asm_name'],
+            'cht_name': cht,
+            'target_headcount': tgt,
+            'actual_headcount': act,
+            'surplus_deficit': diff,
+            'probationers_count': prob,
+            'active_tickets_count': ticket_count_map[code]
+        })
+        
+    store_rows.sort(key=lambda r: r['surplus_deficit'])
+    
+    return jsonify({
+        'ok': True,
+        'summary': {
+            'total_stores': len(stores),
+            'total_target_headcount': tot_target,
+            'total_actual_headcount': tot_actual,
+            'net_surplus_deficit': tot_actual - tot_target,
+            'total_probationers': tot_probation,
+            'active_tickets_count': len(tickets),
+            'under_review_count': under_review_cnt
+        },
+        'store_hr_rows': store_rows,
+        'hr_tickets': tickets
+    })
+
+# ──────────────────────────────────────────────────────────────────────────────
 # NEW API: ASM TRAFFIC REMINDERS SUMMARY
 # ──────────────────────────────────────────────────────────────────────────────
 @app.route('/api/asm_traffic_summary', methods=['GET'])
@@ -1813,6 +2259,90 @@ def export_excel():
             })
         df_non_purchase = pd.DataFrame(np_data) if np_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'ASM Phụ Trách', 'Khu Vực', 'Ngày', 'Lượt Khách (Traffic)', 'Số Hóa Đơn (Bills)', 'Khách Không Mua', 'CR (%)', 'Lý Do Chính Khách Không Mua', 'Ghi Chú Chi Tiết Tại Quầy'])
 
+        # Sheet 9: Định Biên & Hồ Sơ Nhân Sự
+        hr_emp_rows = query_db("""
+            SELECT e.*, s.store_name, s.asm_name, s.region, t.target_headcount
+            FROM tb_store_employees e
+            JOIN tb_stores s ON e.store_code = s.store_code
+            LEFT JOIN tb_store_headcount_targets t ON e.store_code = t.store_code
+            WHERE e.status != 'RESIGNED'
+            ORDER BY s.asm_name, s.store_name, e.position, e.full_name
+        """)
+        store_hr_data = []
+        for emp in hr_emp_rows:
+            store_hr_data.append({
+                'Mã Cửa Hàng': emp['store_code'],
+                'Tên Cửa Hàng': emp['store_name'],
+                'ASM Phụ Trách': emp['asm_name'],
+                'Khu Vực': emp['region'],
+                'Định Biên CH': emp['target_headcount'] or 0,
+                'Mã Nhân Viên': emp['employee_code'],
+                'Họ và Tên': emp['full_name'],
+                'Giới Tính': emp['gender'] or 'Nữ',
+                'Ngày Sinh': emp['dob'] or '',
+                'Số Điện Thoại': emp['phone_number'] or '',
+                'Chức Danh': emp['position'],
+                'Ngày Nhận Chức (CHT/CHP)': emp['appointment_date'] or '',
+                'Trạng Thái Work': emp['status']
+            })
+        df_store_hr = pd.DataFrame(store_hr_data) if store_hr_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'ASM Phụ Trách', 'Khu Vực', 'Định Biên CH', 'Mã Nhân Viên', 'Họ và Tên', 'Giới Tính', 'Ngày Sinh', 'Số Điện Thoại', 'Chức Danh', 'Ngày Nhận Chức (CHT/CHP)', 'Trạng Thái Work'])
+
+        # Sheet 10: Theo Dõi Thử Việc & Đào Tạo
+        hr_prob_rows = query_db("""
+            SELECT p.*, e.full_name, e.gender, e.position, s.store_name, s.asm_name
+            FROM tb_employee_probation p
+            JOIN tb_store_employees e ON p.employee_code = e.employee_code
+            JOIN tb_stores s ON p.store_code = s.store_code
+            ORDER BY s.asm_name, s.store_name, p.start_date
+        """)
+        prob_data = []
+        for pr in hr_prob_rows:
+            prob_data.append({
+                'Mã Cửa Hàng': pr['store_code'],
+                'Tên Cửa Hàng': pr['store_name'],
+                'ASM Phụ Trách': pr['asm_name'],
+                'Mã Nhân Viên': pr['employee_code'],
+                'Họ và Tên': pr['full_name'],
+                'Chức Danh': pr['position'],
+                'Ngày Nhận Việc': pr['start_date'],
+                'Người Đào Tạo Kèm Cặp': pr['trainer_name'] or 'CHT/CHP',
+                '1. Quy định vận hành': 'ĐẠT' if pr['train_op_rules'] else 'Chưa',
+                '2. Quy trình làm việc': 'ĐẠT' if pr['train_work_process'] else 'Chưa',
+                '3. Hàng hóa & Bảng size': 'ĐẠT' if pr['train_products'] else 'Chưa',
+                '4. Trưng bày & VM': 'ĐẠT' if pr['train_display'] else 'Chưa',
+                '5. Kiểm kê kho': 'ĐẠT' if pr['train_inventory'] else 'Chưa',
+                'Ghi Chú Đào Tạo': pr['training_notes'] or '',
+                'Ngày Kết Thúc Thử Việc': pr['probation_end_date'] or '',
+                'Kết Quả Thử Việc': pr['probation_result'] or 'Đang thử việc'
+            })
+        df_hr_probation = pd.DataFrame(prob_data) if prob_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'ASM Phụ Trách', 'Mã Nhân Viên', 'Họ và Tên', 'Chức Danh', 'Ngày Nhận Việc', 'Người Đào Tạo Kèm Cặp', '1. Quy định vận hành', '2. Quy trình làm việc', '3. Hàng hóa & Bảng size', '4. Trưng bày & VM', '5. Kiểm kê kho', 'Ghi Chú Đào Tạo', 'Ngày Kết Thúc Thử Việc', 'Kết Quả Thử Việc'])
+
+        # Sheet 11: Theo Dõi Sự Vụ Nhân Sự & Phân Ca
+        hr_ticket_rows = query_db("""
+            SELECT t.*, s.store_name, s.asm_name
+            FROM tb_hr_lifecycle_tickets t
+            JOIN tb_stores s ON t.store_code = s.store_code
+            ORDER BY t.created_at DESC
+        """)
+        ticket_data = []
+        for tk in hr_ticket_rows:
+            ticket_data.append({
+                'Mã Ticket': tk['ticket_code'],
+                'Mã Cửa Hàng': tk['store_code'],
+                'Tên Cửa Hàng': tk['store_name'],
+                'ASM Phụ Trách': tk['asm_name'],
+                'Tên Nhân Sự': tk['employee_name'],
+                'Chức Danh': tk['position'],
+                'Loại Sự Vụ': tk['event_type'],
+                'Ngày Hiệu Lực': tk['effective_date'],
+                'Lý Do / Nội Dung': tk['reason_note'],
+                'Bàn Giao Công Việc': tk['handover_status'],
+                'Trạng Thái Giải Quyết': tk['status'],
+                'Tiến Độ Cửa Hàng': tk['store_progress_note'],
+                'Ghi Chú ASM / HR': tk['asm_hr_note']
+            })
+        df_hr_tickets = pd.DataFrame(ticket_data) if ticket_data else pd.DataFrame(columns=['Mã Ticket', 'Mã Cửa Hàng', 'Tên Cửa Hàng', 'ASM Phụ Trách', 'Tên Nhân Sự', 'Chức Danh', 'Loại Sự Vụ', 'Ngày Hiệu Lực', 'Lý Do / Nội Dung', 'Bàn Giao Công Việc', 'Trạng Thái Giải Quyết', 'Tiến Độ Cửa Hàng', 'Ghi Chú ASM / HR'])
+
         # 3. Create Excel File in memory
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
@@ -1824,6 +2354,9 @@ def export_excel():
             df_details.to_excel(writer, sheet_name='Chi Tiết Vận Hành 4', index=False, startrow=4)
             df_support.to_excel(writer, sheet_name='Yêu Cầu Hỗ Trợ 4.5', index=False, startrow=4)
             df_non_purchase.to_excel(writer, sheet_name='Phân Tích Lý Do Không Mua', index=False, startrow=4)
+            df_store_hr.to_excel(writer, sheet_name='Định Biên & Hồ Sơ Nhân Sự', index=False, startrow=4)
+            df_hr_probation.to_excel(writer, sheet_name='Theo Dõi Thử Việc & Đào Tạo', index=False, startrow=4)
+            df_hr_tickets.to_excel(writer, sheet_name='Theo Dõi Sự Vụ Nhân Sự', index=False, startrow=4)
             
             # Access workbook and apply corporate styling
             workbook = writer.book
@@ -1838,6 +2371,9 @@ def export_excel():
             style_sheet(workbook['Chi Tiết Vận Hành 4'], "Báo Cáo Chi Tiết Vận Hành - Nhân Sự - Hàng Hóa", "Đánh giá chất lượng dịch vụ & nhân sự tại quầy", date_range_str, role_str)
             style_sheet(workbook['Yêu Cầu Hỗ Trợ 4.5'], "Danh Sách Yêu Cầu Hỗ Trợ Kỹ Thuật / Vận Hành (4.5)", "Tiếp nhận và xử lý yêu cầu phát sinh từ cửa hàng", date_range_str, role_str)
             style_sheet(workbook['Phân Tích Lý Do Không Mua'], "Báo Cáo Phân Tích Nguyên Nhân Khách Không Mua Hàng", "Thống kê thất thoát chuyển đổi & nguyên nhân không mua", date_range_str, role_str)
+            style_sheet(workbook['Định Biên & Hồ Sơ Nhân Sự'], "Báo Cáo Định Biên & Hồ Sơ Nhân Sự Cửa Hàng", "Quản lý nhân sự và đánh giá thừa/thiếu định biên", date_range_str, role_str)
+            style_sheet(workbook['Theo Dõi Thử Việc & Đào Tạo'], "Báo Cáo Theo Dõi Nhân Sự Thử Việc & Đào Tạo Tại Quầy", "Đào tạo checklist 5 bài học và kết quả thử việc", date_range_str, role_str)
+            style_sheet(workbook['Theo Dõi Sự Vụ Nhân Sự'], "Nhật Ký Theo Dõi Sự Vụ & Biến Động Nhân Sự", "Vòng đời xử lý ticket sự vụ nhân sự toàn hệ thống", date_range_str, role_str)
             
         output.seek(0)
         

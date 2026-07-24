@@ -203,6 +203,9 @@
                 <button id="tab-daily-btn" class="tab-btn">
                     👣 Nhập Traffic Hàng Ngày
                 </button>
+                <button id="tab-hr-btn" class="tab-btn">
+                    👥 Quản Lý Nhân Sự & Phân Ca
+                </button>
             </div>
 
             <!-- TAB 1: WEEKLY REPORT FORM -->
@@ -528,6 +531,163 @@
                             💾 LƯU SỐ LIỆU TRAFFIC CẢ THÁNG
                         </button>
                     </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: STORE HR & ONBOARDING MODULE -->
+            <div id="tab-hr-content" class="hidden space-y-5">
+                <!-- Headcount Summary & Shift Config Card -->
+                <div class="card rounded-2xl p-5 border-l-4 border-brand-navy space-y-4">
+                    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 pb-4">
+                        <div>
+                            <span class="text-xs text-brand-red font-bold uppercase tracking-wider">Hồ sơ định biên & Phân ca</span>
+                            <h3 class="text-lg font-extrabold text-brand-navy flex items-center gap-2">
+                                👥 Quản Lý Nhân Sự & Thử Việc Cửa Hàng
+                            </h3>
+                            <p class="text-xs text-gray-500">Quản lý danh sách nhân sự, định biên thừa/thiếu, thử việc 5 bài học & phân ca 7 ngày.</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl text-center">
+                                <div class="text-[10px] text-gray-400 font-bold uppercase">Định Biên CH</div>
+                                <div id="hr-target-hc" class="text-base font-black text-brand-navy">0</div>
+                            </div>
+                            <div class="bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl text-center">
+                                <div class="text-[10px] text-gray-400 font-bold uppercase">Thực Tế Quầy</div>
+                                <div id="hr-actual-hc" class="text-base font-black text-brand-navy">0</div>
+                            </div>
+                            <div id="hr-surplus-badge" class="px-3 py-1.5 rounded-xl text-center bg-emerald-50 text-emerald-700 border border-emerald-200 font-extrabold text-xs">
+                                CHỦNG LẠI: 0
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Shift Config Drawer Toggle -->
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs">
+                        <div class="flex items-center gap-2">
+                            <span class="text-base">⏰</span>
+                            <div>
+                                <span class="font-bold text-brand-navy">Khung giờ ca làm việc đăng ký:</span>
+                                <span id="hr-shift-display" class="font-medium text-gray-700 ml-1">Ca 1: 08:30 - 16:30 | Ca 2: 14:00 - 22:00</span>
+                            </div>
+                        </div>
+                        <button id="btn-toggle-shift-cfg" class="btn-outline text-xs px-3 py-1 bg-white">
+                            ⚙️ Đổi Khung Giờ Ca
+                        </button>
+                    </div>
+
+                    <!-- Shift Config Panel (Collapsible) -->
+                    <div id="shift-config-panel" class="hidden mt-3 p-4 bg-white border border-brand-navy/20 rounded-xl space-y-3">
+                        <div class="font-extrabold text-xs text-brand-navy uppercase">Cấu hình ca làm việc cho cửa hàng</div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                            <div>
+                                <label class="block font-semibold text-gray-500 mb-1">Giờ Ca 1 (Sáng)</label>
+                                <input id="cfg-shift-1-hours" type="text" value="08:30 - 16:30" class="input-field text-xs">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-gray-500 mb-1">Giờ Ca 2 (Chiều)</label>
+                                <input id="cfg-shift-2-hours" type="text" value="14:00 - 22:00" class="input-field text-xs">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-gray-500 mb-1">Ca Gãy (Nhiều Khung Giờ)</label>
+                                <input id="cfg-split-hours" type="text" value="10:00 - 14:00 & 17:00 - 21:00" class="input-field text-xs">
+                            </div>
+                        </div>
+                        <div class="flex justify-end">
+                            <button id="btn-save-shift-cfg" class="btn-primary text-xs px-4 py-2">💾 Lưu Khung Giờ Ca</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- EMPLOYEE MASTER LIST & UNIFORM PHOTO SECTION -->
+                <div class="card rounded-2xl p-5 space-y-4">
+                    <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg">👔</span>
+                            <h4 class="font-bold text-brand-navy uppercase text-sm">Danh sách nhân sự hiện tại tại cửa hàng</h4>
+                        </div>
+                        <button id="btn-add-employee" class="btn-gold text-xs px-3 py-1.5 flex items-center gap-1">
+                            ➕ Thêm Nhân Viên Mới
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="tbl w-full rounded-xl overflow-hidden text-xs">
+                            <thead>
+                                <tr>
+                                    <th class="w-12 text-center">Ảnh</th>
+                                    <th>Mã NV</th>
+                                    <th>Họ và Tên</th>
+                                    <th>Giới Tính</th>
+                                    <th>Ngày Sinh</th>
+                                    <th>Số Điện Thoại</th>
+                                    <th>Chức Danh</th>
+                                    <th>Ngày Nhận Chức (CHT/CHP)</th>
+                                    <th class="text-center">Thao Tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="store-employee-table-body" class="divide-y divide-gray-100">
+                                <tr><td colspan="9" class="text-center py-6 text-gray-400">Đang tải danh sách nhân sự...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- PROBATION & STORE ONBOARDING TRAINING MODULE -->
+                <div class="card rounded-2xl p-5 space-y-4 bg-amber-50/40 border border-amber-200/60">
+                    <div class="flex items-center justify-between border-b border-amber-200/80 pb-3">
+                        <div>
+                            <h4 class="font-bold text-amber-900 uppercase text-sm flex items-center gap-2">
+                                🎓 Quản Lý Thử Việc & Đào Tạo Tại Quầy (Checklist 5 Hạng Mục)
+                            </h4>
+                            <p class="text-xs text-amber-700/80">Theo dõi quá trình kèm cặp nhân sự thử việc và chốt kết quả 'Nhận' hoặc 'Không đạt - Chuyển trả PTC'.</p>
+                        </div>
+                    </div>
+
+                    <div id="probation-list-container" class="space-y-4">
+                        <div class="text-center py-4 text-xs text-gray-400">Không có nhân sự nào đang thử việc.</div>
+                    </div>
+                </div>
+
+                <!-- ACTIVE HR LIFECYCLE TICKETS SECTION -->
+                <div class="card rounded-2xl p-5 space-y-4 border-l-4 border-brand-red">
+                    <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                        <div>
+                            <h4 class="font-bold text-brand-navy uppercase text-sm flex items-center gap-2">
+                                📝 Nhật Ký Sự Vụ & Biến Động Nhân Sự
+                            </h4>
+                            <p class="text-xs text-gray-500">Theo dõi trạng thái giải quyết ticket sự vụ (Nghỉ việc, Tuyển mới, Nghỉ phép) liên tục qua các tuần.</p>
+                        </div>
+                        <button id="btn-open-new-hr-ticket-modal" class="btn-outline text-xs px-3 py-1.5 border-brand-red text-brand-red hover:bg-brand-red/5">
+                            ➕ Khai Báo Biến Động Mới
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="tbl w-full rounded-xl overflow-hidden text-xs">
+                            <thead>
+                                <tr>
+                                    <th>Mã Ticket</th>
+                                    <th>Nhân Sự</th>
+                                    <th>Chức Danh</th>
+                                    <th>Loại Sự Vụ</th>
+                                    <th>Ngày Hiệu Lực</th>
+                                    <th class="text-center">Trạng Thái Ticket</th>
+                                    <th>Tiến Độ Cửa Hàng</th>
+                                    <th>Phản Hồi ASM / HR</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hr-tickets-table-body" class="divide-y divide-gray-100">
+                                <tr><td colspan="8" class="text-center py-6 text-gray-400">Đang tải lịch sử sự vụ...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- SAVE STORE HR BUTTON -->
+                <div class="pt-3">
+                    <button id="btn-save-store-hr" class="btn-primary w-full py-3 text-sm tracking-wide shadow-lg">
+                        💾 LƯU TOÀN BỘ HỒ SƠ NHÂN SỰ & CẬP NHẬT THỬ VIỆC
+                    </button>
                 </div>
             </div>
         </section>
@@ -951,6 +1111,7 @@
                 <button class="tab-btn qr-tab-switch" data-tab="van-hanh">⚙️ Vận Hành</button>
                 <button class="tab-btn qr-tab-switch" data-tab="ho-tro">🔔 Hỗ Trợ</button>
                 <button class="tab-btn qr-tab-switch" data-tab="khong-mua">📉 Phân Tích Không Mua</button>
+                <button class="tab-btn qr-tab-switch" data-tab="nhan-su">👥 Quản Lý Nhân Sự</button>
             </div>
 
             <!-- Tab 1: Tổng Hợp -->
@@ -1122,6 +1283,83 @@
                                 <tr><td colspan="7" class="text-center py-6 text-gray-400 italic">Đang tải dữ liệu...</td></tr>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 6: Quản Lý Nhân Sự (ASM & Leadership) -->
+            <div id="qr-tab-nhan-su" class="qr-tab-content bg-white rounded-b-xl p-5 border border-t-0 border-gray-200 space-y-6">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
+                        <div class="text-[11px] font-bold text-blue-700 uppercase">Tổng Định Biên</div>
+                        <div id="qr-hr-tot-target" class="text-2xl font-black text-blue-900 mt-1">0</div>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center">
+                        <div class="text-[11px] font-bold text-slate-700 uppercase">Thực Tế Nhân Sự</div>
+                        <div id="qr-hr-tot-actual" class="text-2xl font-black text-slate-900 mt-1">0</div>
+                    </div>
+                    <div id="qr-hr-net-diff-card" class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
+                        <div class="text-[11px] font-bold text-emerald-700 uppercase">Chênh Lệch Thừa/Thiếu</div>
+                        <div id="qr-hr-net-diff" class="text-2xl font-black text-emerald-900 mt-1">0</div>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+                        <div class="text-[11px] font-bold text-amber-700 uppercase">Đang Thử Việc</div>
+                        <div id="qr-hr-tot-probation" class="text-2xl font-black text-amber-900 mt-1">0</div>
+                    </div>
+                    <div class="bg-rose-50 border border-rose-200 rounded-xl p-4 text-center">
+                        <div class="text-[11px] font-bold text-rose-700 uppercase">Đang Xem Xét / Xử Lý</div>
+                        <div id="qr-hr-under-review" class="text-2xl font-black text-rose-900 mt-1">0</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Surplus / Deficit Store Table -->
+                    <div class="card rounded-xl p-4 border border-gray-200 space-y-3">
+                        <div class="font-extrabold text-sm text-brand-navy flex items-center justify-between">
+                            <span>📉 Xếp Hạng Định Biên Nhân Sự Theo Cửa Hàng</span>
+                            <span class="text-xs font-normal text-gray-500">Ưu tiên xếp CH thiếu NV nhiều nhất</span>
+                        </div>
+                        <div class="overflow-x-auto max-h-[350px]">
+                            <table class="tbl w-full rounded-xl overflow-hidden text-xs">
+                                <thead>
+                                    <tr>
+                                        <th>Mã CH</th>
+                                        <th>Tên CH</th>
+                                        <th>CHT Huyện/Tp</th>
+                                        <th>Định Biên</th>
+                                        <th>Thực Tế</th>
+                                        <th class="text-center">Chênh Lệch</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="qr-hr-store-table-body" class="divide-y divide-gray-100">
+                                    <tr><td colspan="6" class="text-center py-4 text-gray-400">Đang tải dữ liệu...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Active HR Lifecycle Ticket Hub -->
+                    <div class="card rounded-xl p-4 border border-gray-200 space-y-3">
+                        <div class="font-extrabold text-sm text-brand-navy flex items-center justify-between">
+                            <span>🔔 Hub Quản Lý & Giải Quyết Ticket Sự Vụ Nhân Sự</span>
+                            <span class="text-xs font-normal text-gray-500">Xem xét & xử lý liên tục qua các tuần</span>
+                        </div>
+                        <div class="overflow-x-auto max-h-[350px]">
+                            <table class="tbl w-full rounded-xl overflow-hidden text-xs">
+                                <thead>
+                                    <tr>
+                                        <th>Ticket</th>
+                                        <th>Cửa Hàng</th>
+                                        <th>Nhân Sự / Sự Vụ</th>
+                                        <th class="text-center">Trạng Thái</th>
+                                        <th class="text-center">Thao Tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="qr-hr-tickets-table-body" class="divide-y divide-gray-100">
+                                    <tr><td colspan="5" class="text-center py-4 text-gray-400">Đang tải ticket sự vụ...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2683,6 +2921,8 @@
                 if (target) target.classList.add('active');
                 if (btn.dataset.tab === 'khong-mua') {
                     loadNonPurchaseAnalytics();
+                } else if (btn.dataset.tab === 'nhan-su') {
+                    loadHRAnalytics();
                 }
             });
         });
@@ -3123,6 +3363,578 @@
                 statusSupportTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-brand-red">Lỗi kết nối API.</td></tr>';
             }
         }
+
+        // ====================== STORE HR & ONBOARDING MODULE ======================
+        const tabHrBtn = document.getElementById('tab-hr-btn');
+        const tabHrContent = document.getElementById('tab-hr-content');
+        
+        let currentStoreHREmployees = [];
+        let currentStoreHRProbationers = [];
+
+        function setTabActive(btn) {
+            [tabWeeklyBtn, tabDailyBtn, tabHrBtn].forEach(b => {
+                if (b) {
+                    b.classList.remove('active');
+                    b.className = "py-2.5 px-6 font-bold text-sm text-slate-400 hover:text-white focus:outline-none transition-all";
+                }
+            });
+            if (btn) {
+                btn.classList.add('active');
+                btn.className = "py-2.5 px-6 font-bold text-sm border-b-2 border-gold text-gold focus:outline-none transition-all";
+            }
+        }
+
+        if (tabHrBtn) {
+            tabHrBtn.addEventListener('click', async () => {
+                setTabActive(tabHrBtn);
+                tabHrContent.classList.remove('hidden');
+                tabWeeklyContent.classList.add('hidden');
+                tabDailyContent.classList.add('hidden');
+                
+                await loadStoreHRData();
+            });
+        }
+
+        // Toggle Shift Config Panel
+        const btnToggleShiftCfg = document.getElementById('btn-toggle-shift-cfg');
+        const shiftConfigPanel = document.getElementById('shift-config-panel');
+        if (btnToggleShiftCfg) {
+            btnToggleShiftCfg.addEventListener('click', () => {
+                shiftConfigPanel.classList.toggle('hidden');
+            });
+        }
+
+        // Save Shift Config
+        const btnSaveShiftCfg = document.getElementById('btn-save-shift-cfg');
+        if (btnSaveShiftCfg) {
+            btnSaveShiftCfg.addEventListener('click', async () => {
+                const s1 = document.getElementById('cfg-shift-1-hours').value;
+                const s2 = document.getElementById('cfg-shift-2-hours').value;
+                const sp = document.getElementById('cfg-split-hours').value;
+                
+                try {
+                    const res = await fetch('/api/save_shift_config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            store_code: currentStore.code,
+                            pin: currentStore.pin,
+                            shift_1_hours: s1,
+                            shift_2_hours: s2,
+                            split_shift_hours: sp
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.ok) {
+                        showToast("✅ Thành Công", "Đã lưu khung giờ ca làm việc mới.", "✅");
+                        document.getElementById('hr-shift-display').innerText = `Ca 1: ${s1} | Ca 2: ${s2}`;
+                        shiftConfigPanel.classList.add('hidden');
+                    } else {
+                        showToast("❌ Lỗi", data.error || "Không thể lưu khung giờ ca", "❌");
+                    }
+                } catch (e) {
+                    showToast("❌ Lỗi", "Không thể gửi dữ liệu đến máy chủ", "❌");
+                }
+            });
+        }
+
+        // Load Store HR Data
+        async function loadStoreHRData() {
+            if (!currentStore || !currentStore.code) return;
+            
+            try {
+                const res = await fetch(`/api/get_store_hr?store_code=${currentStore.code}&pin=${encodeURIComponent(currentStore.pin)}`);
+                const data = await res.json();
+                if (!data.ok) {
+                    showToast("❌ Lỗi", data.error || "Không thể nạp dữ liệu nhân sự", "❌");
+                    return;
+                }
+                
+                document.getElementById('hr-target-hc').innerText = data.target_headcount || 0;
+                document.getElementById('hr-actual-hc').innerText = data.actual_headcount || 0;
+                
+                const badge = document.getElementById('hr-surplus-badge');
+                const diff = data.surplus_deficit || 0;
+                if (diff < 0) {
+                    badge.className = "px-3 py-1.5 rounded-xl text-center bg-rose-50 text-rose-700 border border-rose-200 font-extrabold text-xs";
+                    badge.innerText = `THIẾU: ${Math.abs(diff)} NV`;
+                } else if (diff > 0) {
+                    badge.className = "px-3 py-1.5 rounded-xl text-center bg-blue-50 text-blue-700 border border-blue-200 font-extrabold text-xs";
+                    badge.innerText = `THỪA: +${diff} NV`;
+                } else {
+                    badge.className = "px-3 py-1.5 rounded-xl text-center bg-emerald-50 text-emerald-700 border border-emerald-200 font-extrabold text-xs";
+                    badge.innerText = `ĐẠT ĐỊNH BIÊN (0)`;
+                }
+                
+                if (data.shift_config) {
+                    document.getElementById('hr-shift-display').innerText = `Ca 1: ${data.shift_config.shift_1_hours} | Ca 2: ${data.shift_config.shift_2_hours}`;
+                    document.getElementById('cfg-shift-1-hours').value = data.shift_config.shift_1_hours || '08:30 - 16:30';
+                    document.getElementById('cfg-shift-2-hours').value = data.shift_config.shift_2_hours || '14:00 - 22:00';
+                    document.getElementById('cfg-split-hours').value = data.shift_config.split_shift_hours || '10:00 - 14:00 & 17:00 - 21:00';
+                }
+                
+                currentStoreHREmployees = data.employees || [];
+                renderStoreEmployeesTable(currentStoreHREmployees);
+                
+                currentStoreHRProbationers = data.probationers || [];
+                renderProbationersList(currentStoreHRProbationers);
+                
+                renderHRTicketsTable(data.hr_tickets || []);
+                
+            } catch (err) {
+                console.error("Lỗi nạp dữ liệu Store HR:", err);
+            }
+        }
+
+        // Render Employee Table
+        function renderStoreEmployeesTable(employees) {
+            const tbody = document.getElementById('store-employee-table-body');
+            if (!employees || employees.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center py-6 text-gray-400">Cửa hàng chưa có danh sách nhân sự. Nhấn "Thêm Nhân Viên Mới" để tạo.</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = employees.map((emp, idx) => `
+                <tr class="emp-row border-b border-gray-100 hover:bg-slate-50 transition-all" data-code="${emp.employee_code}">
+                    <td class="py-2 px-2 text-center">
+                        <div class="relative group w-9 h-9 mx-auto">
+                            <img src="${emp.avatar_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(emp.full_name) + '&background=1B2A4A&color=fff'}" 
+                                 class="w-9 h-9 rounded-full object-cover border border-gray-200 shadow-xs img-avatar-preview">
+                            <label class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center text-[10px] text-white opacity-0 group-hover:opacity-100 cursor-pointer transition-all">
+                                📸
+                                <input type="file" accept="image/*" class="hidden input-avatar-file" onchange="handlePhotoUpload(event, '${emp.employee_code}')">
+                            </label>
+                        </div>
+                    </td>
+                    <td class="py-2 px-2 font-mono font-bold text-gray-900">${emp.employee_code}</td>
+                    <td class="py-2 px-2">
+                        <input type="text" class="input-field text-xs font-bold text-brand-navy emp-name" value="${emp.full_name}">
+                    </td>
+                    <td class="py-2 px-2">
+                        <select class="input-field text-xs emp-gender">
+                            <option value="Nữ" ${emp.gender === 'Nữ' ? 'selected' : ''}>Nữ</option>
+                            <option value="Nam" ${emp.gender === 'Nam' ? 'selected' : ''}>Nam</option>
+                        </select>
+                    </td>
+                    <td class="py-2 px-2">
+                        <input type="text" class="input-field text-xs emp-dob" placeholder="DD/MM/YYYY" value="${emp.dob || ''}">
+                    </td>
+                    <td class="py-2 px-2">
+                        <input type="text" class="input-field text-xs emp-phone" placeholder="090..." value="${emp.phone_number || ''}">
+                    </td>
+                    <td class="py-2 px-2">
+                        <select class="input-field text-xs emp-position">
+                            <option value="Cửa hàng trưởng" ${emp.position === 'Cửa hàng trưởng' ? 'selected' : ''}>Cửa hàng trưởng</option>
+                            <option value="Cửa hàng phó" ${emp.position === 'Cửa hàng phó' ? 'selected' : ''}>Cửa hàng phó</option>
+                            <option value="Nhân viên bán hàng" ${emp.position === 'Nhân viên bán hàng' ? 'selected' : ''}>Nhân viên bán hàng</option>
+                            <option value="Thu ngân" ${emp.position === 'Thu ngân' ? 'selected' : ''}>Thu ngân</option>
+                            <option value="Bảo vệ" ${emp.position === 'Bảo vệ' ? 'selected' : ''}>Bảo vệ</option>
+                        </select>
+                    </td>
+                    <td class="py-2 px-2">
+                        <input type="text" class="input-field text-xs emp-app-date" placeholder="Bắt buộc nếu CHT/CHP" value="${emp.appointment_date || ''}">
+                    </td>
+                    <td class="py-2 px-2 text-center">
+                        <button type="button" onclick="removeEmployeeRow(this)" class="text-rose-500 hover:text-rose-700 font-bold text-xs px-2 py-1">
+                            &times; Xóa
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Add Employee Row
+        const btnAddEmployee = document.getElementById('btn-add-employee');
+        if (btnAddEmployee) {
+            btnAddEmployee.addEventListener('click', () => {
+                const tbody = document.getElementById('store-employee-table-body');
+                const newCode = 'NV' + Math.floor(100000 + Math.random() * 900000);
+                const tr = document.createElement('tr');
+                tr.className = "emp-row border-b border-gray-100 hover:bg-slate-50 transition-all";
+                tr.dataset.code = newCode;
+                tr.innerHTML = `
+                    <td class="py-2 px-2 text-center">
+                        <div class="relative group w-9 h-9 mx-auto">
+                            <img src="https://ui-avatars.com/api/?name=NV+Moi&background=1B2A4A&color=fff" 
+                                 class="w-9 h-9 rounded-full object-cover border border-gray-200 shadow-xs img-avatar-preview">
+                            <label class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center text-[10px] text-white opacity-0 group-hover:opacity-100 cursor-pointer transition-all">
+                                📸
+                                <input type="file" accept="image/*" class="hidden input-avatar-file" onchange="handlePhotoUpload(event, '${newCode}')">
+                            </label>
+                        </div>
+                    </td>
+                    <td class="py-2 px-2 font-mono font-bold text-gray-900">${newCode}</td>
+                    <td class="py-2 px-2">
+                        <input type="text" class="input-field text-xs font-bold text-brand-navy emp-name" placeholder="Nhập họ tên NV mới">
+                    </td>
+                    <td class="py-2 px-2">
+                        <select class="input-field text-xs emp-gender">
+                            <option value="Nữ">Nữ</option>
+                            <option value="Nam">Nam</option>
+                        </select>
+                    </td>
+                    <td class="py-2 px-2">
+                        <input type="text" class="input-field text-xs emp-dob" placeholder="DD/MM/YYYY">
+                    </td>
+                    <td class="py-2 px-2">
+                        <input type="text" class="input-field text-xs emp-phone" placeholder="090...">
+                    </td>
+                    <td class="py-2 px-2">
+                        <select class="input-field text-xs emp-position">
+                            <option value="Nhân viên bán hàng">Nhân viên bán hàng</option>
+                            <option value="Cửa hàng trưởng">Cửa hàng trưởng</option>
+                            <option value="Cửa hàng phó">Cửa hàng phó</option>
+                            <option value="Thu ngân">Thu ngân</option>
+                            <option value="Bảo vệ">Bảo vệ</option>
+                        </select>
+                    </td>
+                    <td class="py-2 px-2">
+                        <input type="text" class="input-field text-xs emp-app-date" placeholder="Bắt buộc nếu CHT/CHP">
+                    </td>
+                    <td class="py-2 px-2 text-center">
+                        <button type="button" onclick="removeEmployeeRow(this)" class="text-rose-500 hover:text-rose-700 font-bold text-xs px-2 py-1">
+                            &times; Xóa
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        window.removeEmployeeRow = function(btn) {
+            const tr = btn.closest('tr');
+            if (tr) tr.remove();
+        };
+
+        // Canvas Photo Crop & Compress Client-side (<80KB)
+        window.handlePhotoUpload = function(evt, empCode) {
+            const file = evt.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 300;
+                    canvas.height = 400;
+                    const ctx = canvas.getContext('2d');
+                    
+                    const targetRatio = 300 / 400;
+                    const imgRatio = img.width / img.height;
+                    let sx = 0, sy = 0, sw = img.width, sh = img.height;
+                    if (imgRatio > targetRatio) {
+                        sw = img.height * targetRatio;
+                        sx = (img.width - sw) / 2;
+                    } else {
+                        sh = img.width / targetRatio;
+                        sy = (img.height - sh) / 2;
+                    }
+                    
+                    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 300, 400);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+                    
+                    const tr = evt.target.closest('tr');
+                    if (tr) {
+                        const imgPreview = tr.querySelector('.img-avatar-preview');
+                        if (imgPreview) imgPreview.src = dataUrl;
+                        tr.dataset.avatar = dataUrl;
+                    }
+                    showToast("📸 Đã nén ảnh", "Ảnh đồng phục đã được tối ưu vừa chuẩn (<80KB). Nhớ bấm 'Lưu Hồ Sơ' bên dưới.", "📸");
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        // Render Probationers List
+        function renderProbationersList(probationers) {
+            const container = document.getElementById('probation-list-container');
+            if (!probationers || probationers.length === 0) {
+                container.innerHTML = '<div class="text-center py-4 text-xs text-gray-400 italic">Hiện tại không có nhân sự nào trong giai đoạn thử việc.</div>';
+                return;
+            }
+            
+            container.innerHTML = probationers.map(p => `
+                <div class="prob-card bg-white border border-amber-200 rounded-xl p-4 space-y-3 shadow-xs" data-code="${p.employee_code}">
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-2">
+                        <div class="flex items-center gap-3">
+                            <img src="${p.avatar_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(p.full_name) + '&background=C8A951&color=fff'}" class="w-10 h-10 rounded-full object-cover border border-amber-300">
+                            <div>
+                                <h5 class="font-extrabold text-brand-navy text-sm">${p.full_name} <span class="font-mono text-xs font-semibold text-gray-400">(${p.employee_code})</span></h5>
+                                <div class="text-xs text-gray-500">Vị trí: <span class="font-bold text-gray-700">${p.position}</span> | Ngày nhận việc: <span class="font-semibold text-amber-900">${p.start_date || 'Chưa nhập'}</span></div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="text-xs font-bold text-gray-500">Kết Quả Thử Việc:</label>
+                            <select class="prob-result input-field text-xs font-bold text-brand-navy">
+                                <option value="Đang thử việc" ${(!p.probation_result || p.probation_result === 'Đang thử việc') ? 'selected' : ''}>⏳ Đang thử việc</option>
+                                <option value="Nhận" ${p.probation_result === 'Nhận' ? 'selected' : ''}>🟢 "Nhận" (Ký HĐ chính thức)</option>
+                                <option value="Không đạt - Chuyển trả PTC" ${p.probation_result === 'Không đạt - Chuyển trả PTC' ? 'selected' : ''}>🔴 "Không đạt - Chuyển trả PTC"</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        <div>
+                            <label class="block font-bold text-gray-600 mb-1">Nhân sự kèm cặp / Đào tạo tại quầy:</label>
+                            <input type="text" class="prob-trainer input-field text-xs" placeholder="Họ tên CHT / CHP hoặc NV đàn anh" value="${p.trainer_name || ''}">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-gray-600 mb-1">Ngày kết thúc thử việc dự kiến:</label>
+                            <input type="date" class="prob-end-date input-field text-xs" value="${p.probation_end_date || ''}">
+                        </div>
+                    </div>
+
+                    <!-- 5 Checklist Items -->
+                    <div>
+                        <label class="block font-bold text-gray-600 mb-1.5 text-xs">Checklist Nội Dung Đào Tạo Bắt Buộc Tại Cửa Hàng:</label>
+                        <div class="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+                            <label class="flex items-center gap-1.5 p-2 bg-slate-50 border rounded-lg cursor-pointer hover:bg-slate-100">
+                                <input type="checkbox" class="chk-op-rules accent-amber-600" ${p.train_op_rules ? 'checked' : ''}>
+                                <span class="font-medium text-gray-800">📋 Quy định vận hành</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 p-2 bg-slate-50 border rounded-lg cursor-pointer hover:bg-slate-100">
+                                <input type="checkbox" class="chk-work-process accent-amber-600" ${p.train_work_process ? 'checked' : ''}>
+                                <span class="font-medium text-gray-800">⚙️ Quy trình CH</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 p-2 bg-slate-50 border rounded-lg cursor-pointer hover:bg-slate-100">
+                                <input type="checkbox" class="chk-products accent-amber-600" ${p.train_products ? 'checked' : ''}>
+                                <span class="font-medium text-gray-800">👔 Hàng hóa & Size</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 p-2 bg-slate-50 border rounded-lg cursor-pointer hover:bg-slate-100">
+                                <input type="checkbox" class="chk-display accent-amber-600" ${p.train_display ? 'checked' : ''}>
+                                <span class="font-medium text-gray-800">🎨 Trưng bày VM</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 p-2 bg-slate-50 border rounded-lg cursor-pointer hover:bg-slate-100">
+                                <input type="checkbox" class="chk-inventory accent-amber-600" ${p.train_inventory ? 'checked' : ''}>
+                                <span class="font-medium text-gray-800">📦 Kiểm kê kho</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <input type="text" class="prob-notes input-field text-xs" placeholder="Ghi chú đánh giá quá trình thử việc tại quầy..." value="${p.training_notes || ''}">
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Render HR Tickets Table
+        function renderHRTicketsTable(tickets) {
+            const tbody = document.getElementById('hr-tickets-table-body');
+            if (!tickets || tickets.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-gray-400">Không có ticket biến động nhân sự nào đang chờ giải quyết.</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = tickets.map(tk => {
+                let badgeClass = 'bg-gray-100 text-gray-800';
+                if (tk.status === 'Mới ghi nhận') badgeClass = 'bg-amber-100 text-amber-800';
+                if (tk.status === 'Đang xem xét') badgeClass = 'bg-orange-100 text-orange-900 border border-orange-300';
+                if (tk.status === 'Đang xử lý') badgeClass = 'bg-blue-100 text-blue-800';
+                if (tk.status === 'Hoàn tất') badgeClass = 'bg-emerald-100 text-emerald-800';
+
+                return `
+                    <tr class="border-b border-gray-100 text-xs">
+                        <td class="py-2.5 px-3 font-mono font-bold text-brand-red">${tk.ticket_code}</td>
+                        <td class="py-2.5 px-3 font-bold text-brand-navy">${tk.employee_name}</td>
+                        <td class="py-2.5 px-3 text-gray-600">${tk.position}</td>
+                        <td class="py-2.5 px-3 font-semibold text-gray-800">${tk.event_type}</td>
+                        <td class="py-2.5 px-3 text-gray-600">${tk.effective_date}</td>
+                        <td class="py-2.5 px-3 text-center">
+                            <span class="px-2.5 py-1 rounded-full text-[11px] font-extrabold ${badgeClass}">${tk.status}</span>
+                        </td>
+                        <td class="py-2.5 px-3 text-gray-600">${tk.store_progress_note || '—'}</td>
+                        <td class="py-2.5 px-3 text-gray-600">${tk.asm_hr_note || '—'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Save Store HR Button Click Handler
+        const btnSaveStoreHR = document.getElementById('btn-save-store-hr');
+        if (btnSaveStoreHR) {
+            btnSaveStoreHR.addEventListener('click', async () => {
+                const empRows = document.querySelectorAll('#store-employee-table-body .emp-row');
+                const employees = [];
+                empRows.forEach(tr => {
+                    const empCode = tr.dataset.code;
+                    const name = tr.querySelector('.emp-name').value ? tr.querySelector('.emp-name').value.trim() : '';
+                    if (!name) return;
+                    
+                    employees.push({
+                        employee_code: empCode,
+                        full_name: name,
+                        gender: tr.querySelector('.emp-gender').value,
+                        dob: tr.querySelector('.emp-dob').value,
+                        phone_number: tr.querySelector('.emp-phone').value,
+                        position: tr.querySelector('.emp-position').value,
+                        appointment_date: tr.querySelector('.emp-app-date').value,
+                        avatar_url: tr.dataset.avatar || (tr.querySelector('.img-avatar-preview') ? tr.querySelector('.img-avatar-preview').src : '')
+                    });
+                });
+                
+                const probCards = document.querySelectorAll('#probation-list-container .prob-card');
+                const probation_updates = [];
+                probCards.forEach(card => {
+                    probation_updates.push({
+                        employee_code: card.dataset.code,
+                        trainer_name: card.querySelector('.prob-trainer').value,
+                        probation_end_date: card.querySelector('.prob-end-date').value,
+                        train_op_rules: card.querySelector('.chk-op-rules').checked,
+                        train_work_process: card.querySelector('.chk-work-process').checked,
+                        train_products: card.querySelector('.chk-products').checked,
+                        train_display: card.querySelector('.chk-display').checked,
+                        train_inventory: card.querySelector('.chk-inventory').checked,
+                        training_notes: card.querySelector('.prob-notes').value,
+                        probation_result: card.querySelector('.prob-result').value
+                    });
+                });
+                
+                try {
+                    const res = await fetch('/api/save_store_hr', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            store_code: currentStore.code,
+                            pin: currentStore.pin,
+                            employees: employees,
+                            probation_updates: probation_updates
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.ok) {
+                        showToast("✅ Lưu Thành Công", "Đã cập nhật toàn bộ hồ sơ nhân sự & kết quả thử việc cửa hàng.", "✅");
+                        await loadStoreHRData();
+                    } else {
+                        showToast("❌ Thất Bại", data.error || "Không thể lưu hồ sơ nhân sự.", "❌");
+                    }
+                } catch (err) {
+                    showToast("❌ Lỗi Mạng", "Không thể gửi dữ liệu đến máy chủ.", "❌");
+                }
+            });
+        }
+
+        // Quick Report HR Analytics Handler
+        async function loadHRAnalytics() {
+            const dateVal = qrDateFilter ? qrDateFilter.value : '';
+            const asmVal = (currentStore && currentStore.role === 'asm') ? currentStore.asm : (qrAsmFilter ? qrAsmFilter.value : 'ALL');
+            
+            try {
+                const res = await fetch(`/api/get_hr_analytics?report_date=${dateVal}&asm=${encodeURIComponent(asmVal)}`);
+                const data = await res.json();
+                if (!data.ok) return;
+                
+                const s = data.summary || {};
+                document.getElementById('qr-hr-tot-target').innerText = s.total_target_headcount || 0;
+                document.getElementById('qr-hr-tot-actual').innerText = s.total_actual_headcount || 0;
+                
+                const diffEl = document.getElementById('qr-hr-net-diff');
+                const diffCard = document.getElementById('qr-hr-net-diff-card');
+                const net = s.net_surplus_deficit || 0;
+                if (net < 0) {
+                    diffCard.className = "bg-rose-50 border border-rose-200 rounded-xl p-4 text-center";
+                    diffEl.innerText = `THIẾU: ${Math.abs(net)}`;
+                } else if (net > 0) {
+                    diffCard.className = "bg-blue-50 border border-blue-200 rounded-xl p-4 text-center";
+                    diffEl.innerText = `THỪA: +${net}`;
+                } else {
+                    diffCard.className = "bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center";
+                    diffEl.innerText = "0 (ĐỦ)";
+                }
+                
+                document.getElementById('qr-hr-tot-probation').innerText = s.total_probationers || 0;
+                document.getElementById('qr-hr-under-review').innerText = s.under_review_count || 0;
+                
+                // Store Ranking Table
+                const tbodyStore = document.getElementById('qr-hr-store-table-body');
+                const rows = data.store_hr_rows || [];
+                if (rows.length === 0) {
+                    tbodyStore.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-400">Không có dữ liệu.</td></tr>';
+                } else {
+                    tbodyStore.innerHTML = rows.map(r => {
+                        let diffBadge = '<span class="text-emerald-700 font-bold">Đủ (0)</span>';
+                        if (r.surplus_deficit < 0) diffBadge = `<span class="px-2 py-0.5 rounded bg-rose-100 text-rose-800 font-bold">Thiếu ${Math.abs(r.surplus_deficit)}</span>`;
+                        if (r.surplus_deficit > 0) diffBadge = `<span class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-bold">+${r.surplus_deficit}</span>`;
+
+                        return `
+                            <tr class="border-b border-gray-100 text-xs">
+                                <td class="py-2 px-2 font-mono font-bold text-gray-900">${r.store_code}</td>
+                                <td class="py-2 px-2 text-gray-800 font-medium">${r.store_name}</td>
+                                <td class="py-2 px-2 text-gray-600">${r.cht_name || 'Chưa bổ nhiệm'}</td>
+                                <td class="py-2 px-2 font-bold text-gray-700">${r.target_headcount}</td>
+                                <td class="py-2 px-2 font-bold text-gray-900">${r.actual_headcount}</td>
+                                <td class="py-2 px-2 text-center">${diffBadge}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+                
+                // Active Tickets Hub
+                const tbodyTicket = document.getElementById('qr-hr-tickets-table-body');
+                const tickets = data.hr_tickets || [];
+                if (tickets.length === 0) {
+                    tbodyTicket.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-400">Hiện tại không có ticket sự vụ nào cần xử lý.</td></tr>';
+                } else {
+                    tbodyTicket.innerHTML = tickets.map(tk => `
+                        <tr class="border-b border-gray-100 text-xs">
+                            <td class="py-2 px-2 font-mono font-bold text-brand-red">${tk.ticket_code}</td>
+                            <td class="py-2 px-2 font-bold text-gray-800">${tk.store_code}</td>
+                            <td class="py-2 px-2 text-gray-700">${tk.employee_name} (${tk.event_type})</td>
+                            <td class="py-2 px-2 text-center">
+                                <select onchange="handleHRTicketStatusChange('${tk.ticket_code}', this.value)" class="input-field text-xs font-bold ${tk.status === 'Đang xem xét' ? 'text-orange-900 bg-orange-50' : 'text-brand-navy'}">
+                                    <option value="Mới ghi nhận" ${tk.status === 'Mới ghi nhận' ? 'selected' : ''}>🟡 Mới ghi nhận</option>
+                                    <option value="Đang xem xét" ${tk.status === 'Đang xem xét' ? 'selected' : ''}>🟠 Đang xem xét</option>
+                                    <option value="Đang xử lý" ${tk.status === 'Đang xử lý' ? 'selected' : ''}>🔵 Đang xử lý</option>
+                                    <option value="Hoàn tất" ${tk.status === 'Hoàn tất' ? 'selected' : ''}>🟢 Hoàn tất</option>
+                                </select>
+                            </td>
+                            <td class="py-2 px-2 text-center">
+                                <button onclick="handleHRTicketASMNote('${tk.ticket_code}')" class="btn-outline text-[11px] px-2 py-1">💬 Ghi Chú</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+                
+            } catch (err) {
+                console.error("Lỗi nạp HR Analytics:", err);
+            }
+        }
+
+        window.handleHRTicketStatusChange = async function(ticketCode, newStatus) {
+            try {
+                const res = await fetch('/api/update_hr_ticket', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ticket_code: ticketCode, status: newStatus })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    showToast("✅ Đã Cập Nhật", `Ticket ${ticketCode} đã chuyển sang trạng thái: ${newStatus}`, "✅");
+                    await loadHRAnalytics();
+                }
+            } catch (err) {
+                console.error("Lỗi cập nhật ticket HR:", err);
+            }
+        };
+
+        window.handleHRTicketASMNote = async function(ticketCode) {
+            const note = prompt("Nhập ghi chú phản hồi từ ASM / Phòng HR cho ticket " + ticketCode + ":");
+            if (note === null) return;
+            try {
+                const res = await fetch('/api/update_hr_ticket', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ticket_code: ticketCode, asm_hr_note: note })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    showToast("✅ Đã Lưu Ghi Chú", "Đã lưu phản hồi của ASM / HR.", "✅");
+                }
+            } catch (err) {
+                console.error("Lỗi lưu ghi chú ticket HR:", err);
+            }
+        };
 
         window.addEventListener('DOMContentLoaded', async () => {
             await loadASMs();
