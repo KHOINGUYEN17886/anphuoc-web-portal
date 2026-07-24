@@ -740,8 +740,11 @@
                     <button id="btn-status-change-pin" class="btn-outline text-xs px-3 py-2">
                         🔑 Đổi PIN
                     </button>
-                    <button id="btn-status-back" class="btn-outline text-xs px-4 py-2 font-bold">
-                        ⬅ Quay Lại
+                    <button id="btn-status-back" class="btn-outline text-xs px-3 py-2 font-semibold">
+                        ⬅ Quay Lại Nhập Liệu
+                    </button>
+                    <button id="btn-status-logout" class="btn-primary text-xs px-4 py-2 font-bold shadow-xs">
+                        🚪 Đăng Xuất
                     </button>
                 </div>
             </div>
@@ -1969,6 +1972,45 @@
         // Active session state
         let currentStore = null;
 
+        // ─── Single Page View Navigation & Browser History API ───────────
+        const quickReportSec = document.getElementById('quick-report-section');
+        
+        window.switchView = function(viewName, pushState = true) {
+            loginSec.classList.add('hidden');
+            formSec.classList.add('hidden');
+            statusSec.classList.add('hidden');
+            if (quickReportSec) quickReportSec.classList.add('hidden');
+
+            if (viewName === 'store') {
+                formSec.classList.remove('hidden');
+            } else if (viewName === 'asm' || viewName === 'admin') {
+                statusSec.classList.remove('hidden');
+            } else if (viewName === 'quick-report') {
+                if (quickReportSec) quickReportSec.classList.remove('hidden');
+            } else {
+                loginSec.classList.remove('hidden');
+            }
+
+            if (pushState) {
+                try {
+                    window.history.pushState({ view: viewName }, '', '#' + viewName);
+                } catch(e) {}
+            }
+        };
+
+        window.addEventListener('popstate', (event) => {
+            const viewState = (event.state && event.state.view) || (location.hash ? location.hash.replace('#', '') : 'login');
+            if ((viewState === 'asm' || viewState === 'admin') && currentStore && (currentStore.role === 'asm' || currentStore.role === 'admin')) {
+                switchView('asm', false);
+            } else if (viewState === 'store' && currentStore) {
+                switchView('store', false);
+            } else if (viewState === 'quick-report' && currentStore) {
+                switchView('quick-report', false);
+            } else {
+                switchView('login', false);
+            }
+        });
+
         // Init ASMs List
         async function loadASMs() {
             try {
@@ -2059,12 +2101,13 @@
                     localStorage.setItem('ap_pin', currentStore.pin);
                     localStorage.setItem('ap_role', currentStore.role);
                     
-                    loginSec.classList.add('hidden');
+                    // Always load stores list for store dropdowns in HR modals
+                    if (allStoresList.length === 0) loadAllStoresList();
                     
                     if (currentStore.role === 'asm' || currentStore.role === 'admin') {
                         lblActiveStore.innerText = currentStore.name;
                         lblStoreMeta.innerText = currentStore.role === 'admin' ? `Chức danh: Quản Trị Viên (Admin)` : `Chức danh: ASM quản lý cụm | Cụm phụ trách: ${currentStore.asm}`;
-                        statusSec.classList.remove('hidden');
+                        switchView('asm', true);
                         
                         const titleEl = document.getElementById('status-dashboard-title');
                         if (currentStore.role === 'admin') {
@@ -2094,7 +2137,7 @@
                     } else {
                         lblActiveStore.innerText = currentStore.name;
                         lblStoreMeta.innerText = `Mã: ${currentStore.code} | ASM quản lý: ${currentStore.asm}`;
-                        formSec.classList.remove('hidden');
+                        switchView('store', true);
                         await loadWeeklyReportData();
                     }
                 } else {
@@ -3372,7 +3415,7 @@
         });
 
         // ====================== QUICK REPORT ======================
-        const quickReportSec = document.getElementById('quick-report-section');
+        // quickReportSec already declared above
         const btnQrBack = document.getElementById('btn-qr-back');
         const btnQuickReport = document.getElementById('btn-quick-report');
         const btnQuickReportInline = document.getElementById('btn-quick-report-inline');
@@ -3614,42 +3657,41 @@
                 qrDateFilter.value = new Date().toISOString().split('T')[0];
             }
             if (qrSubtitle) qrSubtitle.textContent = `Xem báo cáo: ${currentStore?.store_name||'Tất cả cửa hàng'}`;
-            loginSec.classList.add('hidden');
-            formSec.classList.add('hidden');
-            statusSec.classList.add('hidden');
-            if (quickReportSec) quickReportSec.classList.remove('hidden');
+            switchView('quick-report', true);
             loadQuickReport();
         }
 
         if (btnQuickReport) btnQuickReport.addEventListener('click', openQuickReport);
         if (btnQuickReportInline) btnQuickReportInline.addEventListener('click', openQuickReport);
         if (btnQrBack) btnQrBack.addEventListener('click', () => {
-            if (quickReportSec) quickReportSec.classList.add('hidden');
-            if (currentStore && (currentStore.role==='asm'||currentStore.role==='admin')) statusSec.classList.remove('hidden');
-            else if (currentStore) formSec.classList.remove('hidden');
-            else loginSec.classList.remove('hidden');
+            if (currentStore && (currentStore.role==='asm'||currentStore.role==='admin')) switchView('asm', true);
+            else if (currentStore) switchView('store', true);
+            else switchView('login', true);
         });
         if (qrDateFilter) qrDateFilter.addEventListener('change', loadQuickReport);
         if (qrAsmFilter) qrAsmFilter.addEventListener('change', loadQuickReport);
         // ====================== END QUICK REPORT ======================
 
         btnStatusBack.addEventListener('click', () => {
-            statusSec.classList.add('hidden');
-            if (currentStore && (currentStore.role === 'asm' || currentStore.role === 'admin')) {
-                // ASM/Admin Logout
+            if (currentStore && currentStore.role === 'store') {
+                switchView('store', true);
+            } else {
+                switchView('login', true);
+            }
+        });
+
+        const btnStatusLogout = document.getElementById('btn-status-logout');
+        if (btnStatusLogout) {
+            btnStatusLogout.addEventListener('click', () => {
                 localStorage.removeItem('ap_asm');
                 localStorage.removeItem('ap_store_code');
                 localStorage.removeItem('ap_pin');
                 localStorage.removeItem('ap_role');
                 currentStore = null;
                 pinInput.value = '';
-                loginSec.classList.remove('hidden');
-            } else if (currentStore) {
-                formSec.classList.remove('hidden');
-            } else {
-                loginSec.classList.remove('hidden');
-            }
-        });
+                switchView('login', true);
+            });
+        }
 
         statusReportDate.addEventListener('change', loadSubmissionStatus);
         statusSupportReportDate.addEventListener('change', loadSupportRequests);
@@ -4350,7 +4392,8 @@
         }
 
         // Add Employee Modal Logic
-        window.openAddEmployeeModal = function() {
+        window.openAddEmployeeModal = async function() {
+            if (allStoresList.length === 0) await loadAllStoresList();
             document.getElementById('add-emp-code').value = 'NV' + Math.floor(100000 + Math.random() * 900000);
             document.getElementById('add-emp-name').value = '';
             document.getElementById('add-emp-gender').value = 'Nữ';
@@ -4530,10 +4573,19 @@
         }
 
         // New Ticket Modal Logic
-        window.openNewHRTicketModal = function() {
+        window.openNewHRTicketModal = async function() {
+            if (allStoresList.length === 0) await loadAllStoresList();
+            populateStoreDropdowns();
+            
             document.getElementById('new-tk-emp-name').value = '';
             document.getElementById('new-tk-reason').value = '';
             document.getElementById('new-tk-eff-date').value = new Date().toISOString().split('T')[0];
+            
+            const storeSel = document.getElementById('new-tk-store-select');
+            if (storeSel && currentStore && currentStore.code && !currentStore.code.startsWith('ASM_')) {
+                storeSel.value = currentStore.code;
+            }
+            
             document.getElementById('modal-new-hr-ticket').classList.remove('hidden');
         };
 
@@ -4555,6 +4607,12 @@
                     return;
                 }
                 
+                const selectedStoreCode = document.getElementById('new-tk-store-select')?.value || currentStore?.code;
+                if (!selectedStoreCode) {
+                    alert("⚠️ Vui lòng chọn cửa hàng phát sinh biến động!");
+                    return;
+                }
+                
                 const pos = document.getElementById('new-tk-emp-pos').value;
                 const evtType = document.getElementById('new-tk-event-type').value;
                 const effDate = document.getElementById('new-tk-eff-date').value;
@@ -4566,8 +4624,8 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            store_code: currentStore.code,
-                            pin: currentStore.pin,
+                            store_code: selectedStoreCode,
+                            pin: currentStore?.pin || '9999',
                             new_ticket: {
                                 employee_name: empName,
                                 position: pos,
@@ -4593,11 +4651,20 @@
         }
 
         // Add Support Staff Modal Logic
-        window.openAddSupportStaffModal = function() {
+        window.openAddSupportStaffModal = async function() {
+            if (allStoresList.length === 0) await loadAllStoresList();
+            populateStoreDropdowns();
+            
             document.getElementById('supp-emp-code').value = '';
             document.getElementById('supp-emp-name').value = '';
             document.getElementById('supp-start-date').value = new Date().toISOString().split('T')[0];
             document.getElementById('supp-end-date').value = '';
+            
+            const toStoreSel = document.getElementById('supp-to-store-select');
+            if (toStoreSel && currentStore && currentStore.code && !currentStore.code.startsWith('ASM_')) {
+                toStoreSel.value = currentStore.code;
+            }
+            
             document.getElementById('modal-add-support-staff').classList.remove('hidden');
         };
 
@@ -5121,6 +5188,7 @@
 
         window.addEventListener('DOMContentLoaded', async () => {
             await loadASMs();
+            loadAllStoresList();
             
             // Auto login if credentials exist in localStorage
             const savedAsm = localStorage.getItem('ap_asm');
