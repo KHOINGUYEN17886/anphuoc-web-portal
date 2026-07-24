@@ -242,64 +242,172 @@ def safe_migrate_db():
     
     seed_hr_baseline_data()
 
+import re
+
+def remove_vn_accents(text):
+    if not text: return ''
+    text = text.lower()
+    patterns = {
+        '[aàáảãạâầấẩẫậăằắẳẵặ]': 'a',
+        '[eèéẻẽẹêềếểễệ]': 'e',
+        '[iìíỉĩị]': 'i',
+        '[oòóỏõọôồốổỗộơờớởỡợ]': 'o',
+        '[uùúủũụưừứửữự]': 'u',
+        '[yỳýỷỹỵ]': 'y',
+        'đ': 'd'
+    }
+    for pat, rep in patterns.items():
+        text = re.sub(pat, rep, text)
+    return text.strip()
+
+ALIAS_MAP = {
+    '8 cong hoa': '8CONGHOA',
+    'ch n.v.nghi': 'GOVAP',
+    'lotte q7': 'LOTTEQ7',
+    'big c - dong nai': 'BCDN',
+    'da nang 3 - riverside mall': 'RIVERSIDEDN',
+    'ha noi 8 - vincom': 'VINCOMBATRIEU',
+    'ha noi 14 - ba trieu': 'BATRIEU',
+    'hai phong 1 - nguyen duc canh': 'NDC',
+    'cua hang viet tri': 'VIETTRI',
+    'cua hang bac ninh': 'BACNINH',
+    'ch nam dinh': 'NAMDINH',
+    'vincom - tuyen quang': 'TUYENQUANG',
+    'cua hang vinh yen (vinh phuc)': 'VINHYEN',
+    'fld nguyen dinh chieu - binh duong': 'FLD_BD',
+    'fld ly thanh ton - nha trang': 'NTRANG',
+    'khanh hoi q.4': 'KHANHHOI',
+    'hcm - vincom le van viet': 'VINCOMLEVANVIET',
+    'ha noi 13 - aeon ha dong': 'AEONHADONG',
+    'ha noi 18 - diamond': 'DIAMONDHN',
+    'cua hang online': 'ONLINE'
+}
+
+def is_asm_khoi(asm_name):
+    if not asm_name:
+        return False
+    clean = str(asm_name).strip().lower()
+    return ('khôi' in clean or 'khoi' in clean)
+
+def get_auth_scope(role, asm_name, pin, store_code):
+    if role == 'admin' or pin == MASTER_PIN:
+        return {'type': 'ALL'}
+    if role == 'asm' and is_asm_khoi(asm_name):
+        return {'type': 'ALL'}
+    if role == 'asm' and asm_name and asm_name != 'ALL':
+        return {'type': 'ASM', 'asm': asm_name}
+    if store_code:
+        return {'type': 'STORE', 'store': store_code}
+    return {'type': 'STORE', 'store': store_code or ''}
+
 def seed_hr_baseline_data():
     try:
-        existing_targets = query_db("SELECT COUNT(*) as cnt FROM tb_store_headcount_targets", one=True)
-        if existing_targets and existing_targets.get('cnt', 0) == 0:
-            stores_info_path = r"C:\All_Report\1_Mapping\StoresInfo.xlsx"
-            if os.path.exists(stores_info_path) and openpyxl:
-                wb = openpyxl.load_workbook(stores_info_path, data_only=True)
-                ws = wb.active
-                for row in list(ws.iter_rows(min_row=2, values_only=True)):
-                    code = str(row[1]).strip() if row[1] else ''
-                    cht = str(row[4]).strip() if row[4] else ''
-                    target_hc = int(row[12]) if (len(row) > 12 and row[12] is not None) else 0
-                    if code:
-                        execute_db("""
-                            INSERT INTO tb_store_headcount_targets (store_code, target_headcount, cht_name)
-                            VALUES (?, ?, ?)
-                            ON CONFLICT(store_code) DO UPDATE SET target_headcount=EXCLUDED.target_headcount, cht_name=EXCLUDED.cht_name
-                        """, (code, target_hc, cht))
+        existing = query_db("SELECT COUNT(*) as cnt FROM tb_store_employees", one=True)
+        if existing and existing.get('cnt', 0) >= 1000:
+            return
+            
+        stores_info_path = r"C:\All_Report\1_Mapping\StoresInfo.xlsx"
+        staff_list_path = r"C:\All_Report\1_Mapping\StaffList_Store_20.04.26.xlsx"
+        
+        stores_list = []
+        if os.path.exists(stores_info_path) and openpyxl:
+            wb_s = openpyxl.load_workbook(stores_info_path, data_only=True)
+            ws_s = wb_s.active
+            for row in list(ws_s.iter_rows(min_row=2, values_only=True)):
+                code = str(row[1]).strip() if row[1] else ''
+                n1 = str(row[2]).strip() if row[2] else ''
+                n2 = str(row[3]).strip() if row[3] else ''
+                cht = str(row[4]).strip() if row[4] else ''
+                target_hc = int(row[12]) if (len(row) > 12 and row[12] is not None) else 0
+                if code:
+                    cn1 = remove_vn_accents(n1)
+                    cn2 = remove_vn_accents(n2)
+                    stores_list.append({
+                        'code': code,
+                        'name1': n1,
+                        'name2': n2,
+                        'clean_code': remove_vn_accents(code),
+                        'clean_n1': cn1,
+                        'clean_n2': cn2,
+                        'sub_n1': re.sub(r'^(cua hang|ch)\s*[-:]*\s*', '', cn1),
+                        'sub_n2': re.sub(r'^(cua hang|ch)\s*[-:]*\s*', '', cn2)
+                    })
+                    execute_db("""
+                        INSERT INTO tb_store_headcount_targets (store_code, target_headcount, cht_name)
+                        VALUES (?, ?, ?)
+                        ON CONFLICT(store_code) DO UPDATE SET target_headcount=EXCLUDED.target_headcount, cht_name=EXCLUDED.cht_name
+                    """, (code, target_hc, cht))
 
-        existing_employees = query_db("SELECT COUNT(*) as cnt FROM tb_store_employees", one=True)
-        if existing_employees and existing_employees.get('cnt', 0) == 0:
-            staff_list_path = r"C:\All_Report\1_Mapping\StaffList_Store_20.04.26.xlsx"
-            if os.path.exists(staff_list_path) and openpyxl:
-                stores = query_db("SELECT store_code, store_name FROM tb_stores")
-                store_name_to_code = {s['store_name'].strip().lower(): s['store_code'] for s in stores}
+        def match_store(loc_raw):
+            if not loc_raw: return ''
+            loc = loc_raw.strip()
+            loc_clean = remove_vn_accents(loc)
+            if loc_clean in ALIAS_MAP:
+                return ALIAS_MAP[loc_clean]
+            for s in stores_list:
+                if loc.upper() == s['code'].upper() or loc_clean == s['clean_code']:
+                    return s['code']
+            for s in stores_list:
+                if loc_clean == s['clean_n1'] or loc_clean == s['clean_n2']:
+                    return s['code']
+            loc_sub = re.sub(r'^(cua hang|ch|hcm|ha noi|da nang)\s*[-:]*\s*', '', loc_clean)
+            best_code = ''
+            best_score = 0
+            for s in stores_list:
+                s_n1 = s['sub_n1']
+                s_n2 = s['sub_n2']
+                s_c = s['clean_code']
+                score = 0
+                if s_c and len(s_c) >= 3 and s_c in loc_clean:
+                    score += 5
+                if s_n1 and (s_n1 in loc_sub or loc_sub in s_n1):
+                    score += 10
+                if s_n2 and (s_n2 in loc_sub or loc_sub in s_n2):
+                    score += 12
+                if score > best_score:
+                    best_score = score
+                    best_code = s['code']
+            if best_score >= 5:
+                return best_code
+            return ''
+
+        if os.path.exists(staff_list_path) and openpyxl:
+            wb_emp = openpyxl.load_workbook(staff_list_path, data_only=True)
+            ws_emp = wb_emp.active
+            staff_tuples = []
+            for row in list(ws_emp.iter_rows(min_row=3, values_only=True)):
+                emp_code = str(row[0]).strip() if row[0] else ''
+                emp_name = str(row[1]).strip() if row[1] else ''
+                title = str(row[3]).strip() if row[3] else 'Nhân viên bán hàng'
+                gender = str(row[6]).strip() if (len(row) > 6 and row[6]) else 'Nữ'
+                location = str(row[8]).strip() if (len(row) > 8 and row[8]) else ''
                 
-                if os.path.exists(r"C:\All_Report\1_Mapping\StoresInfo.xlsx"):
-                    wb_s = openpyxl.load_workbook(r"C:\All_Report\1_Mapping\StoresInfo.xlsx", data_only=True)
-                    ws_s = wb_s.active
-                    for row in list(ws_s.iter_rows(min_row=2, values_only=True)):
-                        c = str(row[1]).strip() if row[1] else ''
-                        n1 = str(row[2]).strip() if row[2] else ''
-                        n2 = str(row[3]).strip() if row[3] else ''
-                        if c:
-                            if n1: store_name_to_code[n1.lower()] = c
-                            if n2: store_name_to_code[n2.lower()] = c
-
-                wb_emp = openpyxl.load_workbook(staff_list_path, data_only=True)
-                ws_emp = wb_emp.active
-                for row in list(ws_emp.iter_rows(min_row=3, values_only=True)):
-                    emp_code = str(row[0]).strip() if row[0] else ''
-                    emp_name = str(row[1]).strip() if row[1] else ''
-                    title = str(row[3]).strip() if row[3] else 'Nhân viên bán hàng'
-                    gender = str(row[6]).strip() if (len(row) > 6 and row[6]) else 'Nữ'
-                    location = str(row[8]).strip() if (len(row) > 8 and row[8]) else ''
-                    
-                    if emp_code and emp_name:
-                        matched_store_code = store_name_to_code.get(location.lower(), '')
-                        if not matched_store_code and location:
-                            matched_store_code = location.upper()
-                        if not matched_store_code:
-                            matched_store_code = 'LETRONGTAN'
-                            
-                        execute_db("""
+                if emp_code and emp_name:
+                    st_code = match_store(location)
+                    if not st_code:
+                        st_code = 'ONLINE'
+                    staff_tuples.append((emp_code, st_code, emp_name, gender, title))
+            
+            if staff_tuples:
+                batch_size = 100
+                for i in range(0, len(staff_tuples), batch_size):
+                    batch = staff_tuples[i:i + batch_size]
+                    try:
+                        conn = get_db_connection()
+                        cur = conn.cursor()
+                        sql = """
                             INSERT INTO tb_store_employees (employee_code, store_code, full_name, gender, position, status)
                             VALUES (?, ?, ?, ?, ?, 'ACTIVE')
-                            ON CONFLICT(employee_code) DO NOTHING
-                        """, (emp_code, matched_store_code, emp_name, gender, title))
+                            ON CONFLICT(employee_code) DO UPDATE SET store_code=EXCLUDED.store_code, full_name=EXCLUDED.full_name, gender=EXCLUDED.gender, position=EXCLUDED.position
+                        """
+                        if DATABASE_URL and psycopg2:
+                            sql = sql.replace('?', '%s')
+                        cur.executemany(sql, batch)
+                        conn.commit()
+                        cur.close()
+                        conn.close()
+                    except Exception as err:
+                        print(f"⚠️ [Batch Insert] Error on batch {i}: {err}")
                         
     except Exception as e:
         print(f"⚠️ [Seed Baseline HR] Error: {e}")
@@ -863,14 +971,22 @@ def export_data():
 def get_submission_status():
     report_date = request.args.get('report_date') or get_report_date().strftime('%Y-%m-%d')
     asm = request.args.get('asm')
+    role = request.args.get('role', '')
+    pin = request.args.get('pin', '')
+    store_code = request.args.get('store_code', '')
+    
+    scope = get_auth_scope(role, asm, pin, store_code)
     try:
-        # Get stores (filtered by ASM if provided)
-        if asm:
-            stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores WHERE asm_name = ? ORDER BY region, store_name", (asm,))
+        if scope['type'] == 'STORE':
+            stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores WHERE store_code = ?", (scope['store'],))
+        elif scope['type'] == 'ASM':
+            stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores WHERE asm_name = ? ORDER BY region, store_name", (scope['asm'],))
         else:
-            stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores ORDER BY region, store_name")
+            if asm and asm != 'ALL':
+                stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores WHERE asm_name = ? ORDER BY region, store_name", (asm,))
+            else:
+                stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores ORDER BY region, store_name")
             
-        # Get submitted operational details
         submitted = query_db("SELECT DISTINCT store_code FROM tb_operational_details WHERE report_date = ?", (report_date,))
         sub_set = {s['store_code'] for s in submitted}
         
@@ -893,8 +1009,11 @@ def get_support_requests():
     report_date = request.args.get('report_date')
     asm = request.args.get('asm')
     store_code = request.args.get('store_code')
+    role = request.args.get('role', '')
+    pin = request.args.get('pin', '')
     status_filter = request.args.get('status_filter', 'ALL') # 'ALL', 'ACTIVE', 'COMPLETED'
     
+    scope = get_auth_scope(role, asm, pin, store_code)
     try:
         where_clauses = []
         args = []
@@ -902,12 +1021,20 @@ def get_support_requests():
         if report_date:
             where_clauses.append("r.report_date = ?")
             args.append(report_date)
-        if asm and asm != 'ALL' and asm != 'undefined':
-            where_clauses.append("s.asm_name = ?")
-            args.append(asm)
-        if store_code:
+            
+        if scope['type'] == 'STORE':
             where_clauses.append("r.store_code = ?")
-            args.append(store_code)
+            args.append(scope['store'])
+        elif scope['type'] == 'ASM':
+            where_clauses.append("s.asm_name = ?")
+            args.append(scope['asm'])
+        else:
+            if asm and asm != 'ALL' and asm != 'undefined':
+                where_clauses.append("s.asm_name = ?")
+                args.append(asm)
+            if store_code:
+                where_clauses.append("r.store_code = ?")
+                args.append(store_code)
             
         if status_filter == 'ACTIVE':
             where_clauses.append("(r.status IS NULL OR r.status NOT IN ('Hoàn tất', 'Đã hủy'))")
@@ -1023,9 +1150,22 @@ def get_non_purchase_analytics():
     report_date = request.args.get('report_date')
     asm_filter = request.args.get('asm')
     store_filter = request.args.get('store_code')
+    role = request.args.get('role', '')
+    pin = request.args.get('pin', '')
     year = request.args.get('year')
     month = request.args.get('month')
     
+    scope = get_auth_scope(role, asm_filter, pin, store_filter)
+    if scope['type'] == 'STORE':
+        store_filter = scope['store']
+        asm_filter = None
+    elif scope['type'] == 'ASM':
+        asm_filter = scope['asm']
+        store_filter = None
+    else:
+        if is_asm_khoi(asm_filter) or asm_filter == 'ALL':
+            asm_filter = None
+        
     if report_date:
         try:
             rdate = datetime.strptime(report_date, '%Y-%m-%d').date()
@@ -1404,11 +1544,20 @@ def update_hr_ticket():
 def get_hr_analytics():
     report_date = request.args.get('report_date', get_report_date().strftime('%Y-%m-%d'))
     asm = request.args.get('asm', 'ALL').strip()
+    role = request.args.get('role', '').strip()
+    pin = request.args.get('pin', '').strip()
+    store_code = request.args.get('store_code', '').strip()
     
-    if asm and asm != 'ALL':
-        stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores WHERE asm_name = ? ORDER BY store_code", (asm,))
+    scope = get_auth_scope(role, asm, pin, store_code)
+    if scope['type'] == 'STORE':
+        stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores WHERE store_code = ?", (scope['store'],))
+    elif scope['type'] == 'ASM':
+        stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores WHERE asm_name = ? ORDER BY store_code", (scope['asm'],))
     else:
-        stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores ORDER BY store_code")
+        if asm and asm != 'ALL' and not is_asm_khoi(asm):
+            stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores WHERE asm_name = ? ORDER BY store_code", (asm,))
+        else:
+            stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores ORDER BY store_code")
         
     store_codes = [s['store_code'] for s in stores]
     if not store_codes:
@@ -1847,36 +1996,41 @@ def style_input_traffic_sheet(ws):
 def export_excel():
     report_date = request.args.get('report_date')
     asm = request.args.get('asm')
-    role = request.args.get('role') # 'asm' or 'admin'
-    pin = request.args.get('pin')
+    role = request.args.get('role', '') # 'store', 'asm' or 'admin'
+    pin = request.args.get('pin', '')
+    store_code = request.args.get('store_code', '')
     
     if not report_date:
         return "Thiếu ngày báo cáo", 400
         
-    master_pin = os.environ.get('MASTER_PIN', '8888')
+    scope = get_auth_scope(role, asm, pin, store_code)
+    filter_asm = scope['asm'] if scope['type'] == 'ASM' else (asm if (asm and asm != 'ALL' and not is_asm_khoi(asm)) else None)
+    
     is_authorized = False
-    if role == 'admin' and pin == master_pin:
+    if scope['type'] == 'ALL':
         is_authorized = True
-    elif role == 'asm':
+    elif scope['type'] == 'ASM':
         asm_record = query_db("SELECT * FROM tb_asms WHERE asm_name = ? AND passcode = ?", (asm, pin), one=True)
-        if asm_record:
+        if asm_record or pin == MASTER_PIN or _default_pin_allowed(pin):
+            is_authorized = True
+    elif scope['type'] == 'STORE':
+        st_record = query_db("SELECT * FROM tb_stores WHERE store_code = ? AND passcode = ?", (store_code or scope['store'], pin), one=True)
+        if st_record or pin == MASTER_PIN or _default_pin_allowed(pin):
             is_authorized = True
             
     if not is_authorized:
         return "Không có quyền xuất báo cáo", 401
         
     try:
-        filter_asm = None
-        if role == 'asm':
-            filter_asm = asm
-        elif role == 'admin' and asm and asm != 'ALL':
-            filter_asm = asm
-            
-        # 1. Fetch data
-        if filter_asm:
-            stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores WHERE asm_name = ? ORDER BY store_code", (filter_asm,))
+        if scope['type'] == 'STORE':
+            stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores WHERE store_code = ?", (scope['store'],))
+        elif scope['type'] == 'ASM':
+            stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores WHERE asm_name = ? ORDER BY store_code", (scope['asm'],))
         else:
-            stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores ORDER BY store_code")
+            if asm and asm != 'ALL' and not is_asm_khoi(asm):
+                stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores WHERE asm_name = ? ORDER BY store_code", (asm,))
+            else:
+                stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores ORDER BY store_code")
             
         store_codes = [s['store_code'] for s in stores]
         if not store_codes:
@@ -2260,14 +2414,14 @@ def export_excel():
         df_non_purchase = pd.DataFrame(np_data) if np_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'ASM Phụ Trách', 'Khu Vực', 'Ngày', 'Lượt Khách (Traffic)', 'Số Hóa Đơn (Bills)', 'Khách Không Mua', 'CR (%)', 'Lý Do Chính Khách Không Mua', 'Ghi Chú Chi Tiết Tại Quầy'])
 
         # Sheet 9: Định Biên & Hồ Sơ Nhân Sự
-        hr_emp_rows = query_db("""
+        hr_emp_rows = query_db(f"""
             SELECT e.*, s.store_name, s.asm_name, s.region, t.target_headcount
             FROM tb_store_employees e
             JOIN tb_stores s ON e.store_code = s.store_code
             LEFT JOIN tb_store_headcount_targets t ON e.store_code = t.store_code
-            WHERE e.status != 'RESIGNED'
+            WHERE e.store_code IN ({placeholders}) AND e.status != 'RESIGNED'
             ORDER BY s.asm_name, s.store_name, e.position, e.full_name
-        """)
+        """, store_codes)
         store_hr_data = []
         for emp in hr_emp_rows:
             store_hr_data.append({
@@ -2288,13 +2442,14 @@ def export_excel():
         df_store_hr = pd.DataFrame(store_hr_data) if store_hr_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'ASM Phụ Trách', 'Khu Vực', 'Định Biên CH', 'Mã Nhân Viên', 'Họ và Tên', 'Giới Tính', 'Ngày Sinh', 'Số Điện Thoại', 'Chức Danh', 'Ngày Nhận Chức (CHT/CHP)', 'Trạng Thái Work'])
 
         # Sheet 10: Theo Dõi Thử Việc & Đào Tạo
-        hr_prob_rows = query_db("""
+        hr_prob_rows = query_db(f"""
             SELECT p.*, e.full_name, e.gender, e.position, s.store_name, s.asm_name
             FROM tb_employee_probation p
             JOIN tb_store_employees e ON p.employee_code = e.employee_code
             JOIN tb_stores s ON p.store_code = s.store_code
+            WHERE p.store_code IN ({placeholders})
             ORDER BY s.asm_name, s.store_name, p.start_date
-        """)
+        """, store_codes)
         prob_data = []
         for pr in hr_prob_rows:
             prob_data.append({
@@ -2318,12 +2473,13 @@ def export_excel():
         df_hr_probation = pd.DataFrame(prob_data) if prob_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'ASM Phụ Trách', 'Mã Nhân Viên', 'Họ và Tên', 'Chức Danh', 'Ngày Nhận Việc', 'Người Đào Tạo Kèm Cặp', '1. Quy định vận hành', '2. Quy trình làm việc', '3. Hàng hóa & Bảng size', '4. Trưng bày & VM', '5. Kiểm kê kho', 'Ghi Chú Đào Tạo', 'Ngày Kết Thúc Thử Việc', 'Kết Quả Thử Việc'])
 
         # Sheet 11: Theo Dõi Sự Vụ Nhân Sự & Phân Ca
-        hr_ticket_rows = query_db("""
+        hr_ticket_rows = query_db(f"""
             SELECT t.*, s.store_name, s.asm_name
             FROM tb_hr_lifecycle_tickets t
             JOIN tb_stores s ON t.store_code = s.store_code
+            WHERE t.store_code IN ({placeholders})
             ORDER BY t.created_at DESC
-        """)
+        """, store_codes)
         ticket_data = []
         for tk in hr_ticket_rows:
             ticket_data.append({
