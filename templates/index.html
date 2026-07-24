@@ -1731,7 +1731,7 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                <div class="col-span-full">
+                <div id="div-add-emp-store-select" class="col-span-full hidden">
                     <label class="block text-[11px] font-bold text-brand-navy uppercase mb-1">🏪 Chọn Cửa Hàng Tiếp Nhận Nhân Viên (*)</label>
                     <select id="add-emp-store-select" class="input-field font-bold text-brand-navy">
                         <option value="">-- Chọn cửa hàng --</option>
@@ -1765,14 +1765,20 @@
                 </div>
                 <div>
                     <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Lý Do Thêm Nhân Sự</label>
-                    <select id="add-emp-reason" class="input-field" onchange="toggleAddEmpReasonOther(this.value)">
-                        <option value="Nhân viên mới">Nhân viên mới</option>
-                        <option value="Nhân viên chuyển từ cửa hàng khác sang">Nhân viên chuyển từ cửa hàng khác sang</option>
-                        <option value="Nhận chức">Nhận chức (CHT/CHP)</option>
-                        <option value="Khác">Khác (Free text)</option>
+                    <select id="add-emp-reason" class="input-field font-bold" onchange="toggleAddEmpReasonOther(this.value)">
+                        <option value="Nhân viên mới">✨ Nhân viên mới hoàn toàn</option>
+                        <option value="Nhân viên chuyển từ cửa hàng khác sang">🔄 Nhân viên chuyển từ cửa hàng khác sang</option>
+                        <option value="Nhận chức">🎓 Nhận chức (CHT/CHP)</option>
+                        <option value="Khác">📝 Khác (Free text)</option>
                     </select>
                 </div>
-                <div id="div-add-emp-reason-other" class="hidden">
+                <div id="div-add-emp-from-store" class="hidden col-span-full">
+                    <label class="block text-[11px] font-bold text-blue-900 uppercase mb-1">🏪 Cửa Hàng Cũ (Cửa Hàng Chuyển Đi) (*)</label>
+                    <select id="add-emp-from-store-select" class="input-field font-bold text-brand-navy">
+                        <option value="">-- Chọn cửa hàng cũ chuyển đi --</option>
+                    </select>
+                </div>
+                <div id="div-add-emp-reason-other" class="hidden col-span-full">
                     <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Nhập Lý Do Khác</label>
                     <input type="text" id="add-emp-reason-other" class="input-field" placeholder="Điền lý do cụ thể...">
                 </div>
@@ -1811,7 +1817,7 @@
             </div>
 
             <div class="space-y-3 text-xs">
-                <div>
+                <div id="div-new-tk-store-select" class="hidden">
                     <label class="block text-[11px] font-bold text-brand-navy uppercase mb-1">🏪 Chọn Cửa Hàng Phát Sinh Biến Động (*)</label>
                     <select id="new-tk-store-select" class="input-field font-bold text-brand-navy">
                         <option value="">-- Chọn cửa hàng --</option>
@@ -1886,7 +1892,7 @@
             </div>
 
             <div class="space-y-3 text-xs">
-                <div>
+                <div id="div-supp-to-store" class="hidden">
                     <label class="block text-[11px] font-bold text-blue-900 uppercase mb-1">🏪 Đến Hỗ Trợ Tại Cửa Hàng Tiếp Nhận (*)</label>
                     <select id="supp-to-store-select" class="input-field font-bold text-brand-navy">
                         <option value="">-- Chọn cửa hàng tiếp nhận --</option>
@@ -2059,15 +2065,22 @@
         };
 
         window.addEventListener('popstate', (event) => {
-            const viewState = (event.state && event.state.view) || (location.hash ? location.hash.replace('#', '') : 'login');
-            if ((viewState === 'asm' || viewState === 'admin') && currentStore && (currentStore.role === 'asm' || currentStore.role === 'admin')) {
+            const hash = location.hash ? location.hash.replace('#', '') : '';
+            const viewState = (event.state && event.state.view) || hash;
+
+            if (viewState === 'quick-report') {
+                switchView('quick-report', false);
+            } else if ((viewState === 'asm' || viewState === 'admin') && currentStore && (currentStore.role === 'asm' || currentStore.role === 'admin')) {
                 switchView('asm', false);
             } else if (viewState === 'store' && currentStore) {
                 switchView('store', false);
-            } else if (viewState === 'quick-report' && currentStore) {
-                switchView('quick-report', false);
             } else {
-                switchView('login', false);
+                if (currentStore) {
+                    if (currentStore.role === 'asm' || currentStore.role === 'admin') switchView('asm', false);
+                    else switchView('store', false);
+                } else {
+                    switchView('login', false);
+                }
             }
         });
 
@@ -3754,11 +3767,17 @@
 
         if (btnQuickReport) btnQuickReport.addEventListener('click', openQuickReport);
         if (btnQuickReportInline) btnQuickReportInline.addEventListener('click', openQuickReport);
-        if (btnQrBack) btnQrBack.addEventListener('click', () => {
-            if (currentStore && (currentStore.role==='asm'||currentStore.role==='admin')) switchView('asm', true);
-            else if (currentStore) switchView('store', true);
-            else switchView('login', true);
-        });
+        window.handleQrBack = function() {
+            if (window.history.length > 1 && location.hash === '#quick-report') {
+                window.history.back();
+            } else {
+                if (currentStore && (currentStore.role==='asm'||currentStore.role==='admin')) switchView('asm', false);
+                else if (currentStore) switchView('store', false);
+                else switchView('login', false);
+            }
+        };
+
+        if (btnQrBack) btnQrBack.addEventListener('click', window.handleQrBack);
         if (qrDateFilter) qrDateFilter.addEventListener('change', loadQuickReport);
         if (qrAsmFilter) qrAsmFilter.addEventListener('change', loadQuickReport);
         // ====================== END QUICK REPORT ======================
@@ -4087,14 +4106,16 @@
             const delTargetSelect = document.getElementById('del-emp-target-store');
             const suppFromSelect = document.getElementById('supp-from-store');
             const addEmpStoreSel = document.getElementById('add-emp-store-select');
+            const addEmpFromStoreSel = document.getElementById('add-emp-from-store-select');
             const newTkStoreSel = document.getElementById('new-tk-store-select');
             const suppToStoreSel = document.getElementById('supp-to-store-select');
             
             const storeOptionsHtml = allStoresList.map(s => `<option value="${s.store_code}">${s.store_name} (${s.store_code} - ${s.asm_name})</option>`).join('');
 
             if (delTargetSelect) delTargetSelect.innerHTML = '<option value="">-- Chọn cửa hàng tiếp nhận --</option>' + storeOptionsHtml;
-            if (suppFromSelect) suppFromSelect.innerHTML = '<option value="">-- Lựa chọn cửa hàng điều nhân sự sang --</option>' + storeOptionsHtml;
+            if (suppFromSelect) suppFromSelect.innerHTML = '<option value="">-- Lựa chọn cửa hàng cử nhân sự sang hỗ trợ --</option>' + storeOptionsHtml;
             if (addEmpStoreSel) addEmpStoreSel.innerHTML = '<option value="">-- Chọn cửa hàng tiếp nhận nhân viên --</option>' + storeOptionsHtml;
+            if (addEmpFromStoreSel) addEmpFromStoreSel.innerHTML = '<option value="">-- Chọn cửa hàng cũ chuyển đi --</option>' + storeOptionsHtml;
             if (newTkStoreSel) newTkStoreSel.innerHTML = '<option value="">-- Chọn cửa hàng phát sinh biến động --</option>' + storeOptionsHtml;
             if (suppToStoreSel) suppToStoreSel.innerHTML = '<option value="">-- Chọn cửa hàng tiếp nhận hỗ trợ --</option>' + storeOptionsHtml;
         }
@@ -4488,13 +4509,29 @@
         // Add Employee Modal Logic
         window.openAddEmployeeModal = async function() {
             if (allStoresList.length === 0) await loadAllStoresList();
+            populateStoreDropdowns();
+
+            const addEmpStoreSel = document.getElementById('add-emp-store-select');
+            const divStoreSelect = document.getElementById('div-add-emp-store-select');
+            
+            if (currentStore && currentStore.role === 'store') {
+                if (addEmpStoreSel) addEmpStoreSel.value = currentStore.code;
+                if (divStoreSelect) divStoreSelect.classList.add('hidden');
+            } else {
+                if (divStoreSelect) divStoreSelect.classList.remove('hidden');
+                if (addEmpStoreSel && currentStore && currentStore.code) {
+                    addEmpStoreSel.value = currentStore.code;
+                }
+            }
+
             document.getElementById('add-emp-code').value = 'NV' + Math.floor(100000 + Math.random() * 900000);
             document.getElementById('add-emp-name').value = '';
             document.getElementById('add-emp-gender').value = 'Nữ';
             document.getElementById('add-emp-position').value = 'Nhân viên bán hàng';
             document.getElementById('add-emp-reason').value = 'Nhân viên mới';
-            document.getElementById('div-add-emp-reason-other').classList.add('hidden');
-            document.getElementById('add-emp-reason-other').value = '';
+            
+            toggleAddEmpReasonOther('Nhân viên mới');
+            
             document.getElementById('add-emp-start-date').value = new Date().toISOString().split('T')[0];
             document.getElementById('add-emp-avatar-preview').src = 'https://ui-avatars.com/api/?name=NV+Moi&background=1B2A4A&color=fff';
             
@@ -4512,10 +4549,15 @@
 
         window.toggleAddEmpReasonOther = function(val) {
             const divOther = document.getElementById('div-add-emp-reason-other');
-            if (val === 'Khác') {
-                divOther.classList.remove('hidden');
-            } else {
-                divOther.classList.add('hidden');
+            const divFromStore = document.getElementById('div-add-emp-from-store');
+            
+            if (divOther) {
+                if (val === 'Khác') divOther.classList.remove('hidden');
+                else divOther.classList.add('hidden');
+            }
+            if (divFromStore) {
+                if (val === 'Nhân viên chuyển từ cửa hàng khác sang') divFromStore.classList.remove('hidden');
+                else divFromStore.classList.add('hidden');
             }
         };
 
@@ -4671,14 +4713,22 @@
             if (allStoresList.length === 0) await loadAllStoresList();
             populateStoreDropdowns();
             
+            const storeSel = document.getElementById('new-tk-store-select');
+            const divStoreSel = document.getElementById('div-new-tk-store-select');
+            
+            if (currentStore && currentStore.role === 'store') {
+                if (storeSel) storeSel.value = currentStore.code;
+                if (divStoreSel) divStoreSel.classList.add('hidden');
+            } else {
+                if (divStoreSel) divStoreSel.classList.remove('hidden');
+                if (storeSel && currentStore && currentStore.code) {
+                    storeSel.value = currentStore.code;
+                }
+            }
+            
             document.getElementById('new-tk-emp-name').value = '';
             document.getElementById('new-tk-reason').value = '';
             document.getElementById('new-tk-eff-date').value = new Date().toISOString().split('T')[0];
-            
-            const storeSel = document.getElementById('new-tk-store-select');
-            if (storeSel && currentStore && currentStore.code && !currentStore.code.startsWith('ASM_')) {
-                storeSel.value = currentStore.code;
-            }
             
             document.getElementById('modal-new-hr-ticket').classList.remove('hidden');
         };
@@ -4749,15 +4799,23 @@
             if (allStoresList.length === 0) await loadAllStoresList();
             populateStoreDropdowns();
             
+            const toStoreSel = document.getElementById('supp-to-store-select');
+            const divToStore = document.getElementById('div-supp-to-store');
+            
+            if (currentStore && currentStore.role === 'store') {
+                if (toStoreSel) toStoreSel.value = currentStore.code;
+                if (divToStore) divToStore.classList.add('hidden');
+            } else {
+                if (divToStore) divToStore.classList.remove('hidden');
+                if (toStoreSel && currentStore && currentStore.code) {
+                    toStoreSel.value = currentStore.code;
+                }
+            }
+
             document.getElementById('supp-emp-code').value = '';
             document.getElementById('supp-emp-name').value = '';
             document.getElementById('supp-start-date').value = new Date().toISOString().split('T')[0];
             document.getElementById('supp-end-date').value = '';
-            
-            const toStoreSel = document.getElementById('supp-to-store-select');
-            if (toStoreSel && currentStore && currentStore.code && !currentStore.code.startsWith('ASM_')) {
-                toStoreSel.value = currentStore.code;
-            }
             
             document.getElementById('modal-add-support-staff').classList.remove('hidden');
         };
