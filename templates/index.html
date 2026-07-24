@@ -1325,8 +1325,28 @@
             <!-- Tab 6: Quản Lý Nhân Sự — ASM HR Command Dashboard -->
             <div id="qr-tab-nhan-su" class="qr-tab-content bg-gray-50 rounded-b-xl border border-t-0 border-gray-200">
 
-                <!-- ── Section A: KPI Row ── -->
+                <!-- ── Section A: KPI Row & Quick Actions ── -->
                 <div class="p-5 space-y-5">
+                <div class="bg-gradient-to-r from-brand-navy to-slate-800 text-white rounded-xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-md border border-slate-700">
+                    <div>
+                        <h4 class="font-extrabold text-sm flex items-center gap-2">
+                            ⚡ Thao Tác Trực Tiếp Nhân Sự Cửa Hàng
+                        </h4>
+                        <p class="text-xs text-slate-300">Thêm nhân viên mới, điều động nhân sự hỗ trợ, hoặc khai báo sự vụ trực tiếp mà không cần xuất output.</p>
+                    </div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button onclick="openAddEmployeeModal()" class="btn-gold text-xs px-3 py-2 flex items-center gap-1 font-bold shadow-sm cursor-pointer hover:shadow-md transition-all">
+                            ➕ Thêm Nhân Viên Mới
+                        </button>
+                        <button onclick="openAddSupportStaffModal()" class="btn-primary text-xs px-3 py-2 flex items-center gap-1 font-bold shadow-sm cursor-pointer hover:shadow-md transition-all">
+                            🤝 Thêm Nhân Sự Hỗ Trợ
+                        </button>
+                        <button onclick="openNewHRTicketModal()" class="btn-outline text-xs px-3 py-2 border-white text-white hover:bg-white/10 font-bold cursor-pointer transition-all">
+                            📝 Khai Báo Biến Động Mới
+                        </button>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                     <div class="bg-white border border-blue-200 rounded-xl p-3.5 text-center shadow-sm hover:shadow-md transition-shadow">
                         <div class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">🏢 Cửa Hàng</div>
@@ -1650,6 +1670,12 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                <div class="col-span-full">
+                    <label class="block text-[11px] font-bold text-brand-navy uppercase mb-1">🏪 Chọn Cửa Hàng Tiếp Nhận Nhân Viên (*)</label>
+                    <select id="add-emp-store-select" class="input-field font-bold text-brand-navy">
+                        <option value="">-- Chọn cửa hàng --</option>
+                    </select>
+                </div>
                 <div>
                     <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Mã Số Nhân Viên</label>
                     <input type="text" id="add-emp-code" class="input-field font-mono font-bold" placeholder="NVxxxxxx">
@@ -1725,6 +1751,12 @@
 
             <div class="space-y-3 text-xs">
                 <div>
+                    <label class="block text-[11px] font-bold text-brand-navy uppercase mb-1">🏪 Chọn Cửa Hàng Phát Sinh Biến Động (*)</label>
+                    <select id="new-tk-store-select" class="input-field font-bold text-brand-navy">
+                        <option value="">-- Chọn cửa hàng --</option>
+                    </select>
+                </div>
+                <div>
                     <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Tên Nhân Sự (*)</label>
                     <input type="text" id="new-tk-emp-name" class="input-field font-bold text-brand-navy" placeholder="Họ và tên nhân sự biến động">
                 </div>
@@ -1793,6 +1825,12 @@
             </div>
 
             <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-[11px] font-bold text-blue-900 uppercase mb-1">🏪 Đến Hỗ Trợ Tại Cửa Hàng Tiếp Nhận (*)</label>
+                    <select id="supp-to-store-select" class="input-field font-bold text-brand-navy">
+                        <option value="">-- Chọn cửa hàng tiếp nhận --</option>
+                    </select>
+                </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Mã NV Hỗ Trợ</label>
@@ -1804,7 +1842,7 @@
                     </div>
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-blue-900 uppercase mb-1">🏪 Đến Hỗ Trợ Từ Cửa Hàng (*)</label>
+                    <label class="block text-[11px] font-bold text-blue-900 uppercase mb-1">🏪 Đi Từ Cửa Hàng Nào (*)</label>
                     <select id="supp-from-store" class="input-field font-bold text-brand-navy">
                         <option value="">-- Lựa chọn cửa hàng điều nhân sự sang --</option>
                     </select>
@@ -3912,20 +3950,17 @@
         function populateStoreDropdowns() {
             const delTargetSelect = document.getElementById('del-emp-target-store');
             const suppFromSelect = document.getElementById('supp-from-store');
+            const addEmpStoreSel = document.getElementById('add-emp-store-select');
+            const newTkStoreSel = document.getElementById('new-tk-store-select');
+            const suppToStoreSel = document.getElementById('supp-to-store-select');
             
-            if (delTargetSelect) {
-                delTargetSelect.innerHTML = '<option value="">-- Chọn cửa hàng tiếp nhận --</option>';
-                allStoresList.forEach(s => {
-                    delTargetSelect.innerHTML += `<option value="${s.store_code}">${s.store_name} (${s.store_code} - ${s.asm_name})</option>`;
-                });
-            }
-            
-            if (suppFromSelect) {
-                suppFromSelect.innerHTML = '<option value="">-- Lựa chọn cửa hàng điều nhân sự sang --</option>';
-                allStoresList.forEach(s => {
-                    suppFromSelect.innerHTML += `<option value="${s.store_code}">${s.store_name} (${s.store_code} - ${s.asm_name})</option>`;
-                });
-            }
+            const storeOptionsHtml = allStoresList.map(s => `<option value="${s.store_code}">${s.store_name} (${s.store_code} - ${s.asm_name})</option>`).join('');
+
+            if (delTargetSelect) delTargetSelect.innerHTML = '<option value="">-- Chọn cửa hàng tiếp nhận --</option>' + storeOptionsHtml;
+            if (suppFromSelect) suppFromSelect.innerHTML = '<option value="">-- Lựa chọn cửa hàng điều nhân sự sang --</option>' + storeOptionsHtml;
+            if (addEmpStoreSel) addEmpStoreSel.innerHTML = '<option value="">-- Chọn cửa hàng tiếp nhận nhân viên --</option>' + storeOptionsHtml;
+            if (newTkStoreSel) newTkStoreSel.innerHTML = '<option value="">-- Chọn cửa hàng phát sinh biến động --</option>' + storeOptionsHtml;
+            if (suppToStoreSel) suppToStoreSel.innerHTML = '<option value="">-- Chọn cửa hàng tiếp nhận hỗ trợ --</option>' + storeOptionsHtml;
         }
 
         function calculateTenure(dateStr) {
