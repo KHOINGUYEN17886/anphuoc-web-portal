@@ -606,7 +606,7 @@
                             <span class="text-lg">👔</span>
                             <h4 class="font-bold text-brand-navy uppercase text-sm">Danh sách nhân sự hiện tại tại cửa hàng</h4>
                         </div>
-                        <button id="btn-add-employee" class="btn-gold text-xs px-3 py-1.5 flex items-center gap-1">
+                        <button id="btn-add-employee" onclick="openAddEmployeeModal()" class="btn-gold text-xs px-3 py-1.5 flex items-center gap-1 cursor-pointer hover:shadow-md transition-all">
                             ➕ Thêm Nhân Viên Mới
                         </button>
                     </div>
@@ -643,7 +643,7 @@
                             </h4>
                             <p class="text-xs text-blue-700/80">Ghi nhận nhân sự điều động ngắn hạn từ các cửa hàng khác sang hỗ trợ thiếu người, event hoặc đào tạo.</p>
                         </div>
-                        <button id="btn-open-add-support-staff-modal" class="btn-primary text-xs px-3 py-1.5 flex items-center gap-1">
+                        <button id="btn-open-add-support-staff-modal" onclick="openAddSupportStaffModal()" class="btn-primary text-xs px-3 py-1.5 flex items-center gap-1 cursor-pointer hover:shadow-md transition-all">
                             ➕ Thêm Nhân Sự Hỗ Trợ
                         </button>
                     </div>
@@ -692,7 +692,7 @@
                             </h4>
                             <p class="text-xs text-gray-500">Theo dõi trạng thái giải quyết ticket sự vụ (Nghỉ việc, Tuyển mới, Nghỉ phép) liên tục qua các tuần.</p>
                         </div>
-                        <button id="btn-open-new-hr-ticket-modal" class="btn-outline text-xs px-3 py-1.5 border-brand-red text-brand-red hover:bg-brand-red/5">
+                        <button id="btn-open-new-hr-ticket-modal" onclick="openNewHRTicketModal()" class="btn-outline text-xs px-3 py-1.5 border-brand-red text-brand-red hover:bg-brand-red/5 cursor-pointer">
                             ➕ Khai Báo Biến Động Mới
                         </button>
                     </div>
@@ -4107,12 +4107,139 @@
                         <td class="py-2.5 px-3 font-bold text-brand-navy">${s.employee_name}</td>
                         <td class="py-2.5 px-3 font-semibold text-blue-900">${storeDisp}</td>
                         <td class="py-2.5 px-3 text-gray-700">${s.reason}</td>
-                        <td class="py-2.5 px-3 text-gray-600">${s.start_date || '—'} $\rightarrow$ ${s.end_date || 'Đang hỗ trợ'}</td>
+                        <td class="py-2.5 px-3 text-gray-600">${s.start_date || '—'} → ${s.end_date || 'Đang hỗ trợ'}</td>
                         <td class="py-2.5 px-3 text-center">
                             <button type="button" onclick="removeSupportStaffRow(this)" class="text-rose-500 hover:text-rose-700 font-bold text-xs px-2 py-1">
                                 &times; Xóa
                             </button>
                         </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Render Probationers List
+        function renderProbationersList(probationers) {
+            const container = document.getElementById('probation-list-container');
+            if (!container) return;
+            if (!probationers || probationers.length === 0) {
+                container.innerHTML = '<div class="text-center py-4 text-xs text-gray-400">Không có nhân sự nào đang thử việc.</div>';
+                return;
+            }
+
+            container.innerHTML = probationers.map(p => {
+                const code = p.employee_code || '';
+                const name = p.full_name || p.employee_name || '';
+                const pos = p.position || 'Nhân viên thử việc';
+                const startDate = p.appointment_date || p.created_at || '';
+                const avatar = p.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'NV')}&background=1B2A4A&color=fff`;
+                const result = p.probation_result || 'Đang thử việc';
+                const trainer = p.trainer_name || 'CHT/CHP';
+                const endDate = p.probation_end_date || '';
+                const notes = p.training_notes || '';
+
+                return `
+                    <div class="prob-card bg-white border border-amber-200 rounded-xl p-4 space-y-3 shadow-xs" data-code="${code}">
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-2">
+                            <div class="flex items-center gap-3">
+                                <img src="${avatar}" class="w-10 h-10 rounded-full object-cover border border-amber-300">
+                                <div>
+                                    <h5 class="font-extrabold text-brand-navy text-sm">${name} <span class="font-mono text-xs font-semibold text-gray-400">(${code})</span></h5>
+                                    <div class="text-xs text-gray-500">Vị trí: <span class="font-bold text-gray-700">${pos}</span> | Ngày nhận việc: <span class="font-semibold text-amber-900">${startDate}</span></div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label class="text-xs font-bold text-gray-500">Kết Quả Thử Việc:</label>
+                                <select class="prob-result input-field text-xs font-bold text-brand-navy">
+                                    <option value="Đang thử việc" ${result === 'Đang thử việc' ? 'selected' : ''}>⏳ Đang thử việc</option>
+                                    <option value="Nhận" ${result === 'Nhận' ? 'selected' : ''}>🟢 "Nhận" (Ký HĐ chính thức)</option>
+                                    <option value="Không đạt - Chuyển trả PTC" ${result === 'Không đạt - Chuyển trả PTC' ? 'selected' : ''}>🔴 "Không đạt - Chuyển trả PTC"</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                            <div>
+                                <label class="block font-bold text-gray-600 mb-1">Nhân sự kèm cặp / Đào tạo tại quầy:</label>
+                                <input type="text" class="prob-trainer input-field text-xs" placeholder="Họ tên CHT / CHP hoặc NV đàn anh" value="${trainer}">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-gray-600 mb-1">Ngày kết thúc thử việc dự kiến:</label>
+                                <input type="date" class="prob-end-date input-field text-xs" value="${endDate}">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block font-bold text-gray-600 mb-1.5 text-xs">Checklist Nội Dung Đào Tạo Bắt Buộc Tại Cửa Hàng:</label>
+                            <div class="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+                                <label class="flex items-center gap-1.5 p-2 bg-slate-50 border rounded-lg cursor-pointer hover:bg-slate-100">
+                                    <input type="checkbox" class="chk-op-rules accent-amber-600" ${p.train_op_rules ? 'checked' : ''}>
+                                    <span class="font-medium text-gray-800">📋 Quy định vận hành</span>
+                                </label>
+                                <label class="flex items-center gap-1.5 p-2 bg-slate-50 border rounded-lg cursor-pointer hover:bg-slate-100">
+                                    <input type="checkbox" class="chk-work-process accent-amber-600" ${p.train_work_process ? 'checked' : ''}>
+                                    <span class="font-medium text-gray-800">⚙️ Quy trình CH</span>
+                                </label>
+                                <label class="flex items-center gap-1.5 p-2 bg-slate-50 border rounded-lg cursor-pointer hover:bg-slate-100">
+                                    <input type="checkbox" class="chk-products accent-amber-600" ${p.train_products ? 'checked' : ''}>
+                                    <span class="font-medium text-gray-800">👔 Hàng hóa & Size</span>
+                                </label>
+                                <label class="flex items-center gap-1.5 p-2 bg-slate-50 border rounded-lg cursor-pointer hover:bg-slate-100">
+                                    <input type="checkbox" class="chk-display accent-amber-600" ${p.train_display ? 'checked' : ''}>
+                                    <span class="font-medium text-gray-800">🎨 Trưng bày VM</span>
+                                </label>
+                                <label class="flex items-center gap-1.5 p-2 bg-slate-50 border rounded-lg cursor-pointer hover:bg-slate-100">
+                                    <input type="checkbox" class="chk-inventory accent-amber-600" ${p.train_inventory ? 'checked' : ''}>
+                                    <span class="font-medium text-gray-800">📦 Kiểm kê kho</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div>
+                            <input type="text" class="prob-notes input-field text-xs" placeholder="Ghi chú đánh giá quá trình thử việc tại quầy..." value="${notes}">
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Render HR Tickets Table
+        function renderHRTicketsTable(tickets) {
+            const tbody = document.getElementById('hr-tickets-table-body');
+            if (!tbody) return;
+            if (!tickets || tickets.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-gray-400">Chưa có ticket sự vụ nhân sự nào.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = tickets.map(t => {
+                let statusBadge = '<span class="status-badge badge-blue">📌 Mới tạo</span>';
+                if (t.status === 'APPROVED' || t.status === 'Chấp nhận' || t.status === 'Hoàn tất') {
+                    statusBadge = '<span class="status-badge badge-emerald">✅ Hoàn tất</span>';
+                } else if (t.status === 'REJECTED' || t.status === 'Từ chối') {
+                    statusBadge = '<span class="status-badge badge-rose">❌ Từ chối</span>';
+                } else if (t.status === 'PROCESSING' || t.status === 'Đang xử lý') {
+                    statusBadge = '<span class="status-badge badge-amber">⏳ Đang xử lý</span>';
+                }
+
+                let evtBadge = '<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-800 text-[11px] font-bold">' + (t.event_type || 'Sự vụ') + '</span>';
+                if (t.event_type === 'Nghỉ việc' || t.event_type === 'Thôi việc') {
+                    evtBadge = '<span class="px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[11px] font-bold">🔴 Nghỉ việc</span>';
+                } else if (t.event_type === 'Tuyển mới' || t.event_type === 'Bổ sung') {
+                    evtBadge = '<span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold">🟢 Tuyển mới</span>';
+                } else if (t.event_type === 'Điều chuyển') {
+                    evtBadge = '<span class="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[11px] font-bold">🔄 Điều chuyển</span>';
+                }
+
+                return `
+                    <tr class="border-b border-gray-100 hover:bg-slate-50 transition-all text-xs">
+                        <td class="py-2.5 px-3 font-mono font-bold text-gray-900">${t.ticket_code || ('TK-' + t.id)}</td>
+                        <td class="py-2.5 px-3 font-bold text-brand-navy">${t.employee_name} ${t.employee_code ? '<span class="text-gray-400 font-mono">(' + t.employee_code + ')</span>' : ''}</td>
+                        <td class="py-2.5 px-3 text-gray-700 font-medium">${t.position || '-'}</td>
+                        <td class="py-2.5 px-3">${evtBadge}</td>
+                        <td class="py-2.5 px-3 font-semibold text-gray-800">${t.effective_date || '-'}</td>
+                        <td class="py-2.5 px-3 text-center">${statusBadge}</td>
+                        <td class="py-2.5 px-3 text-gray-600">${t.handover_status || t.reason_note || '-'}</td>
+                        <td class="py-2.5 px-3 text-brand-navy italic">${t.asm_note || t.hr_note || '—'}</td>
                     </tr>
                 `;
             }).join('');
@@ -4188,21 +4315,23 @@
         }
 
         // Add Employee Modal Logic
+        window.openAddEmployeeModal = function() {
+            document.getElementById('add-emp-code').value = 'NV' + Math.floor(100000 + Math.random() * 900000);
+            document.getElementById('add-emp-name').value = '';
+            document.getElementById('add-emp-gender').value = 'Nữ';
+            document.getElementById('add-emp-position').value = 'Nhân viên bán hàng';
+            document.getElementById('add-emp-reason').value = 'Nhân viên mới';
+            document.getElementById('div-add-emp-reason-other').classList.add('hidden');
+            document.getElementById('add-emp-reason-other').value = '';
+            document.getElementById('add-emp-start-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('add-emp-avatar-preview').src = 'https://ui-avatars.com/api/?name=NV+Moi&background=1B2A4A&color=fff';
+            
+            document.getElementById('modal-add-employee').classList.remove('hidden');
+        };
+
         const btnAddEmployee = document.getElementById('btn-add-employee');
         if (btnAddEmployee) {
-            btnAddEmployee.addEventListener('click', () => {
-                document.getElementById('add-emp-code').value = 'NV' + Math.floor(100000 + Math.random() * 900000);
-                document.getElementById('add-emp-name').value = '';
-                document.getElementById('add-emp-gender').value = 'Nữ';
-                document.getElementById('add-emp-position').value = 'Nhân viên bán hàng';
-                document.getElementById('add-emp-reason').value = 'Nhân viên mới';
-                document.getElementById('div-add-emp-reason-other').classList.add('hidden');
-                document.getElementById('add-emp-reason-other').value = '';
-                document.getElementById('add-emp-start-date').value = new Date().toISOString().split('T')[0];
-                document.getElementById('add-emp-avatar-preview').src = 'https://ui-avatars.com/api/?name=NV+Moi&background=1B2A4A&color=fff';
-                
-                document.getElementById('modal-add-employee').classList.remove('hidden');
-            });
+            btnAddEmployee.addEventListener('click', window.openAddEmployeeModal);
         }
 
         window.closeAddEmployeeModal = function() {
@@ -4366,14 +4495,16 @@
         }
 
         // New Ticket Modal Logic
+        window.openNewHRTicketModal = function() {
+            document.getElementById('new-tk-emp-name').value = '';
+            document.getElementById('new-tk-reason').value = '';
+            document.getElementById('new-tk-eff-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('modal-new-hr-ticket').classList.remove('hidden');
+        };
+
         const btnOpenNewHRTicketModal = document.getElementById('btn-open-new-hr-ticket-modal');
         if (btnOpenNewHRTicketModal) {
-            btnOpenNewHRTicketModal.addEventListener('click', () => {
-                document.getElementById('new-tk-emp-name').value = '';
-                document.getElementById('new-tk-reason').value = '';
-                document.getElementById('new-tk-eff-date').value = new Date().toISOString().split('T')[0];
-                document.getElementById('modal-new-hr-ticket').classList.remove('hidden');
-            });
+            btnOpenNewHRTicketModal.addEventListener('click', window.openNewHRTicketModal);
         }
 
         window.closeNewHRTicketModal = function() {
@@ -4427,15 +4558,17 @@
         }
 
         // Add Support Staff Modal Logic
+        window.openAddSupportStaffModal = function() {
+            document.getElementById('supp-emp-code').value = '';
+            document.getElementById('supp-emp-name').value = '';
+            document.getElementById('supp-start-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('supp-end-date').value = '';
+            document.getElementById('modal-add-support-staff').classList.remove('hidden');
+        };
+
         const btnOpenAddSupportStaffModal = document.getElementById('btn-open-add-support-staff-modal');
         if (btnOpenAddSupportStaffModal) {
-            btnOpenAddSupportStaffModal.addEventListener('click', () => {
-                document.getElementById('supp-emp-code').value = '';
-                document.getElementById('supp-emp-name').value = '';
-                document.getElementById('supp-start-date').value = new Date().toISOString().split('T')[0];
-                document.getElementById('supp-end-date').value = '';
-                document.getElementById('modal-add-support-staff').classList.remove('hidden');
-            });
+            btnOpenAddSupportStaffModal.addEventListener('click', window.openAddSupportStaffModal);
         }
 
         window.closeAddSupportStaffModal = function() {
@@ -4593,6 +4726,11 @@
         }
 
         // ─── HR Analytics Chart instances (reuse to avoid memory leak) ──────────
+        let hrHeadcountChart = null;
+        let hrPositionChart = null;
+        let _hrAllStoreRows = [];
+        let _hrAllEmployees = [];
+
         async function loadHRAnalytics() {
             const dateVal = qrDateFilter ? qrDateFilter.value : '';
             const isKhoi = isASMKhôi();
