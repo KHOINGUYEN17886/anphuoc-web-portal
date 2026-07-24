@@ -60,6 +60,8 @@ CREATE TABLE IF NOT EXISTS tb_asms (
 """)
 
 # Note: tb_traffic is now DAILY. report_date is renamed/treated as traffic_date.
+# data_source: 'store_actual' (cửa hàng tự nhập, mặc định) vs 'synthetic_backfill'
+# (nhồi tự động cho khoảng trống lịch sử — xem tools/qlkd_operational/backfill_traffic_synthetic.py).
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS tb_traffic (
     store_code TEXT NOT NULL,
@@ -68,6 +70,7 @@ CREATE TABLE IF NOT EXISTS tb_traffic (
     bills_val INTEGER DEFAULT 0,
     company_online_bills INTEGER DEFAULT 0,
     store_online_bills INTEGER DEFAULT 0,
+    data_source TEXT DEFAULT 'store_actual',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (store_code, traffic_date),
     FOREIGN KEY (store_code) REFERENCES tb_stores(store_code)
@@ -75,20 +78,35 @@ CREATE TABLE IF NOT EXISTS tb_traffic (
 """)
 
 # Alter table to add new columns to tb_traffic if they don't exist
+# LƯU Ý (Postgres): mỗi ALTER phải commit() ngay khi thành công — nếu để chung
+# 1 transaction, một ALTER lỗi sau đó (cột đã tồn tại) sẽ rollback() xoá luôn
+# các ALTER thành công TRƯỚC ĐÓ nhưng chưa commit (bug đã phát hiện 2026-07-22:
+# cột data_source bị mất dấu vết dù log in "Added column..." vì ALTER
+# contract_number ngay sau đó fail rồi rollback cả transaction).
 try:
     cursor.execute("ALTER TABLE tb_traffic ADD COLUMN company_online_bills INTEGER DEFAULT 0")
+    conn.commit()
     print("Added column company_online_bills to tb_traffic")
 except Exception as e:
     conn.rollback()
 
 try:
     cursor.execute("ALTER TABLE tb_traffic ADD COLUMN store_online_bills INTEGER DEFAULT 0")
+    conn.commit()
     print("Added column store_online_bills to tb_traffic")
 except Exception as e:
     conn.rollback()
 
 try:
+    cursor.execute("ALTER TABLE tb_traffic ADD COLUMN data_source TEXT DEFAULT 'store_actual'")
+    conn.commit()
+    print("Added column data_source to tb_traffic")
+except Exception as e:
+    conn.rollback()
+
+try:
     cursor.execute("ALTER TABLE tb_contracts ADD COLUMN contract_number TEXT DEFAULT 'Đang GD'")
+    conn.commit()
     print("Added column contract_number to tb_contracts")
 except Exception as e:
     conn.rollback()

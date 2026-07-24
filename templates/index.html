@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -1321,83 +1322,210 @@
                 </div>
             </div>
 
-            <!-- Tab 6: Quản Lý Nhân Sự (ASM & Leadership) -->
-            <div id="qr-tab-nhan-su" class="qr-tab-content bg-white rounded-b-xl p-5 border border-t-0 border-gray-200 space-y-6">
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
-                        <div class="text-[11px] font-bold text-blue-700 uppercase">Tổng Định Biên</div>
-                        <div id="qr-hr-tot-target" class="text-2xl font-black text-blue-900 mt-1">0</div>
+            <!-- Tab 6: Quản Lý Nhân Sự — ASM HR Command Dashboard -->
+            <div id="qr-tab-nhan-su" class="qr-tab-content bg-gray-50 rounded-b-xl border border-t-0 border-gray-200">
+
+                <!-- ── Section A: KPI Row ── -->
+                <div class="p-5 space-y-5">
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <div class="bg-white border border-blue-200 rounded-xl p-3.5 text-center shadow-sm hover:shadow-md transition-shadow">
+                        <div class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">🏢 Cửa Hàng</div>
+                        <div id="qr-hr-tot-stores" class="text-2xl font-black text-blue-900 mt-1">—</div>
                     </div>
-                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center">
-                        <div class="text-[11px] font-bold text-slate-700 uppercase">Thực Tế Nhân Sự</div>
-                        <div id="qr-hr-tot-actual" class="text-2xl font-black text-slate-900 mt-1">0</div>
+                    <div class="bg-white border border-slate-200 rounded-xl p-3.5 text-center shadow-sm hover:shadow-md transition-shadow">
+                        <div class="text-[10px] font-bold text-slate-600 uppercase tracking-wider">📋 Định Biên</div>
+                        <div id="qr-hr-tot-target" class="text-2xl font-black text-slate-900 mt-1">—</div>
                     </div>
-                    <div id="qr-hr-net-diff-card" class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
-                        <div class="text-[11px] font-bold text-emerald-700 uppercase">Chênh Lệch Thừa/Thiếu</div>
-                        <div id="qr-hr-net-diff" class="text-2xl font-black text-emerald-900 mt-1">0</div>
+                    <div class="bg-white border border-indigo-200 rounded-xl p-3.5 text-center shadow-sm hover:shadow-md transition-shadow">
+                        <div class="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">👥 Thực Tế</div>
+                        <div id="qr-hr-tot-actual" class="text-2xl font-black text-indigo-900 mt-1">—</div>
                     </div>
-                    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
-                        <div class="text-[11px] font-bold text-amber-700 uppercase">Đang Thử Việc</div>
-                        <div id="qr-hr-tot-probation" class="text-2xl font-black text-amber-900 mt-1">0</div>
+                    <div id="qr-hr-net-diff-card" class="bg-white border border-emerald-200 rounded-xl p-3.5 text-center shadow-sm hover:shadow-md transition-shadow">
+                        <div class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider" id="qr-hr-diff-label">⚖️ Thừa/Thiếu</div>
+                        <div id="qr-hr-net-diff" class="text-2xl font-black text-emerald-900 mt-1">—</div>
                     </div>
-                    <div class="bg-rose-50 border border-rose-200 rounded-xl p-4 text-center">
-                        <div class="text-[11px] font-bold text-rose-700 uppercase">Đang Xem Xét / Xử Lý</div>
-                        <div id="qr-hr-under-review" class="text-2xl font-black text-rose-900 mt-1">0</div>
+                    <div class="bg-white border border-amber-200 rounded-xl p-3.5 text-center shadow-sm hover:shadow-md transition-shadow">
+                        <div class="text-[10px] font-bold text-amber-600 uppercase tracking-wider">🕐 Thử Việc</div>
+                        <div id="qr-hr-tot-probation" class="text-2xl font-black text-amber-900 mt-1">—</div>
+                    </div>
+                    <div class="bg-white border border-rose-200 rounded-xl p-3.5 text-center shadow-sm hover:shadow-md transition-shadow">
+                        <div class="text-[10px] font-bold text-rose-600 uppercase tracking-wider">🔔 Sự Vụ Mở</div>
+                        <div id="qr-hr-under-review" class="text-2xl font-black text-rose-900 mt-1">—</div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Surplus / Deficit Store Table -->
-                    <div class="card rounded-xl p-4 border border-gray-200 space-y-3">
-                        <div class="font-extrabold text-sm text-brand-navy flex items-center justify-between">
-                            <span>📉 Xếp Hạng Định Biên Nhân Sự Theo Cửa Hàng</span>
-                            <span class="text-xs font-normal text-gray-500">Ưu tiên xếp CH thiếu NV nhiều nhất</span>
+                <!-- ── Section B: Charts Row ── -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <!-- Chart 1: Headcount Bar (2 cols) -->
+                    <div class="lg:col-span-2 bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="font-extrabold text-sm text-brand-navy">📊 Định Biên vs Thực Tế (Top 12 CH Thiếu Nhất)</div>
+                            <div class="text-[10px] text-gray-400">Sắp xếp theo mức độ thiếu hụt ▼</div>
                         </div>
-                        <div class="overflow-x-auto max-h-[350px]">
-                            <table class="tbl w-full rounded-xl overflow-hidden text-xs">
-                                <thead>
-                                    <tr>
-                                        <th>Mã CH</th>
-                                        <th>Tên CH</th>
-                                        <th>CHT Huyện/Tp</th>
-                                        <th>Định Biên</th>
-                                        <th>Thực Tế</th>
-                                        <th class="text-center">Chênh Lệch</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="qr-hr-store-table-body" class="divide-y divide-gray-100">
-                                    <tr><td colspan="6" class="text-center py-4 text-gray-400">Đang tải dữ liệu...</td></tr>
-                                </tbody>
-                            </table>
+                        <div class="relative" style="height:220px">
+                            <canvas id="chart-headcount"></canvas>
                         </div>
                     </div>
-
-                    <!-- Active HR Lifecycle Ticket Hub -->
-                    <div class="card rounded-xl p-4 border border-gray-200 space-y-3">
-                        <div class="font-extrabold text-sm text-brand-navy flex items-center justify-between">
-                            <span>🔔 Hub Quản Lý & Giải Quyết Ticket Sự Vụ Nhân Sự</span>
-                            <span class="text-xs font-normal text-gray-500">Xem xét & xử lý liên tục qua các tuần</span>
+                    <!-- Chart 2: Position Donut (1 col) -->
+                    <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                        <div class="font-extrabold text-sm text-brand-navy mb-3">🎯 Phân Bổ Vị Trí</div>
+                        <div class="relative" style="height:180px">
+                            <canvas id="chart-position"></canvas>
                         </div>
-                        <div class="overflow-x-auto max-h-[350px]">
-                            <table class="tbl w-full rounded-xl overflow-hidden text-xs">
-                                <thead>
-                                    <tr>
-                                        <th>Ticket</th>
-                                        <th>Cửa Hàng</th>
-                                        <th>Nhân Sự / Sự Vụ</th>
-                                        <th class="text-center">Trạng Thái</th>
-                                        <th class="text-center">Thao Tác</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="qr-hr-tickets-table-body" class="divide-y divide-gray-100">
-                                    <tr><td colspan="5" class="text-center py-4 text-gray-400">Đang tải ticket sự vụ...</td></tr>
-                                </tbody>
-                            </table>
+                        <div id="chart-position-legend" class="mt-2 space-y-1"></div>
+                    </div>
+                </div>
+
+                <!-- ── Section C: Tenure Bar ── -->
+                <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="font-extrabold text-sm text-brand-navy">⏳ Phân Tích Thâm Niên Nhân Sự</div>
+                        <div class="text-[10px] text-gray-400">Phân phối theo nhóm thâm niên làm việc</div>
+                    </div>
+                    <div class="grid grid-cols-5 gap-2">
+                        <div class="text-center">
+                            <div class="text-[10px] font-bold text-gray-500 mb-1">Dưới 6 tháng</div>
+                            <div class="bg-rose-100 rounded-lg p-2">
+                                <div id="tenure-lt6m" class="text-xl font-black text-rose-700">—</div>
+                                <div id="tenure-lt6m-pct" class="text-[10px] text-rose-500">0%</div>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-[10px] font-bold text-gray-500 mb-1">6 - 12 tháng</div>
+                            <div class="bg-amber-100 rounded-lg p-2">
+                                <div id="tenure-6m1y" class="text-xl font-black text-amber-700">—</div>
+                                <div id="tenure-6m1y-pct" class="text-[10px] text-amber-500">0%</div>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-[10px] font-bold text-gray-500 mb-1">1 - 2 năm</div>
+                            <div class="bg-blue-100 rounded-lg p-2">
+                                <div id="tenure-1y2y" class="text-xl font-black text-blue-700">—</div>
+                                <div id="tenure-1y2y-pct" class="text-[10px] text-blue-500">0%</div>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-[10px] font-bold text-gray-500 mb-1">2 - 3 năm</div>
+                            <div class="bg-indigo-100 rounded-lg p-2">
+                                <div id="tenure-2y3y" class="text-xl font-black text-indigo-700">—</div>
+                                <div id="tenure-2y3y-pct" class="text-[10px] text-indigo-500">0%</div>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-[10px] font-bold text-gray-500 mb-1">Trên 3 năm</div>
+                            <div class="bg-emerald-100 rounded-lg p-2">
+                                <div id="tenure-gt3y" class="text-xl font-black text-emerald-700">—</div>
+                                <div id="tenure-gt3y-pct" class="text-[10px] text-emerald-500">0%</div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+
+                <!-- ── Section D: Store Ranking Table ── -->
+                <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 border-b border-gray-100 gap-2">
+                        <div class="font-extrabold text-sm text-brand-navy">📉 Xếp Hạng Định Biên Nhân Sự Theo Cửa Hàng</div>
+                        <div class="flex items-center gap-2">
+                            <input id="hr-store-search" type="text" placeholder="🔍 Tìm cửa hàng..." class="input-field w-44 text-xs py-1.5">
+                            <select id="hr-store-filter-diff" class="input-field w-32 text-xs py-1.5">
+                                <option value="all">Tất cả</option>
+                                <option value="deficit">⬇️ Đang Thiếu</option>
+                                <option value="surplus">⬆️ Đang Thừa</option>
+                                <option value="exact">✅ Đủ Định Biên</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto max-h-[380px]">
+                        <table class="tbl w-full text-xs">
+                            <thead>
+                                <tr>
+                                    <th class="w-8">#</th>
+                                    <th>Mã CH</th>
+                                    <th>Tên Cửa Hàng</th>
+                                    <th>CHT</th>
+                                    <th class="text-center">Định Biên</th>
+                                    <th class="text-center">Thực Tế</th>
+                                    <th class="text-center">Chênh Lệch</th>
+                                    <th class="text-center">Thử Việc</th>
+                                    <th class="text-center">Sự Vụ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="qr-hr-store-table-body" class="divide-y divide-gray-100">
+                                <tr><td colspan="9" class="text-center py-6 text-gray-400">Đang tải dữ liệu...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ── Section E: Employee Roster ── -->
+                <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 border-b border-gray-100 gap-2">
+                        <div class="font-extrabold text-sm text-brand-navy">👤 Danh Sách Nhân Sự Chi Tiết</div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <input id="hr-emp-search" type="text" placeholder="🔍 Tìm tên / mã NV..." class="input-field w-44 text-xs py-1.5">
+                            <select id="hr-emp-filter-store" class="input-field w-36 text-xs py-1.5">
+                                <option value="">Tất cả cửa hàng</option>
+                            </select>
+                            <select id="hr-emp-filter-pos" class="input-field w-36 text-xs py-1.5">
+                                <option value="">Tất cả vị trí</option>
+                                <option value="Cửa hàng trưởng">CHT</option>
+                                <option value="Cửa hàng phó">CHP</option>
+                                <option value="Nhân viên bán hàng">NV Bán Hàng</option>
+                                <option value="Nhân viên thử việc">Thử Việc</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto max-h-[400px]">
+                        <table class="tbl w-full text-xs">
+                            <thead>
+                                <tr>
+                                    <th>Mã NV</th>
+                                    <th>Họ & Tên</th>
+                                    <th>Giới Tính</th>
+                                    <th>Vị Trí</th>
+                                    <th>Cửa Hàng</th>
+                                    <th>Ngày Vào Làm</th>
+                                    <th>Thâm Niên</th>
+                                </tr>
+                            </thead>
+                            <tbody id="qr-hr-emp-table-body" class="divide-y divide-gray-100">
+                                <tr><td colspan="7" class="text-center py-6 text-gray-400">Đang tải danh sách nhân sự...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="p-3 text-[11px] text-gray-400 border-t border-gray-100" id="hr-emp-count-label"></div>
+                </div>
+
+                <!-- ── Section F: HR Ticket Hub ── -->
+                <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                    <div class="flex items-center justify-between p-4 border-b border-gray-100">
+                        <div class="font-extrabold text-sm text-brand-navy">🔔 Hub Sự Vụ Nhân Sự — Đang Xử Lý</div>
+                        <span class="text-[10px] text-gray-400">Xem xét & phản hồi liên tục</span>
+                    </div>
+                    <div class="overflow-x-auto max-h-[350px]">
+                        <table class="tbl w-full text-xs">
+                            <thead>
+                                <tr>
+                                    <th>Ticket</th>
+                                    <th>Cửa Hàng</th>
+                                    <th>Nhân Sự</th>
+                                    <th>Loại Sự Vụ</th>
+                                    <th class="text-center">Trạng Thái</th>
+                                    <th>Ghi Chú ASM</th>
+                                    <th class="text-center">Thao Tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="qr-hr-tickets-table-body" class="divide-y divide-gray-100">
+                                <tr><td colspan="7" class="text-center py-6 text-gray-400">Đang tải ticket sự vụ...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                </div><!-- /p-5 -->
+            </div><!-- /qr-tab-nhan-su -->
         </div>
+
     <!-- MODAL CẬP NHẬT TICKET SỰ VỤ (Support Ticket Lifecycle Update Modal) -->
     <div id="modal-ticket-update" class="hidden fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
         <div class="card w-full max-w-lg p-6 space-y-4 shadow-2xl rounded-2xl relative bg-white">
@@ -2926,14 +3054,6 @@
             }
         });
 
-        // Excel Export listener
-        btnExportExcel.addEventListener('click', () => {
-            const dateVal = statusReportDate.value;
-            if (!dateVal) {
-                showToast("⚠️ Cảnh báo", "Vui lòng chọn ngày báo cáo cần xuất.", "⚠️");
-                return;
-            }
-            
         function isASMKhôi() {
             if (!currentStore) return false;
             const asmName = currentStore.asm || currentStore.asm_name || '';
@@ -2941,8 +3061,9 @@
             return clean.includes('khôi') || clean.includes('khoi');
         }
 
+        // Excel Export listener
         btnExportExcel.addEventListener('click', () => {
-            const dateVal = qrDateFilter ? qrDateFilter.value : '';
+            const dateVal = qrDateFilter ? qrDateFilter.value : (statusReportDate ? statusReportDate.value : '');
             if (!dateVal) {
                 showToast("⚠️ Cảnh báo", "Vui lòng chọn ngày báo cáo cần xuất.", "⚠️");
                 return;
@@ -4471,7 +4592,7 @@
             });
         }
 
-        // Quick Report HR Analytics Handler
+        // ─── HR Analytics Chart instances (reuse to avoid memory leak) ──────────
         async function loadHRAnalytics() {
             const dateVal = qrDateFilter ? qrDateFilter.value : '';
             const isKhoi = isASMKhôi();
@@ -4479,86 +4600,315 @@
             const pin = currentStore ? currentStore.pin : '';
             const storeCode = (role === 'store' && currentStore) ? currentStore.code : '';
             const asmVal = (role === 'asm' && !isKhoi) ? currentStore.asm : (qrAsmFilter ? qrAsmFilter.value : 'ALL');
-            
+
+            // Show loading state
+            document.getElementById('qr-hr-tot-stores').innerText = '…';
+            document.getElementById('qr-hr-tot-target').innerText = '…';
+            document.getElementById('qr-hr-tot-actual').innerText = '…';
+            document.getElementById('qr-hr-net-diff').innerText = '…';
+            document.getElementById('qr-hr-tot-probation').innerText = '…';
+            document.getElementById('qr-hr-under-review').innerText = '…';
+
             try {
                 const res = await fetch(`/api/get_hr_analytics?report_date=${dateVal}&asm=${encodeURIComponent(asmVal)}&store_code=${encodeURIComponent(storeCode)}&role=${role}&pin=${encodeURIComponent(pin)}`);
                 const data = await res.json();
                 if (!data.ok) return;
-                
+
                 const s = data.summary || {};
+                const storeRows = data.store_hr_rows || [];
+                const chartStores = data.chart_stores || storeRows.slice(0, 12);
+                const tickets = data.hr_tickets || [];
+                const posDist = data.position_distribution || {};
+                const tenure = data.tenure_buckets || {};
+                const employees = data.employees || [];
+
+                _hrAllStoreRows = storeRows;
+                _hrAllEmployees = employees;
+
+                // ── A: KPI Cards ──────────────────────────────────
+                document.getElementById('qr-hr-tot-stores').innerText = s.total_stores || 0;
                 document.getElementById('qr-hr-tot-target').innerText = s.total_target_headcount || 0;
                 document.getElementById('qr-hr-tot-actual').innerText = s.total_actual_headcount || 0;
-                
+                document.getElementById('qr-hr-tot-probation').innerText = s.total_probationers || 0;
+                document.getElementById('qr-hr-under-review').innerText = s.active_tickets_count || 0;
+
+                const net = s.net_surplus_deficit || 0;
                 const diffEl = document.getElementById('qr-hr-net-diff');
                 const diffCard = document.getElementById('qr-hr-net-diff-card');
-                const net = s.net_surplus_deficit || 0;
+                const diffLabel = document.getElementById('qr-hr-diff-label');
                 if (net < 0) {
-                    diffCard.className = "bg-rose-50 border border-rose-200 rounded-xl p-4 text-center";
-                    diffEl.innerText = `THIẾU: ${Math.abs(net)}`;
+                    diffCard.className = 'bg-white border border-rose-300 rounded-xl p-3.5 text-center shadow-sm hover:shadow-md transition-shadow';
+                    diffLabel.className = 'text-[10px] font-bold text-rose-600 uppercase tracking-wider';
+                    diffLabel.innerText = '⚠️ Đang Thiếu';
+                    diffEl.className = 'text-2xl font-black text-rose-700 mt-1';
+                    diffEl.innerText = `THIẾU ${Math.abs(net)}`;
                 } else if (net > 0) {
-                    diffCard.className = "bg-blue-50 border border-blue-200 rounded-xl p-4 text-center";
-                    diffEl.innerText = `THỪA: +${net}`;
+                    diffCard.className = 'bg-white border border-blue-300 rounded-xl p-3.5 text-center shadow-sm hover:shadow-md transition-shadow';
+                    diffLabel.className = 'text-[10px] font-bold text-blue-600 uppercase tracking-wider';
+                    diffLabel.innerText = '⬆️ Đang Thừa';
+                    diffEl.className = 'text-2xl font-black text-blue-700 mt-1';
+                    diffEl.innerText = `+${net}`;
                 } else {
-                    diffCard.className = "bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center";
-                    diffEl.innerText = "0 (ĐỦ)";
+                    diffCard.className = 'bg-white border border-emerald-200 rounded-xl p-3.5 text-center shadow-sm hover:shadow-md transition-shadow';
+                    diffLabel.className = 'text-[10px] font-bold text-emerald-600 uppercase tracking-wider';
+                    diffLabel.innerText = '✅ Đủ Định Biên';
+                    diffEl.className = 'text-2xl font-black text-emerald-700 mt-1';
+                    diffEl.innerText = '0 (Đủ)';
                 }
-                
-                document.getElementById('qr-hr-tot-probation').innerText = s.total_probationers || 0;
-                document.getElementById('qr-hr-under-review').innerText = s.under_review_count || 0;
-                
-                // Store Ranking Table
-                const tbodyStore = document.getElementById('qr-hr-store-table-body');
-                const rows = data.store_hr_rows || [];
-                if (rows.length === 0) {
-                    tbodyStore.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-400">Không có dữ liệu.</td></tr>';
-                } else {
-                    tbodyStore.innerHTML = rows.map(r => {
-                        let diffBadge = '<span class="text-emerald-700 font-bold">Đủ (0)</span>';
-                        if (r.surplus_deficit < 0) diffBadge = `<span class="px-2 py-0.5 rounded bg-rose-100 text-rose-800 font-bold">Thiếu ${Math.abs(r.surplus_deficit)}</span>`;
-                        if (r.surplus_deficit > 0) diffBadge = `<span class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-bold">+${r.surplus_deficit}</span>`;
 
-                        return `
-                            <tr class="border-b border-gray-100 text-xs">
-                                <td class="py-2 px-2 font-mono font-bold text-gray-900">${r.store_code}</td>
-                                <td class="py-2 px-2 text-gray-800 font-medium">${r.store_name}</td>
-                                <td class="py-2 px-2 text-gray-600">${r.cht_name || 'Chưa bổ nhiệm'}</td>
-                                <td class="py-2 px-2 font-bold text-gray-700">${r.target_headcount}</td>
-                                <td class="py-2 px-2 font-bold text-gray-900">${r.actual_headcount}</td>
-                                <td class="py-2 px-2 text-center">${diffBadge}</td>
-                            </tr>
-                        `;
-                    }).join('');
-                }
-                
-                // Active Tickets Hub
-                const tbodyTicket = document.getElementById('qr-hr-tickets-table-body');
-                const tickets = data.hr_tickets || [];
-                if (tickets.length === 0) {
-                    tbodyTicket.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-400">Hiện tại không có ticket sự vụ nào cần xử lý.</td></tr>';
-                } else {
-                    tbodyTicket.innerHTML = tickets.map(tk => `
-                        <tr class="border-b border-gray-100 text-xs">
-                            <td class="py-2 px-2 font-mono font-bold text-brand-red">${tk.ticket_code}</td>
-                            <td class="py-2 px-2 font-bold text-gray-800">${tk.store_code}</td>
-                            <td class="py-2 px-2 text-gray-700">${tk.employee_name} (${tk.event_type})</td>
-                            <td class="py-2 px-2 text-center">
-                                <select onchange="handleHRTicketStatusChange('${tk.ticket_code}', this.value)" class="input-field text-xs font-bold ${tk.status === 'Đang xem xét' ? 'text-orange-900 bg-orange-50' : 'text-brand-navy'}">
-                                    <option value="Mới ghi nhận" ${tk.status === 'Mới ghi nhận' ? 'selected' : ''}>🟡 Mới ghi nhận</option>
-                                    <option value="Đang xem xét" ${tk.status === 'Đang xem xét' ? 'selected' : ''}>🟠 Đang xem xét</option>
-                                    <option value="Đang xử lý" ${tk.status === 'Đang xử lý' ? 'selected' : ''}>🔵 Đang xử lý</option>
-                                    <option value="Hoàn tất" ${tk.status === 'Hoàn tất' ? 'selected' : ''}>🟢 Hoàn tất</option>
-                                </select>
-                            </td>
-                            <td class="py-2 px-2 text-center">
-                                <button onclick="handleHRTicketASMNote('${tk.ticket_code}')" class="btn-outline text-[11px] px-2 py-1">💬 Ghi Chú</button>
-                            </td>
-                        </tr>
-                    `).join('');
-                }
-                
+                // ── B: Headcount Bar Chart ────────────────────────
+                const hcLabels = chartStores.map(r => r.store_code);
+                const hcTarget = chartStores.map(r => r.target_headcount);
+                const hcActual = chartStores.map(r => r.actual_headcount);
+                const barColors = chartStores.map(r =>
+                    r.surplus_deficit < 0 ? 'rgba(239,68,68,0.8)' :
+                    r.surplus_deficit > 0 ? 'rgba(59,130,246,0.8)' : 'rgba(16,185,129,0.8)'
+                );
+
+                const hcCtx = document.getElementById('chart-headcount').getContext('2d');
+                if (hrHeadcountChart) hrHeadcountChart.destroy();
+                hrHeadcountChart = new Chart(hcCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: hcLabels,
+                        datasets: [
+                            { label: 'Định Biên', data: hcTarget, backgroundColor: 'rgba(203,213,225,0.7)', borderRadius: 4, borderSkipped: false },
+                            { label: 'Thực Tế', data: hcActual, backgroundColor: barColors, borderRadius: 4, borderSkipped: false }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'top', labels: { font: { size: 10 }, boxWidth: 12 } },
+                            tooltip: {
+                                callbacks: {
+                                    afterBody: (items) => {
+                                        const idx = items[0].dataIndex;
+                                        const r = chartStores[idx];
+                                        const diff = r.surplus_deficit;
+                                        return [`Chênh lệch: ${diff >= 0 ? '+' : ''}${diff} (${diff < 0 ? 'Thiếu' : diff > 0 ? 'Thừa' : 'Đủ'})`];
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { ticks: { font: { size: 9 }, maxRotation: 45 } },
+                            y: { beginAtZero: true, ticks: { font: { size: 9 }, stepSize: 1 } }
+                        }
+                    }
+                });
+
+                // ── C: Position Donut Chart ───────────────────────
+                const posLabels = Object.keys(posDist);
+                const posValues = Object.values(posDist);
+                const posColors = ['#C41E3A', '#1B2A4A', '#C8A951', '#3B82F6', '#10B981', '#F59E0B', '#6366F1'];
+                const posCtx = document.getElementById('chart-position').getContext('2d');
+                if (hrPositionChart) hrPositionChart.destroy();
+                hrPositionChart = new Chart(posCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: posLabels,
+                        datasets: [{ data: posValues, backgroundColor: posColors.slice(0, posLabels.length), borderWidth: 2, borderColor: '#fff' }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        cutout: '65%',
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} người` } }
+                        }
+                    }
+                });
+                // Custom legend
+                const legendEl = document.getElementById('chart-position-legend');
+                const total = posValues.reduce((a, b) => a + b, 0);
+                legendEl.innerHTML = posLabels.map((lb, i) => {
+                    const pct = total > 0 ? Math.round(posValues[i] / total * 100) : 0;
+                    return `<div class="flex items-center justify-between text-[10px]">
+                        <div class="flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full inline-block" style="background:${posColors[i % posColors.length]}"></span>
+                            <span class="text-gray-600 truncate max-w-[100px]" title="${lb}">${lb}</span>
+                        </div>
+                        <span class="font-bold text-gray-800">${posValues[i]} <span class="text-gray-400">(${pct}%)</span></span>
+                    </div>`;
+                }).join('');
+
+                // ── D: Tenure Cards ───────────────────────────────
+                const totalEmp = s.total_actual_headcount || 1;
+                const tenureMap = {
+                    'lt6m': tenure.lt6m || 0, '6m1y': tenure['6m_1y'] || 0,
+                    '1y2y': tenure['1y_2y'] || 0, '2y3y': tenure['2y_3y'] || 0,
+                    'gt3y': tenure.gt3y || 0
+                };
+                Object.entries(tenureMap).forEach(([key, val]) => {
+                    const el = document.getElementById(`tenure-${key}`);
+                    const pctEl = document.getElementById(`tenure-${key}-pct`);
+                    if (el) el.innerText = val;
+                    if (pctEl) pctEl.innerText = `${Math.round(val / totalEmp * 100)}%`;
+                });
+
+                // ── E: Store Ranking Table ────────────────────────
+                hrRenderStoreTable();
+
+                // ── F: Employee Roster ────────────────────────────
+                // Populate store filter dropdown
+                const storeFilterSel = document.getElementById('hr-emp-filter-store');
+                const existingStores = new Set(Array.from(storeFilterSel.options).map(o => o.value));
+                storeRows.forEach(r => {
+                    if (!existingStores.has(r.store_code)) {
+                        storeFilterSel.innerHTML += `<option value="${r.store_code}">${r.store_code} — ${r.store_name.substring(0, 20)}</option>`;
+                    }
+                });
+                hrRenderEmpTable();
+
+                // ── G: Ticket Hub ─────────────────────────────────
+                hrRenderTicketHub(tickets);
+
+                // ── Bind filter events ────────────────────────────
+                document.getElementById('hr-store-search').oninput = hrRenderStoreTable;
+                document.getElementById('hr-store-filter-diff').onchange = hrRenderStoreTable;
+                document.getElementById('hr-emp-search').oninput = hrRenderEmpTable;
+                document.getElementById('hr-emp-filter-store').onchange = hrRenderEmpTable;
+                document.getElementById('hr-emp-filter-pos').onchange = hrRenderEmpTable;
+
             } catch (err) {
                 console.error("Lỗi nạp HR Analytics:", err);
             }
+        }
+
+        function hrRenderStoreTable() {
+            const tbody = document.getElementById('qr-hr-store-table-body');
+            const q = (document.getElementById('hr-store-search')?.value || '').toLowerCase();
+            const diffFilter = document.getElementById('hr-store-filter-diff')?.value || 'all';
+
+            let rows = _hrAllStoreRows.filter(r => {
+                const matchQ = !q || r.store_code.toLowerCase().includes(q) || r.store_name.toLowerCase().includes(q) || (r.cht_name || '').toLowerCase().includes(q);
+                const matchDiff = diffFilter === 'all' ||
+                    (diffFilter === 'deficit' && r.surplus_deficit < 0) ||
+                    (diffFilter === 'surplus' && r.surplus_deficit > 0) ||
+                    (diffFilter === 'exact' && r.surplus_deficit === 0);
+                return matchQ && matchDiff;
+            });
+
+            if (rows.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center py-6 text-gray-400">Không có dữ liệu phù hợp.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = rows.map((r, idx) => {
+                let diffBadge, rowBg = '';
+                if (r.surplus_deficit < 0) {
+                    diffBadge = `<span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-bold">⬇ Thiếu ${Math.abs(r.surplus_deficit)}</span>`;
+                    rowBg = 'bg-rose-50/40';
+                } else if (r.surplus_deficit > 0) {
+                    diffBadge = `<span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold">⬆ +${r.surplus_deficit}</span>`;
+                } else {
+                    diffBadge = `<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">✓ Đủ</span>`;
+                }
+                const ticketBadge = r.active_tickets_count > 0
+                    ? `<span class="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold">${r.active_tickets_count}</span>` : '—';
+                const probBadge = r.probationers_count > 0
+                    ? `<span class="px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-800 font-bold">${r.probationers_count}</span>` : '—';
+
+                return `<tr class="border-b border-gray-100 ${rowBg} hover:bg-brand-red-l/30 text-xs">
+                    <td class="py-2 px-2 text-gray-400 font-mono">${idx + 1}</td>
+                    <td class="py-2 px-2 font-mono font-bold text-gray-900">${r.store_code}</td>
+                    <td class="py-2 px-2 text-gray-800">${r.store_name}</td>
+                    <td class="py-2 px-2 text-gray-600 text-[11px]">${r.cht_name || '<span class="text-gray-300">Chưa bổ nhiệm</span>'}</td>
+                    <td class="py-2 px-2 text-center font-bold text-gray-700">${r.target_headcount}</td>
+                    <td class="py-2 px-2 text-center font-bold text-gray-900">${r.actual_headcount}</td>
+                    <td class="py-2 px-2 text-center">${diffBadge}</td>
+                    <td class="py-2 px-2 text-center">${probBadge}</td>
+                    <td class="py-2 px-2 text-center">${ticketBadge}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function hrRenderEmpTable() {
+            const tbody = document.getElementById('qr-hr-emp-table-body');
+            const q = (document.getElementById('hr-emp-search')?.value || '').toLowerCase();
+            const filterStore = document.getElementById('hr-emp-filter-store')?.value || '';
+            const filterPos = document.getElementById('hr-emp-filter-pos')?.value || '';
+
+            let emps = _hrAllEmployees.filter(e => {
+                const matchQ = !q || e.full_name.toLowerCase().includes(q) || e.employee_code.toLowerCase().includes(q);
+                const matchStore = !filterStore || e.store_code === filterStore;
+                const matchPos = !filterPos || (e.position || '').includes(filterPos);
+                return matchQ && matchStore && matchPos;
+            });
+
+            const countLabel = document.getElementById('hr-emp-count-label');
+            if (countLabel) countLabel.innerText = `Hiển thị ${emps.length} / ${_hrAllEmployees.length} nhân sự`;
+
+            if (emps.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-6 text-gray-400">Không tìm thấy nhân sự phù hợp.</td></tr>';
+                return;
+            }
+
+            const posColor = (pos) => {
+                if (!pos) return 'bg-gray-100 text-gray-600';
+                if (pos.includes('trưởng')) return 'bg-brand-red-l text-brand-red font-bold';
+                if (pos.includes('phó')) return 'bg-amber-50 text-amber-700 font-bold';
+                if (pos.includes('thử việc')) return 'bg-purple-50 text-purple-700';
+                return 'bg-blue-50 text-blue-700';
+            };
+
+            tbody.innerHTML = emps.slice(0, 300).map(e => `
+                <tr class="border-b border-gray-100 hover:bg-brand-red-l/20 text-xs">
+                    <td class="py-2 px-2 font-mono text-gray-500">${e.employee_code}</td>
+                    <td class="py-2 px-2 font-bold text-gray-900">${e.full_name}</td>
+                    <td class="py-2 px-2 text-gray-600">${e.gender || '—'}</td>
+                    <td class="py-2 px-2"><span class="px-1.5 py-0.5 rounded text-[10px] ${posColor(e.position)}">${e.position || '—'}</span></td>
+                    <td class="py-2 px-2 font-mono text-xs text-gray-700">${e.store_code}</td>
+                    <td class="py-2 px-2 text-gray-600">${e.appointment_date || '—'}</td>
+                    <td class="py-2 px-2 text-gray-600">${e.tenure || '—'}</td>
+                </tr>
+            `).join('');
+            if (emps.length > 300) {
+                tbody.innerHTML += `<tr><td colspan="7" class="text-center py-2 text-gray-400 text-[11px]">... và ${emps.length - 300} nhân sự khác. Dùng bộ lọc để thu hẹp kết quả.</td></tr>`;
+            }
+        }
+
+        function hrRenderTicketHub(tickets) {
+            const tbody = document.getElementById('qr-hr-tickets-table-body');
+            if (!tickets || tickets.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-6 text-gray-400">✅ Không có sự vụ nhân sự nào đang mở. Tốt!</td></tr>';
+                return;
+            }
+            const statusBadge = (st) => {
+                if (st === 'Mới ghi nhận') return 'bg-yellow-100 text-yellow-800';
+                if (st === 'Đang xem xét') return 'bg-orange-100 text-orange-800';
+                if (st === 'Đang xử lý') return 'bg-blue-100 text-blue-800';
+                return 'bg-gray-100 text-gray-600';
+            };
+            const evtIcon = (t) => {
+                if (t === 'RESIGNED') return '🚪';
+                if (t === 'MATERNITY') return '🤱';
+                if (t === 'TRANSFER') return '🔀';
+                if (t === 'NEW_HIRE') return '🆕';
+                return '📋';
+            };
+            tbody.innerHTML = tickets.map(tk => `
+                <tr class="border-b border-gray-100 hover:bg-brand-red-l/20 text-xs">
+                    <td class="py-2 px-2 font-mono font-bold text-brand-red text-[11px]">${tk.ticket_code}</td>
+                    <td class="py-2 px-2 font-bold text-gray-800">${tk.store_code}</td>
+                    <td class="py-2 px-2 text-gray-700">${tk.employee_name}</td>
+                    <td class="py-2 px-2 text-gray-600">${evtIcon(tk.event_type)} ${tk.event_type}</td>
+                    <td class="py-2 px-2 text-center">
+                        <select onchange="handleHRTicketStatusChange('${tk.ticket_code}', this.value)"
+                            class="input-field text-[11px] font-bold py-0.5 px-1 ${statusBadge(tk.status)}">
+                            <option value="Mới ghi nhận" ${tk.status === 'Mới ghi nhận' ? 'selected' : ''}>🟡 Mới ghi nhận</option>
+                            <option value="Đang xem xét" ${tk.status === 'Đang xem xét' ? 'selected' : ''}>🟠 Đang xem xét</option>
+                            <option value="Đang xử lý" ${tk.status === 'Đang xử lý' ? 'selected' : ''}>🔵 Đang xử lý</option>
+                            <option value="Hoàn tất" ${tk.status === 'Hoàn tất' ? 'selected' : ''}>🟢 Hoàn tất</option>
+                        </select>
+                    </td>
+                    <td class="py-2 px-2 text-gray-500 text-[11px] max-w-[120px] truncate" title="${tk.asm_hr_note || ''}">${tk.asm_hr_note || '<span class="text-gray-300">Chưa có ghi chú</span>'}</td>
+                    <td class="py-2 px-2 text-center">
+                        <button onclick="handleHRTicketASMNote('${tk.ticket_code}')" class="btn-outline text-[10px] px-2 py-0.5">💬 Ghi Chú</button>
+                    </td>
+                </tr>
+            `).join('');
         }
 
         window.handleHRTicketStatusChange = async function(ticketCode, newStatus) {

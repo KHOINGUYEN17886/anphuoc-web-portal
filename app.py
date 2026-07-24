@@ -384,7 +384,8 @@ def get_auth_scope(role, asm_name, pin, store_code):
 def seed_hr_baseline_data():
     try:
         existing = query_db("SELECT COUNT(*) as cnt FROM tb_store_employees", one=True)
-        if existing and existing.get('cnt', 0) >= 1000:
+        cnt = (existing['cnt'] if existing else 0) if existing else 0
+        if cnt >= 1000:
             return
             
         stores_info_path = r"C:\All_Report\1_Mapping\StoresInfo.xlsx"
@@ -416,7 +417,7 @@ def seed_hr_baseline_data():
                     execute_db("""
                         INSERT INTO tb_store_headcount_targets (store_code, target_headcount, cht_name)
                         VALUES (?, ?, ?)
-                        ON CONFLICT(store_code) DO UPDATE SET target_headcount=EXCLUDED.target_headcount, cht_name=EXCLUDED.cht_name
+                        ON CONFLICT(store_code) DO UPDATE SET target_headcount=excluded.target_headcount, cht_name=excluded.cht_name
                     """, (code, target_hc, cht))
 
         def match_store(loc_raw):
@@ -483,7 +484,7 @@ def seed_hr_baseline_data():
                         sql = """
                             INSERT INTO tb_store_employees (employee_code, store_code, full_name, gender, dob, position, appointment_date, created_at, status)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')
-                            ON CONFLICT(employee_code) DO UPDATE SET store_code=EXCLUDED.store_code, full_name=EXCLUDED.full_name, gender=EXCLUDED.gender, dob=EXCLUDED.dob, position=EXCLUDED.position, appointment_date=EXCLUDED.appointment_date
+                            ON CONFLICT(employee_code) DO UPDATE SET store_code=excluded.store_code, full_name=excluded.full_name, gender=excluded.gender, dob=excluded.dob, position=excluded.position, appointment_date=excluded.appointment_date
                         """
                         if DATABASE_URL and psycopg2:
                             sql = sql.replace('?', '%s')
@@ -1730,17 +1731,61 @@ def get_hr_analytics():
         
     store_codes = [s['store_code'] for s in stores]
     if not store_codes:
-        return jsonify({'ok': True, 'summary': {}, 'store_hr_rows': [], 'hr_tickets': []})
+        return jsonify({'ok': True, 'summary': {}, 'store_hr_rows': [], 'hr_tickets': [],
+                        'position_distribution': {}, 'tenure_buckets': {}, 'employees': []})
         
     placeholders = ",".join(["?"] * len(store_codes))
     
     targets = query_db(f"SELECT store_code, target_headcount, cht_name FROM tb_store_headcount_targets WHERE store_code IN ({placeholders})", store_codes)
     target_map = {t['store_code']: t for t in targets}
     
-    employees = query_db(f"SELECT store_code, status FROM tb_store_employees WHERE store_code IN ({placeholders}) AND status != 'RESIGNED'", store_codes)
+    # Full employee fetch for charts + list
+    all_employees = query_db(
+        f"SELECT e.*, h.target_headcount, h.cht_name FROM tb_store_employees e "
+        f"LEFT JOIN tb_store_headcount_targets h ON e.store_code = h.store_code "
+        f"WHERE e.store_code IN ({placeholders}) AND e.status != 'RESIGNED' "
+        f"ORDER BY e.store_code, e.position, e.full_name",
+        store_codes
+    )
+    
     emp_count_map = defaultdict(int)
-    for e in employees:
+    position_dist = defaultdict(int)
+    tenure_buckets = {'lt6m': 0, '6m_1y': 0, '1y_2y': 0, '2y_3y': 0, 'gt3y': 0}
+    today = date.today()
+    
+    employees_out = []
+    for e in all_employees:
         emp_count_map[e['store_code']] += 1
+        pos = e.get('position', 'Nhân viên bán hàng') or 'Nhân viên bán hàng'
+        position_dist[pos] += 1
+        
+        # Tenure bucket
+        apt = e.get('appointment_date') or e.get('created_at', '')
+        if apt:
+            try:
+                hire_dt = date.fromisoformat(str(apt)[:10])
+                months = (today.year - hire_dt.year) * 12 + (today.month - hire_dt.month)
+                if months < 6: tenure_buckets['lt6m'] += 1
+                elif months < 12: tenure_buckets['6m_1y'] += 1
+                elif months < 24: tenure_buckets['1y_2y'] += 1
+                elif months < 36: tenure_buckets['2y_3y'] += 1
+                else: tenure_buckets['gt3y'] += 1
+                tenure_label = calculate_tenure_py(apt)
+            except:
+                tenure_label = ''
+        else:
+            tenure_label = ''
+        
+        employees_out.append({
+            'employee_code': e.get('employee_code', ''),
+            'full_name': e.get('full_name', ''),
+            'gender': e.get('gender', ''),
+            'position': pos,
+            'store_code': e.get('store_code', ''),
+            'appointment_date': e.get('appointment_date', ''),
+            'tenure': tenure_label,
+            'status': e.get('status', 'ACTIVE'),
+        })
         
     probationers = query_db(f"SELECT store_code FROM tb_employee_probation WHERE store_code IN ({placeholders}) AND (probation_result IS NULL OR probation_result = '' OR probation_result = 'Đang thử việc')", store_codes)
     prob_count_map = defaultdict(int)
@@ -1786,7 +1831,8 @@ def get_hr_analytics():
             'active_tickets_count': ticket_count_map[code]
         })
         
-    store_rows.sort(key=lambda r: r['surplus_deficit'])
+    # Top 12 deficit stores for bar chart
+    chart_stores = sorted(store_rows, key=lambda r: r['surplus_deficit'])[:12]
     
     return jsonify({
         'ok': True,
@@ -1800,7 +1846,11 @@ def get_hr_analytics():
             'under_review_count': under_review_cnt
         },
         'store_hr_rows': store_rows,
-        'hr_tickets': tickets
+        'chart_stores': chart_stores,
+        'hr_tickets': [dict(t) for t in tickets],
+        'position_distribution': dict(position_dist),
+        'tenure_buckets': tenure_buckets,
+        'employees': employees_out
     })
 
 # ──────────────────────────────────────────────────────────────────────────────
