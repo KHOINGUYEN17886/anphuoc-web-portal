@@ -4507,35 +4507,52 @@
         }
 
         // Add Employee Modal Logic
-        window.openAddEmployeeModal = async function() {
-            if (allStoresList.length === 0) await loadAllStoresList();
-            populateStoreDropdowns();
+        window.openAddEmployeeModal = function() {
+            try {
+                if (allStoresList.length === 0) loadAllStoresList();
+                populateStoreDropdowns();
 
-            const addEmpStoreSel = document.getElementById('add-emp-store-select');
-            const divStoreSelect = document.getElementById('div-add-emp-store-select');
-            
-            if (currentStore && currentStore.role === 'store') {
-                if (addEmpStoreSel) addEmpStoreSel.value = currentStore.code;
-                if (divStoreSelect) divStoreSelect.classList.add('hidden');
-            } else {
-                if (divStoreSelect) divStoreSelect.classList.remove('hidden');
-                if (addEmpStoreSel && currentStore && currentStore.code) {
-                    addEmpStoreSel.value = currentStore.code;
+                const addEmpStoreSel = document.getElementById('add-emp-store-select');
+                const divStoreSelect = document.getElementById('div-add-emp-store-select');
+                
+                if (currentStore && currentStore.role === 'store') {
+                    if (addEmpStoreSel) addEmpStoreSel.value = currentStore.code;
+                    if (divStoreSelect) divStoreSelect.classList.add('hidden');
+                } else {
+                    if (divStoreSelect) divStoreSelect.classList.remove('hidden');
+                    if (addEmpStoreSel && currentStore && currentStore.code) {
+                        addEmpStoreSel.value = currentStore.code;
+                    }
                 }
-            }
 
-            document.getElementById('add-emp-code').value = 'NV' + Math.floor(100000 + Math.random() * 900000);
-            document.getElementById('add-emp-name').value = '';
-            document.getElementById('add-emp-gender').value = 'Nữ';
-            document.getElementById('add-emp-position').value = 'Nhân viên bán hàng';
-            document.getElementById('add-emp-reason').value = 'Nhân viên mới';
-            
-            toggleAddEmpReasonOther('Nhân viên mới');
-            
-            document.getElementById('add-emp-start-date').value = new Date().toISOString().split('T')[0];
-            document.getElementById('add-emp-avatar-preview').src = 'https://ui-avatars.com/api/?name=NV+Moi&background=1B2A4A&color=fff';
-            
-            document.getElementById('modal-add-employee').classList.remove('hidden');
+                const codeEl = document.getElementById('add-emp-code');
+                if (codeEl) codeEl.value = 'NV' + Math.floor(100000 + Math.random() * 900000);
+                
+                const nameEl = document.getElementById('add-emp-name');
+                if (nameEl) nameEl.value = '';
+                
+                const genderEl = document.getElementById('add-emp-gender');
+                if (genderEl) genderEl.value = 'Nữ';
+                
+                const posEl = document.getElementById('add-emp-position');
+                if (posEl) posEl.value = 'Nhân viên bán hàng';
+                
+                const reasonEl = document.getElementById('add-emp-reason');
+                if (reasonEl) reasonEl.value = 'Nhân viên mới';
+                
+                toggleAddEmpReasonOther('Nhân viên mới');
+                
+                const startDateEl = document.getElementById('add-emp-start-date');
+                if (startDateEl) startDateEl.value = new Date().toISOString().split('T')[0];
+                
+                const avatarEl = document.getElementById('add-emp-avatar-preview');
+                if (avatarEl) avatarEl.src = 'https://ui-avatars.com/api/?name=NV+Moi&background=1B2A4A&color=fff';
+                
+                const modal = document.getElementById('modal-add-employee');
+                if (modal) modal.classList.remove('hidden');
+            } catch (err) {
+                console.error("Lỗi mở modal thêm nhân viên:", err);
+            }
         };
 
         const btnAddEmployee = document.getElementById('btn-add-employee');
@@ -4709,28 +4726,38 @@
         }
 
         // New Ticket Modal Logic
-        window.openNewHRTicketModal = async function() {
-            if (allStoresList.length === 0) await loadAllStoresList();
-            populateStoreDropdowns();
-            
-            const storeSel = document.getElementById('new-tk-store-select');
-            const divStoreSel = document.getElementById('div-new-tk-store-select');
-            
-            if (currentStore && currentStore.role === 'store') {
-                if (storeSel) storeSel.value = currentStore.code;
-                if (divStoreSel) divStoreSel.classList.add('hidden');
-            } else {
-                if (divStoreSel) divStoreSel.classList.remove('hidden');
-                if (storeSel && currentStore && currentStore.code) {
-                    storeSel.value = currentStore.code;
+        window.openNewHRTicketModal = function() {
+            try {
+                if (allStoresList.length === 0) loadAllStoresList();
+                populateStoreDropdowns();
+                
+                const storeSel = document.getElementById('new-tk-store-select');
+                const divStoreSel = document.getElementById('div-new-tk-store-select');
+                
+                if (currentStore && currentStore.role === 'store') {
+                    if (storeSel) storeSel.value = currentStore.code;
+                    if (divStoreSel) divStoreSel.classList.add('hidden');
+                } else {
+                    if (divStoreSel) divStoreSel.classList.remove('hidden');
+                    if (storeSel && currentStore && currentStore.code) {
+                        storeSel.value = currentStore.code;
+                    }
                 }
+                
+                const nameEl = document.getElementById('new-tk-emp-name');
+                if (nameEl) nameEl.value = '';
+                
+                const reasonEl = document.getElementById('new-tk-reason');
+                if (reasonEl) reasonEl.value = '';
+                
+                const effDateEl = document.getElementById('new-tk-eff-date');
+                if (effDateEl) effDateEl.value = new Date().toISOString().split('T')[0];
+                
+                const modal = document.getElementById('modal-new-hr-ticket');
+                if (modal) modal.classList.remove('hidden');
+            } catch (err) {
+                console.error("Lỗi mở modal ticket sự vụ:", err);
             }
-            
-            document.getElementById('new-tk-emp-name').value = '';
-            document.getElementById('new-tk-reason').value = '';
-            document.getElementById('new-tk-eff-date').value = new Date().toISOString().split('T')[0];
-            
-            document.getElementById('modal-new-hr-ticket').classList.remove('hidden');
         };
 
         const btnOpenNewHRTicketModal = document.getElementById('btn-open-new-hr-ticket-modal');
@@ -4795,29 +4822,41 @@
         }
 
         // Add Support Staff Modal Logic
-        window.openAddSupportStaffModal = async function() {
-            if (allStoresList.length === 0) await loadAllStoresList();
-            populateStoreDropdowns();
-            
-            const toStoreSel = document.getElementById('supp-to-store-select');
-            const divToStore = document.getElementById('div-supp-to-store');
-            
-            if (currentStore && currentStore.role === 'store') {
-                if (toStoreSel) toStoreSel.value = currentStore.code;
-                if (divToStore) divToStore.classList.add('hidden');
-            } else {
-                if (divToStore) divToStore.classList.remove('hidden');
-                if (toStoreSel && currentStore && currentStore.code) {
-                    toStoreSel.value = currentStore.code;
+        window.openAddSupportStaffModal = function() {
+            try {
+                if (allStoresList.length === 0) loadAllStoresList();
+                populateStoreDropdowns();
+                
+                const toStoreSel = document.getElementById('supp-to-store-select');
+                const divToStore = document.getElementById('div-supp-to-store');
+                
+                if (currentStore && currentStore.role === 'store') {
+                    if (toStoreSel) toStoreSel.value = currentStore.code;
+                    if (divToStore) divToStore.classList.add('hidden');
+                } else {
+                    if (divToStore) divToStore.classList.remove('hidden');
+                    if (toStoreSel && currentStore && currentStore.code) {
+                        toStoreSel.value = currentStore.code;
+                    }
                 }
-            }
 
-            document.getElementById('supp-emp-code').value = '';
-            document.getElementById('supp-emp-name').value = '';
-            document.getElementById('supp-start-date').value = new Date().toISOString().split('T')[0];
-            document.getElementById('supp-end-date').value = '';
-            
-            document.getElementById('modal-add-support-staff').classList.remove('hidden');
+                const codeEl = document.getElementById('supp-emp-code');
+                if (codeEl) codeEl.value = '';
+                
+                const nameEl = document.getElementById('supp-emp-name');
+                if (nameEl) nameEl.value = '';
+                
+                const stDateEl = document.getElementById('supp-start-date');
+                if (stDateEl) stDateEl.value = new Date().toISOString().split('T')[0];
+                
+                const edDateEl = document.getElementById('supp-end-date');
+                if (edDateEl) edDateEl.value = '';
+                
+                const modal = document.getElementById('modal-add-support-staff');
+                if (modal) modal.classList.remove('hidden');
+            } catch (err) {
+                console.error("Lỗi mở modal thêm nhân sự hỗ trợ:", err);
+            }
         };
 
         const btnOpenAddSupportStaffModal = document.getElementById('btn-open-add-support-staff-modal');
