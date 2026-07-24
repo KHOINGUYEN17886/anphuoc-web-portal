@@ -251,7 +251,14 @@
                             </div>
                         </div>
                         <div id="weekly-cr-alert" class="text-[11px] font-bold mt-2 px-3 py-2 rounded-xl border hidden"></div>
-                        <p class="text-[10px] text-gray-400 mt-1">Khuyn dùng: Hãy nhập lẻ hàng ngày ở Tab 2 để hệ thống tự cộng tổng và kiểm tra CR chính xác hơn.</p>
+                        <div id="weekly-non-purchase-summary" class="hidden mt-3 p-3 bg-amber-50/80 border border-amber-200 rounded-xl space-y-2 text-xs">
+                            <div class="flex items-center justify-between font-extrabold text-amber-900">
+                                <span class="flex items-center gap-1">📉 THỐNG KÊ NGUYÊN NHÂN KHÁCH KHÔNG MUA HÀNG TUẦN NÀY</span>
+                                <span class="text-brand-red text-xs font-mono font-extrabold" id="weekly-unconverted-count">0 lượt khách</span>
+                            </div>
+                            <div class="text-[11px] text-gray-700 font-medium" id="weekly-top-reasons-display">Cập nhật lượt khách nhập ở Tab 2 để phân tích Top nguyên nhân không mua.</div>
+                        </div>
+                        <p class="text-[10px] text-gray-400 mt-1">Khuyên dùng: Hãy nhập lẻ hàng ngày ở Tab 2 để hệ thống tự cộng tổng, tính CR và phân tích lý do khách không mua hàng chính xác hơn.</p>
                     </div>
                 </div>
 
@@ -444,12 +451,28 @@
                             <h4 class="font-bold text-brand-navy uppercase text-sm">Vấn đề tồn đọng cần hỗ trợ (4.5)</h4>
                         </div>
                         <button id="btn-add-support" class="btn-outline text-xs">
-                            + Thêm Kiến Nghị
+                            + Thêm Kiến Nghị Mới
                         </button>
                     </div>
+
+                    <!-- ROLLOVER PENDING SUPPORT TICKETS WIDGET -->
+                    <div id="pending-support-widget" class="hidden mb-5 p-4 bg-amber-50/80 border border-amber-200 rounded-xl space-y-3 shadow-xs">
+                        <div class="flex items-center justify-between border-b border-amber-200/80 pb-2">
+                            <div class="flex items-center gap-2 text-amber-900 font-extrabold text-xs">
+                                <span>⚡ NHẮC NHỜ BẮT BUỘC: SỰ VỤ TỒN ĐỌNG TỪ CÁC TUẦN TRƯỚC (<span id="pending-count-badge">0</span>)</span>
+                            </div>
+                            <span class="text-[10px] text-amber-800 font-bold bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">Cửa hàng cập nhật tiến độ</span>
+                        </div>
+                        <p class="text-[11px] text-amber-800 italic">Dưới đây là các sự vụ cửa hàng đã gửi nhưng <strong>chưa hoàn thành</strong>. Cửa hàng kiểm tra thực tế và cập nhật tiến độ tuần này:</p>
+                        <div id="pending-support-container" class="space-y-3"></div>
+                    </div>
+
+                    <div class="font-bold text-brand-navy text-xs mb-2 flex items-center gap-1">
+                        <span>➕</span> Thêm sự vụ / đề xuất mới phát sinh tuần này:
+                    </div>
                     <div id="support-container" class="space-y-4"></div>
-                    <div id="support-empty" class="text-center py-6 text-gray-400 text-xs italic">
-                        Không có vấn đề tồn đọng nào cần hỗ trợ tuần này.
+                    <div id="support-empty" class="text-center py-4 text-gray-400 text-xs italic">
+                        Chưa thêm sự vụ mới nào trong tuần này.
                     </div>
                 </div>
 
@@ -621,28 +644,43 @@
                 </div>
             </div>
 
-            <!-- ASM Tab 3: Support Requests (Section 4.5) -->
+            <!-- ASM Tab 3: Support Requests (Section 4.5 - Ticket Hub) -->
             <div id="status-tab-support-content" class="hidden card rounded-b-2xl p-5 border-t-0 space-y-4">
                 <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
-                    <div class="flex items-center gap-2">
-                        <label class="text-xs font-bold text-gray-500 uppercase">Tuần Báo Cáo:</label>
-                        <input id="status-support-report-date" type="date" class="input-field w-auto text-xs">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="flex items-center gap-1.5">
+                            <label class="text-xs font-bold text-gray-500 uppercase">Tuần Báo Cáo:</label>
+                            <input id="status-support-report-date" type="date" class="input-field w-auto text-xs">
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <label class="text-xs font-bold text-gray-500 uppercase">Trạng Thái:</label>
+                            <select id="status-support-filter" class="input-field w-auto text-xs font-bold">
+                                <option value="ACTIVE">⚡ Đang xử lý / Chưa xong</option>
+                                <option value="ALL">📋 Tất cả sự vụ</option>
+                                <option value="COMPLETED">🟢 Đã hoàn tất</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-500">
+                        Hệ thống tự động theo dõi tiến độ đến khi hoàn tất.
                     </div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="tbl w-full rounded-xl overflow-hidden text-xs">
                         <thead>
                             <tr>
+                                <th>Mã Ticket</th>
                                 <th>Cửa Hàng</th>
-                                <th>Phân Loại</th>
-                                <th class="text-center">Mức Độ</th>
-                                <th>Nội Dung Yêu Cầu Hỗ Trợ (Phần 4.5)</th>
-                                <th>Thời Hạn</th>
-                                <th>Người Phụ Trách</th>
+                                <th>Nội Dung Yêu Cầu Hỗ Trợ</th>
+                                <th>Hạn / Phụ Trách</th>
+                                <th class="text-center">Trạng Thái</th>
+                                <th>Cửa Hàng Cập Nhật</th>
+                                <th>Phản Hồi ASM / HQ</th>
+                                <th class="text-center">Thao Tác</th>
                             </tr>
                         </thead>
                         <tbody id="status-support-table-body" class="divide-y divide-gray-100">
-                            <tr><td colspan="6" class="text-center py-6 text-gray-400">Đang tải yêu cầu hỗ trợ...</td></tr>
+                            <tr><td colspan="8" class="text-center py-6 text-gray-400">Đang tải yêu cầu hỗ trợ...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -912,6 +950,7 @@
                 <button class="tab-btn qr-tab-switch" data-tab="hop-dong">✍️ Hợp Đồng</button>
                 <button class="tab-btn qr-tab-switch" data-tab="van-hanh">⚙️ Vận Hành</button>
                 <button class="tab-btn qr-tab-switch" data-tab="ho-tro">🔔 Hỗ Trợ</button>
+                <button class="tab-btn qr-tab-switch" data-tab="khong-mua">📉 Phân Tích Không Mua</button>
             </div>
 
             <!-- Tab 1: Tổng Hợp -->
@@ -1022,8 +1061,119 @@
                     </table>
                 </div>
             </div>
+
+            <!-- Tab 5: Phân Tích Lý Do Khách Không Mua Hàng -->
+            <div id="qr-tab-khong-mua" class="qr-tab-content bg-white rounded-b-xl p-5 border border-t-0 border-gray-200 space-y-6">
+                <!-- Summary KPI Cards -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="kpi-card">
+                        <div class="section-title">Tổng lượt khách ghé (Traffic)</div>
+                        <div id="np-total-traffic" class="text-2xl font-extrabold text-brand-navy">-</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="section-title">Tổng số hóa đơn (Bills)</div>
+                        <div id="np-total-bills" class="text-2xl font-extrabold text-emerald-600">-</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="section-title">Khách không mua hàng</div>
+                        <div id="np-unconverted" class="text-2xl font-extrabold text-brand-red">-</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="section-title">Tỷ lệ chuyển đổi (CR)</div>
+                        <div id="np-cr-pct" class="text-2xl font-extrabold text-amber-600">-</div>
+                    </div>
+                </div>
+
+                <!-- Alert Diagnostic Banner -->
+                <div id="np-alert-banner" class="hidden p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-900 font-bold flex items-center gap-2">
+                    <span class="text-lg">⚠️</span>
+                    <span id="np-alert-text">Cảnh báo thất thoát chuyển đổi...</span>
+                </div>
+
+                <!-- Reason Breakdown Progress Bars -->
+                <div class="card p-4 rounded-xl border border-gray-200 space-y-3">
+                    <h4 class="font-extrabold text-brand-navy text-xs uppercase border-b border-gray-100 pb-2 flex items-center gap-1">
+                        <span>📊</span> Tỷ Trọng % Nguyên Nhân Khách Không Mua Hàng
+                    </h4>
+                    <div id="np-reason-bars" class="space-y-3 text-xs">
+                        <div class="text-center text-gray-400 py-4 italic">Đang tải phân tích...</div>
+                    </div>
+                </div>
+
+                <!-- Store Rankings Table -->
+                <div class="space-y-2">
+                    <h4 class="font-extrabold text-brand-navy text-xs uppercase flex items-center gap-1">
+                        <span>🏆</span> Xếp Hạng Cửa Hàng Theo Lượt Khách Chưa Mua (Thất Thoát CR)
+                    </h4>
+                    <div class="overflow-x-auto">
+                        <table class="tbl w-full rounded-xl overflow-hidden text-xs">
+                            <thead>
+                                <tr>
+                                    <th>Cửa Hàng</th>
+                                    <th>ASM</th>
+                                    <th class="text-center">Traffic</th>
+                                    <th class="text-center">Bills</th>
+                                    <th class="text-center">Khách Chưa Mua</th>
+                                    <th class="text-center">CR (%)</th>
+                                    <th>Lý Do Chính Khách Không Mua</th>
+                                </tr>
+                            </thead>
+                            <tbody id="np-store-rankings-body">
+                                <tr><td colspan="7" class="text-center py-6 text-gray-400 italic">Đang tải dữ liệu...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
-    </section>
+    <!-- MODAL CẬP NHẬT TICKET SỰ VỤ (Support Ticket Lifecycle Update Modal) -->
+    <div id="modal-ticket-update" class="hidden fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="card w-full max-w-lg p-6 space-y-4 shadow-2xl rounded-2xl relative bg-white">
+            <button onclick="closeTicketUpdateModal()" class="absolute top-4 right-4 text-gray-400 hover:text-brand-red text-xl font-bold transition-all">&times;</button>
+            <div class="flex items-center gap-2.5 border-b border-gray-100 pb-3">
+                <div class="w-10 h-10 bg-amber-100 text-amber-800 rounded-xl flex items-center justify-center font-bold text-lg">🛠️</div>
+                <div>
+                    <h3 class="font-extrabold text-brand-navy text-base">Cập Nhật Tiến Độ Sự Vụ</h3>
+                    <div class="text-xs text-brand-red font-mono font-extrabold" id="modal-ticket-code-display">TK-CH...</div>
+                </div>
+            </div>
+            
+            <div class="bg-amber-50/80 p-3 rounded-xl border border-amber-200 text-xs space-y-1">
+                <div class="font-extrabold text-brand-navy" id="modal-ticket-store-display">Cửa hàng: -</div>
+                <div class="text-gray-800 font-semibold" id="modal-ticket-item-display">Nội dung sự vụ: -</div>
+                <div class="text-gray-500 text-[11px]" id="modal-ticket-meta-display">Hạn chót: - | Phụ trách: -</div>
+            </div>
+            
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Trạng Thái Xử Lý Hiện Tại</label>
+                    <select id="modal-ticket-status-select" class="input-field font-bold">
+                        <option value="Đang xử lý">🟡 Đang xử lý</option>
+                        <option value="Chờ hàng / PB khác">🟠 Chờ hàng / PB khác</option>
+                        <option value="Hoàn tất">🟢 Hoàn tất (Khép sự vụ)</option>
+                        <option value="Đã hủy">🔴 Đã hủy</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">🔄 Cửa Hàng Cập Nhật Tiến Độ Thực Tế</label>
+                    <textarea id="modal-ticket-store-note-input" class="input-field text-xs h-20" placeholder="Điền diễn biến thực tế tại quầy (Ví dụ: Thợ đã đến kiểm tra ngày 22/07, chờ linh kiện thay thế...)"></textarea>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">💬 ASM / Trụ Sở Phản Hồi Chỉ Đạo</label>
+                    <textarea id="modal-ticket-asm-note-input" class="input-field text-xs h-20" placeholder="ASM hoặc Trụ sở điền phản hồi xử lý (Ví dụ: Đã gửi linh kiện qua bưu điện...)"></textarea>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">👤 Người / Bộ Phận Phụ Trách</label>
+                    <input type="text" id="modal-ticket-pic-input" class="input-field text-xs" placeholder="Ví dụ: Phòng IT / Kho Tổng / QLKD Khôi">
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
+                <button onclick="closeTicketUpdateModal()" class="btn-outline text-xs px-4 py-2">Hủy Bỏ</button>
+                <button onclick="saveTicketUpdateFromModal()" class="btn-primary text-xs px-5 py-2 font-bold shadow-md">💾 Lưu Tiến Độ Sự Vụ</button>
+            </div>
+        </div>
+    </div>
 
     <!-- JS Logic -->
     <script>
@@ -1402,15 +1552,20 @@
                             document.getElementById('market-other-feedback').value = d.market_other_feedback || '';
                         }
                         
-                        // Support requests (4.5)
-                        data.support_requests.forEach(sr => {
-                            addSupportRow(sr);
-                        });
+                        // Support requests (4.5) - Render current week's support items
+                        if (data.support_requests) {
+                            data.support_requests.forEach(sr => {
+                                addSupportRow(sr);
+                            });
+                        }
                     } else {
                         // New Submission Mode
                         editModeBanner.classList.add('hidden');
                         btnSubmit.innerHTML = "<span>🚀</span> NỘP BÁO CÁO VẬN HÀNH TUẦN";
                     }
+
+                    // Always render Rollover Pending Support Widget for unresolved tickets from previous weeks
+                    renderPendingSupportWidget(data.pending_support_requests || []);
                 }
                 toggleEmptyStates();
             } catch (err) {
@@ -1474,14 +1629,34 @@
                         const billsVal = (dayData && dayData.bills !== undefined) ? dayData.bills : '';
                         const coVal = (dayData && dayData.company_online_bills !== undefined) ? dayData.company_online_bills : '';
                         const soVal = (dayData && dayData.store_online_bills !== undefined) ? dayData.store_online_bills : '';
+                        const isSynthetic = !!(dayData && dayData.data_source === 'synthetic_backfill');
+                        const reasonsRaw = (dayData && dayData.non_purchase_reasons) ? dayData.non_purchase_reasons : '';
+                        
+                        let selectedReasons = [];
+                        let customNote = '';
+                        if (reasonsRaw) {
+                            try {
+                                if (reasonsRaw.startsWith('{')) {
+                                    const parsed = JSON.parse(reasonsRaw);
+                                    selectedReasons = parsed.reasons || [];
+                                    customNote = parsed.note || '';
+                                } else {
+                                    selectedReasons = reasonsRaw.split(',').map(s => s.trim()).filter(Boolean);
+                                }
+                            } catch (e) {
+                                customNote = reasonsRaw;
+                            }
+                        }
                         
                         let crPercent = '';
                         let badgeClass = '';
+                        let unconvertedVal = 0;
                         if (trfVal !== '' && billsVal !== '') {
                             const t = Number(trfVal);
                             const b = Number(billsVal);
                             const co = Number(coVal) || 0;
                             const billForCR = b - co;
+                            unconvertedVal = Math.max(0, t - b);
                             
                             if (t === 0) {
                                 crPercent = billForCR > 0 ? 'CR > 100%' : '0%';
@@ -1496,14 +1671,32 @@
                             }
                         }
                         
-                        const bgClass = trfVal !== '' ? 'bg-emerald-50/30 border-emerald-200' : 'bg-white border-gray-200';
-                        
+                        let bgClass = trfVal !== '' ? 'bg-emerald-50/30 border-emerald-200' : 'bg-white border-gray-200';
+                        if (isSynthetic) bgClass = 'bg-amber-50/40 border-amber-300 border-dashed';
+
+                        const originalSnapshot = JSON.stringify({ 
+                            traffic: trfVal, 
+                            bills: billsVal, 
+                            company_online_bills: coVal, 
+                            store_online_bills: soVal,
+                            reasons: selectedReasons,
+                            note: customNote
+                        });
+
+                        const hasSize = selectedReasons.includes('SIZE');
+                        const hasStyle = selectedReasons.includes('STYLE');
+                        const hasPrice = selectedReasons.includes('PRICE');
+                        const hasBrowse = selectedReasons.includes('BROWSE');
+                        const hasNewCollection = selectedReasons.includes('NEW_COLLECTION');
+                        const hasService = selectedReasons.includes('SERVICE');
+
                         dailyTrafficGrid.innerHTML += `
-                            <div class="p-3 border rounded-xl flex flex-col justify-between gap-1.5 transition-all shadow-xs ${bgClass}" data-card-date="${dateStr}">
+                            <div class="p-3 border rounded-xl flex flex-col justify-between gap-1.5 transition-all shadow-xs ${bgClass}" data-card-date="${dateStr}" data-original='${originalSnapshot}'>
                                 <div class="flex justify-between items-center pb-1 border-b border-gray-100">
                                     <span class="text-[11px] font-extrabold text-brand-navy">${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}</span>
                                     <span class="text-[9px] font-bold cr-badge px-1.5 py-0.5 rounded ${badgeClass}">${crPercent}</span>
                                 </div>
+                                ${isSynthetic ? '<div class="text-[8px] font-bold text-amber-600 -mt-1">⚠ Số ước tính — sửa số rồi bấm Lưu để thay bằng số thật</div>' : ''}
                                 <div class="flex flex-col gap-1.5 pt-1">
                                     <div class="flex items-center gap-1">
                                         <span class="text-[9px] font-bold text-gray-500 w-10">Khách:</span>
@@ -1522,6 +1715,26 @@
                                         <input type="number" min="0" data-date="${dateStr}" data-type="store_online_bills" value="${soVal}" placeholder="0" class="daily-store-online-input input-field text-[10px] py-0.5 px-2 text-gray-700">
                                     </div>
                                 </div>
+
+                                <div class="unconverted-container pt-1 text-[9px] border-t border-gray-100 flex justify-between items-center mt-1">
+                                    <span class="text-amber-800 font-bold">Chưa mua: <strong class="unconverted-count font-mono text-brand-red">${unconvertedVal}</strong></span>
+                                    <button type="button" class="btn-toggle-reasons text-[9px] font-bold text-brand-navy hover:underline cursor-pointer">🏷️ Lý do</button>
+                                </div>
+
+                                <div class="reasons-drawer ${selectedReasons.length > 0 || customNote ? '' : 'hidden'} pt-1.5 space-y-1 bg-amber-50/60 p-2 rounded-lg border border-amber-200 text-[9px]">
+                                    <div class="font-extrabold text-amber-900 flex justify-between items-center">
+                                        <span>Lý do không mua:</span>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-1 text-[9px]">
+                                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" class="reason-cb" value="SIZE" ${hasSize ? 'checked' : ''}> 📏 Đứt size</label>
+                                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" class="reason-cb" value="STYLE" ${hasStyle ? 'checked' : ''}> 🎨 Mẫu mã</label>
+                                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" class="reason-cb" value="PRICE" ${hasPrice ? 'checked' : ''}> 💵 Giá/KM</label>
+                                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" class="reason-cb" value="BROWSE" ${hasBrowse ? 'checked' : ''}> 👔 Chỉ xem</label>
+                                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" class="reason-cb" value="NEW_COLLECTION" ${hasNewCollection ? 'checked' : ''}> 🏬 Hàng mới</label>
+                                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" class="reason-cb" value="SERVICE" ${hasService ? 'checked' : ''}> ⏳ Phục vụ</label>
+                                    </div>
+                                    <input type="text" class="reason-note-input input-field text-[9px] py-0.5 px-1.5 mt-1" value="${customNote}" placeholder="Ghi chú chi tiết lý do khác...">
+                                </div>
                             </div>
                         `;
                     }
@@ -1534,7 +1747,16 @@
                         const coInp = card.querySelector('[data-type="company_online_bills"]');
                         const soInp = card.querySelector('[data-type="store_online_bills"]');
                         const crBadge = card.querySelector('.cr-badge');
+                        const unconvertedCount = card.querySelector('.unconverted-count');
+                        const toggleBtn = card.querySelector('.btn-toggle-reasons');
+                        const drawer = card.querySelector('.reasons-drawer');
                         
+                        if (toggleBtn && drawer) {
+                            toggleBtn.addEventListener('click', () => {
+                                drawer.classList.toggle('hidden');
+                            });
+                        }
+
                         const updateCR = () => {
                             const trf = trfInp.value.trim();
                             const bill = billInp.value.trim();
@@ -1548,6 +1770,9 @@
                                 const bVal = Number(bill);
                                 const coVal = Number(co) || 0;
                                 
+                                const unconverted = Math.max(0, tVal - bVal);
+                                if (unconvertedCount) unconvertedCount.innerText = unconverted;
+
                                 const billForCR = bVal - coVal;
                                 
                                 if (tVal === 0) {
@@ -1610,12 +1835,34 @@
                 const billInp = card.querySelector('[data-type="bills"]');
                 const coInp = card.querySelector('[data-type="company_online_bills"]');
                 const soInp = card.querySelector('[data-type="store_online_bills"]');
-                
+
                 const trf = trfInp.value.trim();
                 const bill = billInp.value.trim();
                 const co = coInp.value.trim();
                 const so = soInp.value.trim();
-                
+
+                // Dirty-check: bỏ qua ngày KHÔNG bị sửa so với lúc tải lên. Quan trọng với ngày
+                // đang là 'synthetic_backfill' (số suy diễn) — nếu không sửa gì mà vẫn gửi lên,
+                // backend sẽ tưởng cửa hàng vừa xác nhận số này là thật và xoá mất cờ suy diễn.
+                const reasonCbs = card.querySelectorAll('.reason-cb:checked');
+                const selectedReasons = Array.from(reasonCbs).map(cb => cb.value);
+                const noteInput = card.querySelector('.reason-note-input');
+                const customNote = noteInput ? noteInput.value.trim() : '';
+
+                let original = {};
+                try { original = JSON.parse(card.getAttribute('data-original') || '{}'); } catch (e) { original = {}; }
+                const origReasons = JSON.stringify(original.reasons || []);
+                const currReasons = JSON.stringify(selectedReasons);
+                const origNote = String(original.note ?? '');
+
+                const unchanged = String(original.traffic ?? '') === trf &&
+                                   String(original.bills ?? '') === bill &&
+                                   String(original.company_online_bills ?? '') === co &&
+                                   String(original.store_online_bills ?? '') === so &&
+                                   origReasons === currReasons &&
+                                   origNote === customNote;
+                if (unchanged) return;
+
                 if (trf !== '' && bill !== '') {
                     const tVal = Number(trf);
                     const bVal = Number(bill);
@@ -1649,7 +1896,11 @@
                     traffic: trf,
                     bills: bill,
                     company_online_bills: co,
-                    store_online_bills: so
+                    store_online_bills: so,
+                    non_purchase_reasons: {
+                        reasons: selectedReasons,
+                        note: customNote
+                    }
                 };
             });
             
@@ -1756,6 +2007,64 @@
             });
             supportContainer.appendChild(clone);
             toggleEmptyStates();
+        }
+
+        function renderPendingSupportWidget(pendingList) {
+            const pendingWidget = document.getElementById('pending-support-widget');
+            const pendingContainer = document.getElementById('pending-support-container');
+            const pendingBadge = document.getElementById('pending-count-badge');
+            
+            pendingContainer.innerHTML = '';
+            if (pendingList && pendingList.length > 0) {
+                pendingBadge.innerText = pendingList.length;
+                pendingWidget.classList.remove('hidden');
+                
+                pendingList.forEach(p => {
+                    let statusBadge = '<span class="status-badge badge-amber font-bold">🟡 Đang xử lý</span>';
+                    if (p.status === 'Chờ hàng / PB khác') statusBadge = '<span class="status-badge badge-amber font-bold">🟠 Chờ hàng / PB khác</span>';
+                    else if (p.status === 'Hoàn tất') statusBadge = '<span class="status-badge badge-green font-bold">🟢 Hoàn tất</span>';
+                    else if (p.status === 'Đã hủy') statusBadge = '<span class="status-badge badge-red font-bold">🔴 Đã hủy</span>';
+
+                    const cardHtml = `
+                        <div class="pending-card card p-3.5 rounded-xl border border-amber-300 bg-white space-y-2.5 shadow-xs" data-ticket-code="${p.ticket_code}">
+                            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-mono font-extrabold text-brand-red text-xs">${p.ticket_code}</span>
+                                    <span class="text-[10px] text-gray-500 font-bold bg-gray-100 px-2 py-0.5 rounded">Kỳ BC: ${p.report_date}</span>
+                                    <span class="text-[10px] text-brand-navy font-extrabold">[${p.category || 'VẬN HÀNH'}]</span>
+                                </div>
+                                <div>${statusBadge}</div>
+                            </div>
+                            
+                            <div class="text-xs font-bold text-gray-900">${p.issue_item}</div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px] text-gray-700 bg-amber-50/50 p-2.5 rounded-lg border border-amber-200/50">
+                                <div><strong>Thời hạn mong muốn:</strong> ${p.deadline || 'Chưa rõ'} | <strong>Phụ trách:</strong> ${p.person_in_charge || 'QLKD'}</div>
+                                <div><strong>💬 Phản hồi ASM / Trụ sở:</strong> ${p.asm_hq_note ? `<span class="text-brand-navy font-bold">${p.asm_hq_note}</span>` : '<span class="italic text-gray-400">Chưa có phản hồi</span>'}</div>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-gray-700 uppercase mb-1">Xác nhận trạng thái thực tế</label>
+                                    <select class="val-pending-status input-field text-xs py-1 font-bold">
+                                        <option value="Đang xử lý" ${p.status === 'Đang xử lý' ? 'selected' : ''}>🟡 Đang xử lý</option>
+                                        <option value="Chờ hàng / PB khác" ${p.status === 'Chờ hàng / PB khác' ? 'selected' : ''}>🟠 Chờ hàng / PB khác</option>
+                                        <option value="Hoàn tất" ${p.status === 'Hoàn tất' ? 'selected' : ''}>🟢 Hoàn tất (Đã xử lý xong)</option>
+                                        <option value="Đã hủy" ${p.status === 'Đã hủy' ? 'selected' : ''}>🔴 Đã hủy</option>
+                                    </select>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-[10px] font-bold text-gray-700 uppercase mb-1">🔄 Cửa hàng cập nhật tiến độ thực tế tuần này</label>
+                                    <input type="text" class="val-pending-note input-field text-xs py-1" value="${p.store_progress_note || ''}" placeholder="Ví dụ: Đã nhận 50% linh kiện ngày 23/07, chờ bổ sung...">
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    pendingContainer.innerHTML += cardHtml;
+                });
+            } else {
+                pendingWidget.classList.add('hidden');
+            }
         }
 
         btnAddContract.addEventListener('click', () => addContractRow());
@@ -1901,6 +2210,22 @@
                 support_requests.push({ category, priority, issue_item, deadline });
             }
 
+            // Gather Rollover Pending Support Updates
+            const pending_support_updates = [];
+            const pCards = document.querySelectorAll('#pending-support-container .pending-card');
+            pCards.forEach(card => {
+                const tcode = card.getAttribute('data-ticket-code');
+                const pstatus = card.querySelector('.val-pending-status').value;
+                const pnote = card.querySelector('.val-pending-note').value.trim();
+                if (tcode) {
+                    pending_support_updates.push({
+                        ticket_code: tcode,
+                        status: pstatus,
+                        store_progress_note: pnote
+                    });
+                }
+            });
+
             btnSubmit.disabled = true;
             btnSubmit.innerHTML = "⌛ ĐANG NỘP BÁO CÁO...";
 
@@ -1919,7 +2244,8 @@
                         contracts: contracts,
                         unsigned_contracts: unsigned_contracts,
                         details: details,
-                        support_requests: support_requests
+                        support_requests: support_requests,
+                        pending_support_updates: pending_support_updates
                     })
                 });
                 
@@ -2302,6 +2628,8 @@
 
         statusReportDate.addEventListener('change', loadSubmissionStatus);
         statusSupportReportDate.addEventListener('change', loadSupportRequests);
+        const filterSupportEl = document.getElementById('status-support-filter');
+        if (filterSupportEl) filterSupportEl.addEventListener('change', loadSupportRequests);
         btnRefreshTrafficStatus.addEventListener('click', loadDailyTrafficSummary);
 
         function showToast(title, message, icon) {
@@ -2353,8 +2681,104 @@
                 btn.classList.add('active');
                 const target = document.getElementById('qr-tab-' + btn.dataset.tab);
                 if (target) target.classList.add('active');
+                if (btn.dataset.tab === 'khong-mua') {
+                    loadNonPurchaseAnalytics();
+                }
             });
         });
+
+        async function loadNonPurchaseAnalytics() {
+            const dateVal = qrDateFilter ? qrDateFilter.value : '';
+            const asmVal = (currentStore && currentStore.role === 'asm') ? currentStore.asm : (qrAsmFilter ? qrAsmFilter.value : 'ALL');
+            
+            const totalTrfEl = document.getElementById('np-total-traffic');
+            const totalBillsEl = document.getElementById('np-total-bills');
+            const unconvertedEl = document.getElementById('np-unconverted');
+            const crPctEl = document.getElementById('np-cr-pct');
+            const reasonBarsEl = document.getElementById('np-reason-bars');
+            const storeBodyEl = document.getElementById('np-store-rankings-body');
+            const alertBannerEl = document.getElementById('np-alert-banner');
+            const alertTextEl = document.getElementById('np-alert-text');
+
+            if (reasonBarsEl) reasonBarsEl.innerHTML = '<div class="text-center text-gray-400 py-4 italic">Đang tải phân tích nguyên nhân...</div>';
+            
+            try {
+                let url = `/api/get_non_purchase_analytics?report_date=${dateVal}&asm=${encodeURIComponent(asmVal)}`;
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                if (data.ok) {
+                    const s = data.summary;
+                    if (totalTrfEl) totalTrfEl.innerText = (s.total_traffic || 0).toLocaleString();
+                    if (totalBillsEl) totalBillsEl.innerText = (s.total_bills || 0).toLocaleString();
+                    if (unconvertedEl) unconvertedEl.innerText = (s.total_unconverted || 0).toLocaleString();
+                    if (crPctEl) crPctEl.innerText = (s.cr_percent || 0) + '%';
+                    
+                    if (reasonBarsEl) {
+                        reasonBarsEl.innerHTML = '';
+                        const bd = data.reason_breakdown || {};
+                        let maxPct = 0;
+                        let maxLabel = '';
+                        
+                        Object.keys(bd).forEach(key => {
+                            const item = bd[key];
+                            if (item.percentage > maxPct) {
+                                maxPct = item.percentage;
+                                maxLabel = item.label;
+                            }
+                            
+                            let barColor = 'bg-brand-navy';
+                            if (key === 'SIZE') barColor = 'bg-brand-red';
+                            else if (key === 'STYLE') barColor = 'bg-amber-500';
+                            else if (key === 'PRICE') barColor = 'bg-emerald-600';
+
+                            reasonBarsEl.innerHTML += `
+                                <div class="space-y-1">
+                                    <div class="flex justify-between items-center text-xs font-semibold">
+                                        <span class="text-gray-800">${item.label}</span>
+                                        <span class="font-mono font-extrabold text-brand-navy">${(item.count || 0).toLocaleString()} lượt (${item.percentage}%)</span>
+                                    </div>
+                                    <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                                        <div class="${barColor} h-2 rounded-full transition-all duration-500" style="width: ${item.percentage}%"></div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        
+                        if (maxPct >= 30 && alertBannerEl && alertTextEl) {
+                            alertTextEl.innerHTML = `<strong>CẢNH BÁO THẤT THOÁT CR:</strong> Nguyên nhân <strong>"${maxLabel}"</strong> đang chiếm tới <strong>${maxPct}%</strong> tổng số lượt khách không mua. Cần gửi thông báo gấp tới Khối Cung Ứng & Vận Hành để điều chỉnh!`;
+                            alertBannerEl.classList.remove('hidden');
+                        } else if (alertBannerEl) {
+                            alertBannerEl.classList.add('hidden');
+                        }
+                    }
+
+                    if (storeBodyEl) {
+                        storeBodyEl.innerHTML = '';
+                        if (!data.store_rankings || data.store_rankings.length === 0) {
+                            storeBodyEl.innerHTML = '<tr><td colspan="7" class="text-center py-6 text-gray-400 italic">Không có dữ liệu lượt khách trong kỳ báo cáo.</td></tr>';
+                            return;
+                        }
+                        
+                        data.store_rankings.forEach(st => {
+                            storeBodyEl.innerHTML += `
+                                <tr class="hover:bg-amber-50/50 transition-colors">
+                                    <td class="py-2.5 px-3 text-brand-navy font-extrabold">${st.store_name}</td>
+                                    <td class="py-2.5 px-3 text-gray-700 font-medium">${st.asm_name}</td>
+                                    <td class="py-2.5 px-3 text-center font-mono">${(st.traffic || 0).toLocaleString()}</td>
+                                    <td class="py-2.5 px-3 text-center font-mono">${(st.bills || 0).toLocaleString()}</td>
+                                    <td class="py-2.5 px-3 text-center font-mono font-extrabold text-brand-red">${(st.unconverted || 0).toLocaleString()}</td>
+                                    <td class="py-2.5 px-3 text-center font-extrabold text-amber-600">${st.cr_percent}%</td>
+                                    <td class="py-2.5 px-3 text-gray-800 font-bold whitespace-normal break-words">${st.top_reason}</td>
+                                </tr>
+                            `;
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error("Lỗi load non-purchase analytics:", err);
+            }
+        }
 
         async function loadQuickReport() {
             const role = currentStore ? currentStore.role : null;
@@ -2362,6 +2786,13 @@
             const asmName = currentStore ? currentStore.asm_name : null;
             const dateVal = qrDateFilter ? qrDateFilter.value : '';
             const asmVal = qrAsmFilter ? qrAsmFilter.value : '';
+            
+            // Also refresh non-purchase tab if active
+            const activeTab = document.querySelector('.qr-tab-switch.active');
+            if (activeTab && activeTab.dataset.tab === 'khong-mua') {
+                loadNonPurchaseAnalytics();
+            }
+
             try {
                 const params = new URLSearchParams({
                     role: role||'store',

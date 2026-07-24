@@ -112,6 +112,16 @@ def safe_migrate_db():
         "ALTER TABLE tb_contracts ADD COLUMN customer_name TEXT DEFAULT ''",
         # contract_number cho HĐ 3.2 (unsigned)
         "ALTER TABLE tb_unsigned_contracts ADD COLUMN contract_number TEXT DEFAULT 'Đang GD'",
+        # Support Request Ticket Lifecycle fields (Section 4.5)
+        "ALTER TABLE tb_support_requests ADD COLUMN ticket_code TEXT DEFAULT ''",
+        "ALTER TABLE tb_support_requests ADD COLUMN status TEXT DEFAULT 'Đang xử lý'",
+        "ALTER TABLE tb_support_requests ADD COLUMN store_progress_note TEXT DEFAULT ''",
+        "ALTER TABLE tb_support_requests ADD COLUMN asm_hq_note TEXT DEFAULT ''",
+        "ALTER TABLE tb_support_requests ADD COLUMN created_at TEXT DEFAULT ''",
+        "ALTER TABLE tb_support_requests ADD COLUMN updated_at TEXT DEFAULT ''",
+        # Non-Purchase Reason Analytics fields
+        "ALTER TABLE tb_traffic ADD COLUMN non_purchase_reasons TEXT DEFAULT ''",
+        "ALTER TABLE tb_operational_reports ADD COLUMN weekly_top_reasons TEXT DEFAULT ''",
     ]
     conn = get_db_connection()
     cur = conn.cursor()
@@ -121,11 +131,31 @@ def safe_migrate_db():
             conn.commit()
             print(f"✅ [Migration] {sql[:60]}...")
         except Exception as e:
+            conn.rollback()
             # Column already exists — safe to ignore
             if 'duplicate' in str(e).lower() or 'already exists' in str(e).lower():
                 pass
             else:
                 print(f"⚠️  [Migration] Bỏ qua: {e}")
+                
+    # Generate ticket_code for any existing rows without a ticket_code
+    try:
+        if DATABASE_URL and psycopg2:
+            cur.execute("""
+            UPDATE tb_support_requests 
+            SET ticket_code = 'TK-' || store_code || '-' || REPLACE(report_date, '-', '') || '-' || id
+            WHERE ticket_code IS NULL OR ticket_code = ''
+            """)
+        else:
+            cur.execute("""
+            UPDATE tb_support_requests 
+            SET ticket_code = 'TK-' || store_code || '-' || REPLACE(report_date, '-', '') || '-' || rowid
+            WHERE ticket_code IS NULL OR ticket_code = ''
+            """)
+        conn.commit()
+    except Exception as e:
+        print(f"⚠️ [Migration] Error updating ticket_codes: {e}")
+
     cur.close()
     conn.close()
 
@@ -340,14 +370,16 @@ def get_daily_traffic():
             
         # Query daily traffic and bills for this store and month
         prefix = f"{year}-{int(month):02d}-%"
-        rows = query_db("SELECT traffic_date, traffic_val, bills_val, company_online_bills, store_online_bills FROM tb_traffic WHERE store_code = ? AND traffic_date LIKE ?", (store_code, prefix))
-        
+        rows = query_db("SELECT traffic_date, traffic_val, bills_val, company_online_bills, store_online_bills, data_source, non_purchase_reasons FROM tb_traffic WHERE store_code = ? AND traffic_date LIKE ?", (store_code, prefix))
+
         traffic_map = {
             r['traffic_date']: {
                 'traffic': r['traffic_val'],
                 'bills': r['bills_val'] or 0,
                 'company_online_bills': r['company_online_bills'] or 0,
-                'store_online_bills': r['store_online_bills'] or 0
+                'store_online_bills': r['store_online_bills'] or 0,
+                'data_source': r['data_source'] or 'store_actual',
+                'non_purchase_reasons': r.get('non_purchase_reasons', '') or ''
             } for r in rows
         }
         return jsonify({'ok': True, 'traffic': traffic_map})
@@ -378,6 +410,12 @@ def submit_daily_traffic():
             bills_str = day_data.get('bills', '') if isinstance(day_data, dict) else ''
             co_str = day_data.get('company_online_bills', '') if isinstance(day_data, dict) else ''
             so_str = day_data.get('store_online_bills', '') if isinstance(day_data, dict) else ''
+            reasons_input = day_data.get('non_purchase_reasons', '') if isinstance(day_data, dict) else ''
+
+            if isinstance(reasons_input, (dict, list)):
+                reasons_str = json.dumps(reasons_input, ensure_ascii=False)
+            else:
+                reasons_str = str(reasons_input or '').strip()
             
             if (traffic_str is None or str(traffic_str).strip() == '') and (bills_str is None or str(bills_str).strip() == ''):
                 # Delete record if cleared
@@ -393,19 +431,23 @@ def submit_daily_traffic():
                         continue
                     if DATABASE_URL:
                         execute_db("""
-                        INSERT INTO tb_traffic (store_code, traffic_date, traffic_val, bills_val, company_online_bills, store_online_bills)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                        ON CONFLICT (store_code, traffic_date) DO UPDATE SET 
+                        INSERT INTO tb_traffic (store_code, traffic_date, traffic_val, bills_val, company_online_bills, store_online_bills, data_source, non_purchase_reasons)
+                        VALUES (?, ?, ?, ?, ?, ?, 'store_actual', ?)
+                        ON CONFLICT (store_code, traffic_date) DO UPDATE SET
                             traffic_val = EXCLUDED.traffic_val,
                             bills_val = EXCLUDED.bills_val,
                             company_online_bills = EXCLUDED.company_online_bills,
-                            store_online_bills = EXCLUDED.store_online_bills
-                        """, (store_code, date_str, trf_val, bil_val, co_val, so_val))
+                            store_online_bills = EXCLUDED.store_online_bills,
+                            data_source = 'store_actual',
+                            non_purchase_reasons = EXCLUDED.non_purchase_reasons
+                        """, (store_code, date_str, trf_val, bil_val, co_val, so_val, reasons_str))
                     else:
                         execute_db("""
-                        INSERT OR REPLACE INTO tb_traffic (store_code, traffic_date, traffic_val, bills_val, company_online_bills, store_online_bills)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                        """, (store_code, date_str, trf_val, bil_val, co_val, so_val))
+                        INSERT OR REPLACE INTO tb_traffic (store_code, traffic_date, traffic_val, bills_val, company_online_bills, store_online_bills, data_source, non_purchase_reasons)
+                        VALUES (?, ?, ?, ?, ?, ?, 'store_actual', ?)
+                        """, (store_code, date_str, trf_val, bil_val, co_val, so_val, reasons_str))
+                except ValueError:
+                    continue
                 except ValueError:
                     continue
                     
@@ -440,7 +482,15 @@ def get_operational_report():
         details = query_db("SELECT * FROM tb_operational_details WHERE store_code = ? AND report_date = ?", (store_code, report_date), one=True)
         
         # Query support requests (Section 4.5)
-        support = query_db("SELECT category, priority, issue_item, deadline, person_in_charge FROM tb_support_requests WHERE store_code = ? AND report_date = ?", (store_code, report_date))
+        support = query_db("SELECT ticket_code, category, priority, issue_item, deadline, person_in_charge, status, store_progress_note, asm_hq_note, report_date FROM tb_support_requests WHERE store_code = ? AND report_date = ?", (store_code, report_date))
+        
+        # Query rollover pending support requests from previous weeks
+        pending_support = query_db("""
+            SELECT ticket_code, category, priority, issue_item, deadline, person_in_charge, status, store_progress_note, asm_hq_note, report_date 
+            FROM tb_support_requests 
+            WHERE store_code = ? AND report_date < ? AND (status IS NULL OR status NOT IN ('Hoàn tất', 'Đã hủy'))
+            ORDER BY report_date DESC
+        """, (store_code, report_date))
         
         # Get traffic and bills for this specific Friday (report_date) if nộp in weekly
         traffic_row = query_db("SELECT traffic_val, bills_val, company_online_bills, store_online_bills FROM tb_traffic WHERE store_code = ? AND traffic_date = ?", (store_code, report_date), one=True)
@@ -458,7 +508,8 @@ def get_operational_report():
             'contracts': contracts,
             'unsigned_contracts': unsigned,
             'details': details or {},
-            'support_requests': support
+            'support_requests': support,
+            'pending_support_requests': pending_support
         })
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
@@ -500,15 +551,16 @@ def submit_data():
             
             if DATABASE_URL:
                 execute_db("""
-                INSERT INTO tb_traffic (store_code, traffic_date, traffic_val, bills_val, company_online_bills, store_online_bills) VALUES (?, ?, ?, ?, ?, ?)
-                ON CONFLICT (store_code, traffic_date) DO UPDATE SET 
+                INSERT INTO tb_traffic (store_code, traffic_date, traffic_val, bills_val, company_online_bills, store_online_bills, data_source) VALUES (?, ?, ?, ?, ?, ?, 'store_actual')
+                ON CONFLICT (store_code, traffic_date) DO UPDATE SET
                     traffic_val = EXCLUDED.traffic_val,
                     bills_val = EXCLUDED.bills_val,
                     company_online_bills = EXCLUDED.company_online_bills,
-                    store_online_bills = EXCLUDED.store_online_bills
+                    store_online_bills = EXCLUDED.store_online_bills,
+                    data_source = 'store_actual'
                 """, (store_code, report_date, trf_int, bil_int, co_int, so_int))
             else:
-                execute_db("INSERT OR REPLACE INTO tb_traffic (store_code, traffic_date, traffic_val, bills_val, company_online_bills, store_online_bills) VALUES (?, ?, ?, ?, ?, ?)", 
+                execute_db("INSERT OR REPLACE INTO tb_traffic (store_code, traffic_date, traffic_val, bills_val, company_online_bills, store_online_bills, data_source) VALUES (?, ?, ?, ?, ?, ?, 'store_actual')",
                            (store_code, report_date, trf_int, bil_int, co_int, so_int))
             
         # 3. Save Contracts (Section 3.1) — includes customer_name
@@ -580,19 +632,40 @@ def submit_data():
         ))
         
         # 6. Save Support Requests (Section 4.5)
+        # First: update any rollover pending tickets from previous weeks
+        pending_updates = data.get('pending_support_updates', [])
+        now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        for psu in pending_updates:
+            tcode = str(psu.get('ticket_code', '')).strip()
+            pstatus = str(psu.get('status', 'Đang xử lý')).strip()
+            pnote = str(psu.get('store_progress_note', '')).strip()
+            if tcode:
+                execute_db("""
+                UPDATE tb_support_requests
+                SET status = ?, store_progress_note = ?, updated_at = ?
+                WHERE ticket_code = ? AND store_code = ?
+                """, (pstatus, pnote, now_str, tcode, store_code))
+
+        # Second: Save current week's support requests
         execute_db("DELETE FROM tb_support_requests WHERE store_code = ? AND report_date = ?", (store_code, report_date))
-        for sr in support_requests:
+        date_clean = report_date.replace('-', '')
+        for idx, sr in enumerate(support_requests, 1):
             cat = str(sr.get('category', '')).strip()
             pri = str(sr.get('priority', 'Trung bình')).strip()
             item = str(sr.get('issue_item', '')).strip()
             dl = str(sr.get('deadline', '')).strip()
             pic = str(sr.get('person_in_charge', 'QLKD / ASM')).strip()
+            status = str(sr.get('status', 'Đang xử lý')).strip()
+            sp_note = str(sr.get('store_progress_note', '')).strip()
+            hq_note = str(sr.get('asm_hq_note', '')).strip()
+            tcode = str(sr.get('ticket_code', '')).strip() or f"TK-{store_code}-{date_clean}-{idx:02d}"
             
             if item:
                 execute_db("""
-                INSERT INTO tb_support_requests (store_code, report_date, category, priority, issue_item, deadline, person_in_charge)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (store_code, report_date, cat, pri, item, dl, pic))
+                INSERT INTO tb_support_requests 
+                (ticket_code, store_code, report_date, category, priority, issue_item, deadline, person_in_charge, status, store_progress_note, asm_hq_note, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (tcode, store_code, report_date, cat, pri, item, dl, pic, status, sp_note, hq_note, now_str, now_str))
         
         if support_requests:
             async_sync_and_alert(store_code, report_date, support_requests)
@@ -672,37 +745,297 @@ def get_submission_status():
 
 @app.route('/api/get_support_requests', methods=['GET'])
 def get_support_requests():
-    report_date = request.args.get('report_date') or get_report_date().strftime('%Y-%m-%d')
+    report_date = request.args.get('report_date')
     asm = request.args.get('asm')
+    store_code = request.args.get('store_code')
+    status_filter = request.args.get('status_filter', 'ALL') # 'ALL', 'ACTIVE', 'COMPLETED'
+    
     try:
-        if asm:
-            rows = query_db("""
-                SELECT s.store_name, r.category, r.priority, r.issue_item, r.deadline, r.person_in_charge 
-                FROM tb_support_requests r
-                JOIN tb_stores s ON r.store_code = s.store_code
-                WHERE r.report_date = ? AND s.asm_name = ?
-                ORDER BY s.store_name, r.priority DESC
-            """, (report_date, asm))
-        else:
-            rows = query_db("""
-                SELECT s.store_name, r.category, r.priority, r.issue_item, r.deadline, r.person_in_charge 
-                FROM tb_support_requests r
-                JOIN tb_stores s ON r.store_code = s.store_code
-                WHERE r.report_date = ?
-                ORDER BY s.store_name, r.priority DESC
-            """, (report_date,))
+        where_clauses = []
+        args = []
+        
+        if report_date:
+            where_clauses.append("r.report_date = ?")
+            args.append(report_date)
+        if asm and asm != 'ALL' and asm != 'undefined':
+            where_clauses.append("s.asm_name = ?")
+            args.append(asm)
+        if store_code:
+            where_clauses.append("r.store_code = ?")
+            args.append(store_code)
+            
+        if status_filter == 'ACTIVE':
+            where_clauses.append("(r.status IS NULL OR r.status NOT IN ('Hoàn tất', 'Đã hủy'))")
+        elif status_filter == 'COMPLETED':
+            where_clauses.append("r.status IN ('Hoàn tất', 'Đã hủy')")
+            
+        where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+        
+        sql = f"""
+            SELECT r.ticket_code, r.store_code, s.store_name, s.asm_name, r.category, r.priority, 
+                   r.issue_item, r.deadline, r.person_in_charge, r.status, 
+                   r.store_progress_note, r.asm_hq_note, r.report_date, r.updated_at
+            FROM tb_support_requests r
+            JOIN tb_stores s ON r.store_code = s.store_code
+            {where_sql}
+            ORDER BY CASE r.priority WHEN 'Cao' THEN 1 WHEN 'Trung bình' THEN 2 ELSE 3 END, r.report_date DESC
+        """
+        rows = query_db(sql, tuple(args))
             
         results = []
         for r in rows:
             results.append({
+                'ticket_code': r['ticket_code'] or f"TK-{r['store_code']}-{r['report_date']}",
+                'store_code': r['store_code'],
                 'store_name': r['store_name'],
+                'asm_name': r['asm_name'],
                 'category': r['category'],
                 'priority': r['priority'],
                 'issue_item': r['issue_item'],
                 'deadline': r['deadline'],
-                'person_in_charge': r['person_in_charge']
+                'person_in_charge': r['person_in_charge'],
+                'status': r['status'] or 'Đang xử lý',
+                'store_progress_note': r['store_progress_note'] or '',
+                'asm_hq_note': r['asm_hq_note'] or '',
+                'report_date': r['report_date'],
+                'updated_at': r['updated_at'] or ''
             })
         return jsonify({'ok': True, 'requests': results})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)})
+
+@app.route('/api/update_support_ticket', methods=['POST'])
+def update_support_ticket():
+    data = request.json or {}
+    ticket_code = data.get('ticket_code')
+    pin = data.get('pin')
+    status = data.get('status')
+    store_progress_note = data.get('store_progress_note')
+    asm_hq_note = data.get('asm_hq_note')
+    person_in_charge = data.get('person_in_charge')
+    
+    if not ticket_code:
+        return jsonify({'ok': False, 'error': 'Mã ticket không hợp lệ'})
+        
+    ticket = query_db("SELECT * FROM tb_support_requests WHERE ticket_code = ?", (ticket_code,), one=True)
+    if not ticket:
+        return jsonify({'ok': False, 'error': 'Không tìm thấy thông tin sự vụ'})
+        
+    master_pin = os.environ.get('MASTER_PIN', '8888')
+    is_valid_pin = (pin == master_pin)
+    if not is_valid_pin and pin:
+        # Check store pin
+        store = query_db("SELECT * FROM tb_stores WHERE store_code = ? AND passcode = ?", (ticket['store_code'], pin), one=True)
+        if store or _default_pin_allowed(pin):
+            is_valid_pin = True
+        else:
+            # Check ASM pin
+            asm = query_db("SELECT * FROM tb_asms WHERE passcode = ?", (pin,), one=True)
+            if asm:
+                is_valid_pin = True
+                
+    if not is_valid_pin:
+        return jsonify({'ok': False, 'error': 'Mã PIN không có quyền cập nhật sự vụ này'})
+        
+    now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    
+    updates = []
+    args = []
+    if status is not None:
+        updates.append("status = ?")
+        args.append(status)
+    if store_progress_note is not None:
+        updates.append("store_progress_note = ?")
+        args.append(store_progress_note)
+    if asm_hq_note is not None:
+        updates.append("asm_hq_note = ?")
+        args.append(asm_hq_note)
+    if person_in_charge is not None:
+        updates.append("person_in_charge = ?")
+        args.append(person_in_charge)
+        
+    if not updates:
+        return jsonify({'ok': False, 'error': 'Không có thông tin thay đổi'})
+        
+    updates.append("updated_at = ?")
+    args.append(now_str)
+    args.append(ticket_code)
+    
+    query = f"UPDATE tb_support_requests SET {', '.join(updates)} WHERE ticket_code = ?"
+    execute_db(query, tuple(args))
+    
+    return jsonify({'ok': True, 'message': f'Đã cập nhật sự vụ {ticket_code} thành công!'})
+
+# ──────────────────────────────────────────────────────────────────────────────
+# NEW API: NON-PURCHASE REASON ANALYTICS
+# ──────────────────────────────────────────────────────────────────────────────
+@app.route('/api/get_non_purchase_analytics', methods=['GET'])
+def get_non_purchase_analytics():
+    """
+    API Báo cáo Phân tích Nguyên nhân Khách không mua hàng (Loss Conversion Analytics)
+    Dành cho ASM, Admin và Ban Giám Đốc.
+    """
+    report_date = request.args.get('report_date')
+    asm_filter = request.args.get('asm')
+    store_filter = request.args.get('store_code')
+    year = request.args.get('year')
+    month = request.args.get('month')
+    
+    if report_date:
+        try:
+            rdate = datetime.strptime(report_date, '%Y-%m-%d').date()
+            start_date = (rdate - timedelta(days=6)).strftime('%Y-%m-%d')
+            end_date = report_date
+        except Exception:
+            start_date = report_date
+            end_date = report_date
+    elif year and month:
+        start_date = f"{year}-{int(month):02d}-01"
+        end_date = f"{year}-{int(month):02d}-31"
+    else:
+        rdate = get_report_date()
+        end_date = rdate.strftime('%Y-%m-%d')
+        start_date = (rdate - timedelta(days=6)).strftime('%Y-%m-%d')
+
+    try:
+        sql = """
+            SELECT t.store_code, s.store_name, s.asm_name, s.region,
+                   t.traffic_date, t.traffic_val, t.bills_val, t.non_purchase_reasons
+            FROM tb_traffic t
+            JOIN tb_stores s ON t.store_code = s.store_code
+            WHERE t.traffic_date >= ? AND t.traffic_date <= ?
+        """
+        args = [start_date, end_date]
+        if asm_filter and asm_filter != 'ALL' and asm_filter != 'undefined':
+            sql += " AND s.asm_name = ?"
+            args.append(asm_filter)
+        if store_filter:
+            sql += " AND s.store_code = ?"
+            args.append(store_filter)
+
+        sql += " ORDER BY s.asm_name, s.store_name, t.traffic_date"
+
+        rows = query_db(sql, args)
+
+        total_traffic = 0
+        total_bills = 0
+        total_unconverted = 0
+        
+        reason_counts = {
+            'SIZE': 0,
+            'STYLE': 0,
+            'PRICE': 0,
+            'BROWSE': 0,
+            'NEW_COLLECTION': 0,
+            'SERVICE': 0,
+            'OTHER': 0
+        }
+        
+        reason_labels = {
+            'SIZE': 'Đứt size / Thiếu size',
+            'STYLE': 'Mẫu mã / Màu sắc chưa ưng',
+            'PRICE': 'Giá cao / Chờ khuyến mãi',
+            'BROWSE': 'Khách chỉ vào xem mẫu',
+            'NEW_COLLECTION': 'Thiếu hàng mới / BST',
+            'SERVICE': 'Phục vụ / Chờ đợi lâu',
+            'OTHER': 'Lý do khác'
+        }
+        
+        store_stats = {}
+        notes_list = []
+
+        for r in rows:
+            trf = r['traffic_val'] or 0
+            bil = r['bills_val'] or 0
+            unconverted = max(0, trf - bil)
+            
+            total_traffic += trf
+            total_bills += bil
+            total_unconverted += unconverted
+            
+            scode = r['store_code']
+            sname = r['store_name']
+            asm = r['asm_name']
+            
+            if scode not in store_stats:
+                store_stats[scode] = {
+                    'store_code': scode,
+                    'store_name': sname,
+                    'asm_name': asm,
+                    'region': r['region'],
+                    'traffic': 0,
+                    'bills': 0,
+                    'unconverted': 0,
+                    'reasons': {k: 0 for k in reason_counts.keys()},
+                    'notes': []
+                }
+                
+            store_stats[scode]['traffic'] += trf
+            store_stats[scode]['bills'] += bil
+            store_stats[scode]['unconverted'] += unconverted
+
+            reasons_raw = r['non_purchase_reasons'] or ''
+            if reasons_raw:
+                try:
+                    if reasons_raw.startswith('{'):
+                        parsed = json.loads(reasons_raw)
+                        r_list = parsed.get('reasons', [])
+                        note = parsed.get('note', '').strip()
+                    else:
+                        r_list = [x.strip() for x in reasons_raw.split(',') if x.strip()]
+                        note = ''
+                        
+                    for key in r_list:
+                        if key in reason_counts:
+                            reason_counts[key] += 1
+                            store_stats[scode]['reasons'][key] += 1
+                            
+                    if note:
+                        notes_list.append({
+                            'store_name': sname,
+                            'date': r['traffic_date'],
+                            'note': note
+                        })
+                        store_stats[scode]['notes'].append(note)
+                except Exception:
+                    pass
+
+        total_reason_hits = sum(reason_counts.values())
+        reason_percentages = {}
+        for key, count in reason_counts.items():
+            pct = round((count / total_reason_hits * 100), 1) if total_reason_hits > 0 else 0
+            reason_percentages[key] = {
+                'label': reason_labels.get(key, key),
+                'count': count,
+                'percentage': pct
+            }
+
+        store_list = []
+        for scode, s in store_stats.items():
+            trf = s['traffic']
+            bil = s['bills']
+            cr = round((bil / trf * 100), 1) if trf > 0 else 0
+            s['cr_percent'] = cr
+            top_key = max(s['reasons'], key=s['reasons'].get) if sum(s['reasons'].values()) > 0 else None
+            s['top_reason'] = reason_labels.get(top_key, 'Chưa ghi nhận') if top_key else 'Chưa ghi nhận'
+            store_list.append(s)
+            
+        store_list.sort(key=lambda x: x['unconverted'], reverse=True)
+
+        return jsonify({
+            'ok': True,
+            'period': {'start_date': start_date, 'end_date': end_date},
+            'summary': {
+                'total_traffic': total_traffic,
+                'total_bills': total_bills,
+                'total_unconverted': total_unconverted,
+                'cr_percent': round((total_bills / total_traffic * 100), 1) if total_traffic > 0 else 0,
+                'total_reason_hits': total_reason_hits
+            },
+            'reason_breakdown': reason_percentages,
+            'store_rankings': store_list,
+            'custom_notes': notes_list[:50]
+        })
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
 
@@ -1090,7 +1423,7 @@ def export_excel():
         filter_asm = None
         if role == 'asm':
             filter_asm = asm
-        elif role == 'admin' and asm:
+        elif role == 'admin' and asm and asm != 'ALL':
             filter_asm = asm
             
         # 1. Fetch data
@@ -1427,6 +1760,59 @@ def export_excel():
             })
         df_support = pd.DataFrame(support_data) if support_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'Khu Vực', 'Danh Mục Hỗ Trợ', 'Độ Ưu Tiên', 'Nội Dung Sự Việc Cụ Thể', 'Thời Hạn Hoàn Thành', 'Người Chịu Trách Nhiệm'])
         
+        # Sheet 7: Phân Tích Lý Do Khách Không Mua Hàng
+        np_rows = query_db("""
+            SELECT t.store_code, s.store_name, s.asm_name, s.region,
+                   t.traffic_date, t.traffic_val, t.bills_val, t.non_purchase_reasons
+            FROM tb_traffic t
+            JOIN tb_stores s ON t.store_code = s.store_code
+            WHERE t.traffic_date >= ? AND t.traffic_date <= ?
+            ORDER BY s.asm_name, s.store_name, t.traffic_date
+        """, (start_date, end_date))
+        
+        np_data = []
+        for r in np_rows:
+            trf = r['traffic_val'] or 0
+            bil = r['bills_val'] or 0
+            unconverted = max(0, trf - bil)
+            cr = round((bil / trf * 100), 1) if trf > 0 else 0
+            
+            reasons_raw = r['non_purchase_reasons'] or ''
+            reason_text = ''
+            note_text = ''
+            if reasons_raw:
+                try:
+                    if reasons_raw.startswith('{'):
+                        parsed = json.loads(reasons_raw)
+                        r_list = parsed.get('reasons', [])
+                        note_text = parsed.get('note', '').strip()
+                    else:
+                        r_list = [x.strip() for x in reasons_raw.split(',') if x.strip()]
+                    
+                    lbl_map = {
+                        'SIZE': 'Đứt size', 'STYLE': 'Mẫu mã', 'PRICE': 'Giá/KM',
+                        'BROWSE': 'Chỉ xem', 'NEW_COLLECTION': 'Thiếu hàng mới',
+                        'SERVICE': 'Phục vụ', 'OTHER': 'Lý do khác'
+                    }
+                    reason_text = ', '.join([lbl_map.get(k, k) for k in r_list])
+                except Exception:
+                    reason_text = reasons_raw
+
+            np_data.append({
+                'Mã Cửa Hàng': r['store_code'],
+                'Tên Cửa Hàng': r['store_name'],
+                'ASM Phụ Trách': r['asm_name'],
+                'Khu Vực': r['region'],
+                'Ngày': r['traffic_date'],
+                'Lượt Khách (Traffic)': trf,
+                'Số Hóa Đơn (Bills)': bil,
+                'Khách Không Mua': unconverted,
+                'CR (%)': cr,
+                'Lý Do Chính Khách Không Mua': reason_text or 'Chưa ghi nhận',
+                'Ghi Chú Chi Tiết Tại Quầy': note_text
+            })
+        df_non_purchase = pd.DataFrame(np_data) if np_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'ASM Phụ Trách', 'Khu Vực', 'Ngày', 'Lượt Khách (Traffic)', 'Số Hóa Đơn (Bills)', 'Khách Không Mua', 'CR (%)', 'Lý Do Chính Khách Không Mua', 'Ghi Chú Chi Tiết Tại Quầy'])
+
         # 3. Create Excel File in memory
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
@@ -1437,6 +1823,7 @@ def export_excel():
             df_unsigned.to_excel(writer, sheet_name='HĐ Chưa Ký 3.2', index=False, startrow=4)
             df_details.to_excel(writer, sheet_name='Chi Tiết Vận Hành 4', index=False, startrow=4)
             df_support.to_excel(writer, sheet_name='Yêu Cầu Hỗ Trợ 4.5', index=False, startrow=4)
+            df_non_purchase.to_excel(writer, sheet_name='Phân Tích Lý Do Không Mua', index=False, startrow=4)
             
             # Access workbook and apply corporate styling
             workbook = writer.book
@@ -1450,6 +1837,7 @@ def export_excel():
             style_sheet(workbook['HĐ Chưa Ký 3.2'], "Danh Sách Hợp Đồng Cùng Kỳ Chưa Ký (3.2)", "Hợp đồng trễ hạn chưa tái ký", date_range_str, role_str)
             style_sheet(workbook['Chi Tiết Vận Hành 4'], "Báo Cáo Chi Tiết Vận Hành - Nhân Sự - Hàng Hóa", "Đánh giá chất lượng dịch vụ & nhân sự tại quầy", date_range_str, role_str)
             style_sheet(workbook['Yêu Cầu Hỗ Trợ 4.5'], "Danh Sách Yêu Cầu Hỗ Trợ Kỹ Thuật / Vận Hành (4.5)", "Tiếp nhận và xử lý yêu cầu phát sinh từ cửa hàng", date_range_str, role_str)
+            style_sheet(workbook['Phân Tích Lý Do Không Mua'], "Báo Cáo Phân Tích Nguyên Nhân Khách Không Mua Hàng", "Thống kê thất thoát chuyển đổi & nguyên nhân không mua", date_range_str, role_str)
             
         output.seek(0)
         
