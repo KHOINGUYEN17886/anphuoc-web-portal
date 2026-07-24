@@ -4120,16 +4120,39 @@
             if (suppToStoreSel) suppToStoreSel.innerHTML = '<option value="">-- Chọn cửa hàng tiếp nhận hỗ trợ --</option>' + storeOptionsHtml;
         }
 
+        function parseExcelSerialDate(val) {
+            if (!val) return '';
+            const str = String(val).trim();
+            if (/^\d{5}$/.test(str)) {
+                const serial = parseInt(str, 10);
+                const date = new Date((serial - 25569) * 86400 * 1000);
+                const yyyy = date.getFullYear();
+                const mm = String(date.getMonth() + 1).padStart(2, '0');
+                const dd = String(date.getDate()).padStart(2, '0');
+                return `${yyyy}-${mm}-${dd}`;
+            }
+            if (/^\d{5}\.0+$/.test(str)) {
+                const serial = parseInt(str.split('.')[0], 10);
+                const date = new Date((serial - 25569) * 86400 * 1000);
+                const yyyy = date.getFullYear();
+                const mm = String(date.getMonth() + 1).padStart(2, '0');
+                const dd = String(date.getDate()).padStart(2, '0');
+                return `${yyyy}-${mm}-${dd}`;
+            }
+            return str;
+        }
+
         function calculateTenure(dateStr) {
             if (!dateStr) return 'Mới nhận việc';
+            const val = parseExcelSerialDate(dateStr);
             let d;
-            if (dateStr.includes('/')) {
-                const parts = dateStr.split('/');
+            if (val.includes('/')) {
+                const parts = val.split('/');
                 if (parts.length === 3) d = new Date(parts[2], parts[1] - 1, parts[0]);
             } else {
-                d = new Date(dateStr);
+                d = new Date(val);
             }
-            if (!d || isNaN(d.getTime())) return '—';
+            if (!d || isNaN(d.getTime())) return 'Mới nhận việc';
             
             const today = new Date();
             if (d > today) return 'Mới nhận việc';
@@ -4261,7 +4284,7 @@
                         </select>
                     </td>
                     <td class="py-2 px-2">
-                        <input type="text" class="input-field text-xs emp-app-date font-semibold" placeholder="YYYY-MM-DD" value="${emp.appointment_date || emp.start_date || emp.created_at || ''}" oninput="updateTenureLive(this)">
+                        <input type="text" class="input-field text-xs emp-app-date font-semibold" placeholder="YYYY-MM-DD" value="${parseExcelSerialDate(emp.appointment_date || emp.start_date || emp.created_at || '')}" oninput="updateTenureLive(this)">
                     </td>
                     <td class="py-2 px-2 text-center">
                         <span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-extrabold text-[11px] tenure-badge">${tenureStr}</span>
@@ -4555,11 +4578,6 @@
             }
         };
 
-        const btnAddEmployee = document.getElementById('btn-add-employee');
-        if (btnAddEmployee) {
-            btnAddEmployee.addEventListener('click', window.openAddEmployeeModal);
-        }
-
         window.closeAddEmployeeModal = function() {
             document.getElementById('modal-add-employee').classList.add('hidden');
         };
@@ -4760,11 +4778,6 @@
             }
         };
 
-        const btnOpenNewHRTicketModal = document.getElementById('btn-open-new-hr-ticket-modal');
-        if (btnOpenNewHRTicketModal) {
-            btnOpenNewHRTicketModal.addEventListener('click', window.openNewHRTicketModal);
-        }
-
         window.closeNewHRTicketModal = function() {
             document.getElementById('modal-new-hr-ticket').classList.add('hidden');
         };
@@ -4858,11 +4871,6 @@
                 console.error("Lỗi mở modal thêm nhân sự hỗ trợ:", err);
             }
         };
-
-        const btnOpenAddSupportStaffModal = document.getElementById('btn-open-add-support-staff-modal');
-        if (btnOpenAddSupportStaffModal) {
-            btnOpenAddSupportStaffModal.addEventListener('click', window.openAddSupportStaffModal);
-        }
 
         window.closeAddSupportStaffModal = function() {
             document.getElementById('modal-add-support-staff').classList.add('hidden');

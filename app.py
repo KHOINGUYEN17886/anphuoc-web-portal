@@ -297,17 +297,41 @@ def parse_excel_date(val):
                     pass
         return val_str
 
+def format_excel_date_py(val):
+    if not val:
+        return ''
+    s = str(val).strip()
+    try:
+        if s.isdigit() and len(s) == 5:
+            serial = int(s)
+            d = date(1899, 12, 30) + timedelta(days=serial)
+            return d.strftime('%Y-%m-%d')
+        elif s.replace('.', '', 1).isdigit() and 40000 <= float(s) <= 60000:
+            serial = int(float(s))
+            d = date(1899, 12, 30) + timedelta(days=serial)
+            return d.strftime('%Y-%m-%d')
+    except Exception:
+        pass
+    if '/' in s:
+        parts = s.split('/')
+        if len(parts) == 3:
+            try:
+                return f"{parts[2].zfill(4)}-{parts[1].zfill(2)}-{parts[0].zfill(2)}"
+            except Exception:
+                pass
+    return s
+
 def calculate_tenure_py(start_date_str):
     if not start_date_str:
         return 'Mới nhận việc'
     try:
-        start_date_str = str(start_date_str).strip()
+        start_date_str = format_excel_date_py(start_date_str)
         if '/' in start_date_str:
             parts = start_date_str.split('/')
             if len(parts) == 3:
                 d = date(int(parts[2]), int(parts[1]), int(parts[0]))
             else:
-                return '—'
+                return 'Mới nhận việc'
         else:
             d = datetime.strptime(start_date_str[:10], '%Y-%m-%d').date()
             
@@ -315,19 +339,16 @@ def calculate_tenure_py(start_date_str):
         if d > today:
             return 'Mới nhận việc'
             
-        years = today.year - d.year
-        months = today.month - d.month
-        days = today.day - d.day
-        
-        if days < 0:
-            months -= 1
-            first_of_this_month = today.replace(day=1)
-            last_month_last_day = first_of_this_month - timedelta(days=1)
-            days += last_month_last_day.day
-            
-        if months < 0:
-            years -= 1
-            months += 12
+        diff_days = (today - d).days
+        if diff_days < 30:
+            return f"{diff_days} ngày"
+        diff_months = diff_days // 30
+        if diff_months < 12:
+            return f"{diff_months} tháng"
+        diff_years = round(diff_days / 365.25, 1)
+        return f"{diff_years} năm"
+    except Exception:
+        return 'Mới nhận việc'
             
         parts = []
         if years > 0:
@@ -1437,7 +1458,9 @@ def get_store_hr():
     
     employees = query_db("SELECT * FROM tb_store_employees WHERE store_code = ? AND status != 'RESIGNED' ORDER BY position, full_name", (store_code,))
     for emp in employees:
-        emp['tenure'] = calculate_tenure_py(emp.get('appointment_date') or emp.get('created_at'))
+        raw_date = emp.get('appointment_date') or emp.get('created_at') or ''
+        emp['appointment_date'] = format_excel_date_py(raw_date)
+        emp['tenure'] = calculate_tenure_py(emp['appointment_date'])
         
     actual_hc = len(employees)
     surplus_deficit = actual_hc - target_hc
