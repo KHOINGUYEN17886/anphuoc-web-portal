@@ -1718,231 +1718,6 @@
         </div>
     </div>
 
-    <!-- MODAL THÊM NHÂN VIÊN MỚI CHUẨN HÓA (Standardized Add Employee Modal) -->
-    <div id="modal-add-employee" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-        <div class="card w-full max-w-lg p-6 space-y-4 shadow-2xl rounded-2xl relative bg-white max-h-[90vh] overflow-y-auto">
-            <button onclick="closeAddEmployeeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-brand-red text-xl font-bold transition-all">&times;</button>
-            <div class="flex items-center gap-2.5 border-b border-gray-100 pb-3">
-                <div class="w-10 h-10 bg-amber-100 text-amber-800 rounded-xl flex items-center justify-center font-bold text-lg">👔</div>
-                <div>
-                    <h3 class="font-extrabold text-brand-navy text-base">Thêm Nhân Viên Mới Vào Cửa Hàng</h3>
-                    <div class="text-xs text-gray-500">Điền đầy đủ thông tin hồ sơ nhân viên để khởi tạo định biên & thử việc.</div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                <div id="div-add-emp-store-select" class="col-span-full hidden">
-                    <label class="block text-[11px] font-bold text-brand-navy uppercase mb-1">🏪 Chọn Cửa Hàng Tiếp Nhận Nhân Viên (*)</label>
-                    <select id="add-emp-store-select" class="input-field font-bold text-brand-navy">
-                        <option value="">-- Chọn cửa hàng --</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Mã Số Nhân Viên</label>
-                    <input type="text" id="add-emp-code" class="input-field font-mono font-bold" placeholder="NVxxxxxx">
-                </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Họ và Tên (*)</label>
-                    <input type="text" id="add-emp-name" class="input-field font-bold text-brand-navy" placeholder="Nhập đầy đủ họ tên">
-                </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Giới Tính</label>
-                    <select id="add-emp-gender" class="input-field">
-                        <option value="Nữ">Nữ</option>
-                        <option value="Nam">Nam</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Vị Trí / Chức Danh (*)</label>
-                    <select id="add-emp-position" class="input-field font-bold text-brand-navy">
-                        <option value="Nhân viên bán hàng">Nhân viên bán hàng</option>
-                        <option value="Cửa hàng trưởng">Cửa hàng trưởng</option>
-                        <option value="Cửa hàng phó">Cửa hàng phó</option>
-                        <option value="Nhân viên thử việc">🎓 Nhân viên thử việc</option>
-                        <option value="Nhân viên giao nhận">Nhân viên giao nhận</option>
-                        <option value="Bảo vệ">Bảo vệ</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Lý Do Thêm Nhân Sự</label>
-                    <select id="add-emp-reason" class="input-field font-bold" onchange="toggleAddEmpReasonOther(this.value)">
-                        <option value="Nhân viên mới">✨ Nhân viên mới hoàn toàn</option>
-                        <option value="Nhân viên chuyển từ cửa hàng khác sang">🔄 Nhân viên chuyển từ cửa hàng khác sang</option>
-                        <option value="Nhận chức">🎓 Nhận chức (CHT/CHP)</option>
-                        <option value="Khác">📝 Khác (Free text)</option>
-                    </select>
-                </div>
-                <div id="div-add-emp-from-store" class="hidden col-span-full">
-                    <label class="block text-[11px] font-bold text-blue-900 uppercase mb-1">🏪 Cửa Hàng Cũ (Cửa Hàng Chuyển Đi) (*)</label>
-                    <select id="add-emp-from-store-select" class="input-field font-bold text-brand-navy">
-                        <option value="">-- Chọn cửa hàng cũ chuyển đi --</option>
-                    </select>
-                </div>
-                <div id="div-add-emp-reason-other" class="hidden col-span-full">
-                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Nhập Lý Do Khác</label>
-                    <input type="text" id="add-emp-reason-other" class="input-field" placeholder="Điền lý do cụ thể...">
-                </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Ngày Vào Làm / Nhận Chức</label>
-                    <input type="date" id="add-emp-start-date" class="input-field font-semibold">
-                </div>
-                <div class="col-span-full">
-                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Ảnh Đồng Phục (Auto nén Canvas <80KB)</label>
-                    <div class="flex items-center gap-3">
-                        <img id="add-emp-avatar-preview" src="https://ui-avatars.com/api/?name=NV+Moi&background=1B2A4A&color=fff" class="w-12 h-14 object-cover border rounded-lg shadow-xs">
-                        <input type="file" id="add-emp-avatar-file" accept="image/*" class="input-field text-xs">
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
-                <button onclick="closeAddEmployeeModal()" class="btn-outline text-xs px-4 py-2">Hủy Bỏ</button>
-                <button id="btn-confirm-add-emp-submit" class="btn-primary text-xs px-5 py-2 font-bold shadow-md">
-                    ➕ Bổ Sung Nhân Viên Mới
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL KHAI BÁO BIẾN ĐỘNG NHÂN SỰ MỚI (New HR Lifecycle Ticket Modal) -->
-    <div id="modal-new-hr-ticket" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-        <div class="card w-full max-w-lg p-6 space-y-4 shadow-2xl rounded-2xl relative bg-white">
-            <button onclick="closeNewHRTicketModal()" class="absolute top-4 right-4 text-gray-400 hover:text-brand-red text-xl font-bold transition-all">&times;</button>
-            <div class="flex items-center gap-2.5 border-b border-gray-100 pb-3">
-                <div class="w-10 h-10 bg-brand-red/10 text-brand-red rounded-xl flex items-center justify-center font-bold text-lg">📝</div>
-                <div>
-                    <h3 class="font-extrabold text-brand-navy text-base">Khai Báo Biến Động Nhân Sự Mới</h3>
-                    <div class="text-xs text-gray-500">Tạo ticket gửi ASM & Phòng HR xem xét xử lý theo tuần.</div>
-                </div>
-            </div>
-
-            <div class="space-y-3 text-xs">
-                <div id="div-new-tk-store-select" class="hidden">
-                    <label class="block text-[11px] font-bold text-brand-navy uppercase mb-1">🏪 Chọn Cửa Hàng Phát Sinh Biến Động (*)</label>
-                    <select id="new-tk-store-select" class="input-field font-bold text-brand-navy">
-                        <option value="">-- Chọn cửa hàng --</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Tên Nhân Sự (*)</label>
-                    <input type="text" id="new-tk-emp-name" class="input-field font-bold text-brand-navy" placeholder="Họ và tên nhân sự biến động">
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Chức Danh</label>
-                        <select id="new-tk-emp-pos" class="input-field">
-                            <option value="Nhân viên bán hàng">Nhân viên bán hàng</option>
-                            <option value="Cửa hàng trưởng">Cửa hàng trưởng</option>
-                            <option value="Cửa hàng phó">Cửa hàng phó</option>
-                            <option value="Nhân viên thử việc">Nhân viên thử việc</option>
-                            <option value="Nhân viên giao nhận">Nhân viên giao nhận</option>
-                            <option value="Bảo vệ">Bảo vệ</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Loại Biến Động (*)</label>
-                        <select id="new-tk-event-type" class="input-field font-bold text-brand-red">
-                            <option value="Nghỉ việc">Nghỉ việc</option>
-                            <option value="Tuyển mới">Tuyển mới</option>
-                            <option value="Nghỉ thai sản">Nghỉ thai sản</option>
-                            <option value="Điều chuyển">Điều chuyển</option>
-                            <option value="Nghỉ phép dài hạn">Nghỉ phép dài hạn</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Ngày Hiệu Lực (*)</label>
-                        <input type="date" id="new-tk-eff-date" class="input-field font-semibold">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Bàn Giao Công Việc</label>
-                        <select id="new-tk-handover" class="input-field">
-                            <option value="Chưa bàn giao">Chưa bàn giao</option>
-                            <option value="Đang bàn giao">Đang bàn giao</option>
-                            <option value="Đã bàn giao hoàn tất">Đã bàn giao hoàn tất</option>
-                        </select>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Lý Do & Ghi Chú Chi Tiết</label>
-                    <textarea id="new-tk-reason" class="input-field text-xs h-20" placeholder="Diễn giải nguyên nhân nghỉ việc / lý do tuyển bổ sung..."></textarea>
-                </div>
-            </div>
-
-            <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
-                <button onclick="closeNewHRTicketModal()" class="btn-outline text-xs px-4 py-2">Hủy Bỏ</button>
-                <button id="btn-confirm-new-tk-submit" class="btn-primary text-xs px-5 py-2 font-bold shadow-md">
-                    📩 Gửi Ticket Sự Vụ
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL THÊM NHÂN SỰ HỖ TRỢ TỪ CỬA HÀNG KHÁC (Cross-Store Support Staff Modal) -->
-    <div id="modal-add-support-staff" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-        <div class="card w-full max-w-lg p-6 space-y-4 shadow-2xl rounded-2xl relative bg-white">
-            <button onclick="closeAddSupportStaffModal()" class="absolute top-4 right-4 text-gray-400 hover:text-brand-red text-xl font-bold transition-all">&times;</button>
-            <div class="flex items-center gap-2.5 border-b border-gray-100 pb-3">
-                <div class="w-10 h-10 bg-blue-100 text-blue-800 rounded-xl flex items-center justify-center font-bold text-lg">🤝</div>
-                <div>
-                    <h3 class="font-extrabold text-brand-navy text-base">Thêm Nhân Sự Đến Hỗ Trợ Tạm Thời</h3>
-                    <div class="text-xs text-gray-500">Ghi nhận nhân sự điều động ngắn hạn từ các cửa hàng khác trên toàn quốc.</div>
-                </div>
-            </div>
-
-            <div class="space-y-3 text-xs">
-                <div id="div-supp-to-store" class="hidden">
-                    <label class="block text-[11px] font-bold text-blue-900 uppercase mb-1">🏪 Đến Hỗ Trợ Tại Cửa Hàng Tiếp Nhận (*)</label>
-                    <select id="supp-to-store-select" class="input-field font-bold text-brand-navy">
-                        <option value="">-- Chọn cửa hàng tiếp nhận --</option>
-                    </select>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Mã NV Hỗ Trợ</label>
-                        <input type="text" id="supp-emp-code" class="input-field font-mono font-bold" placeholder="Mã NV (nếu có)">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Họ và Tên (*)</label>
-                        <input type="text" id="supp-emp-name" class="input-field font-bold text-brand-navy" placeholder="Họ tên nhân sự hỗ trợ">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-blue-900 uppercase mb-1">🏪 Đi Từ Cửa Hàng Nào (*)</label>
-                    <select id="supp-from-store" class="input-field font-bold text-brand-navy">
-                        <option value="">-- Lựa chọn cửa hàng điều nhân sự sang --</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Nguyên Nhân Hỗ Trợ (*)</label>
-                    <select id="supp-reason" class="input-field font-bold">
-                        <option value="Cửa hàng thiếu nhân sự">Cửa hàng thiếu nhân sự</option>
-                        <option value="Cửa hàng có event">Cửa hàng có event</option>
-                        <option value="Nhân sự đến đào tạo">Nhân sự đến đào tạo</option>
-                        <option value="Khác">Khác</option>
-                    </select>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Hỗ Trợ Từ Ngày</label>
-                        <input type="date" id="supp-start-date" class="input-field font-semibold">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Đến Ngày (Dự kiến)</label>
-                        <input type="date" id="supp-end-date" class="input-field font-semibold">
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
-                <button onclick="closeAddSupportStaffModal()" class="btn-outline text-xs px-4 py-2">Hủy Bỏ</button>
-                <button id="btn-confirm-add-supp-submit" class="btn-primary text-xs px-5 py-2 font-bold shadow-md">
-                    🤝 Thêm Nhân Sự Hỗ Trợ
-                </button>
-            </div>
-        </div>
-    </div>
 
     <!-- JS Logic -->
     <script>
@@ -5431,5 +5206,230 @@
             }
         });
     </script>
+    <!-- MODAL THÊM NHÂN VIÊN MỚI CHUẨN HÓA (Standardized Add Employee Modal) -->
+    <div id="modal-add-employee" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="card w-full max-w-lg p-6 space-y-4 shadow-2xl rounded-2xl relative bg-white max-h-[90vh] overflow-y-auto">
+            <button onclick="closeAddEmployeeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-brand-red text-xl font-bold transition-all">&times;</button>
+            <div class="flex items-center gap-2.5 border-b border-gray-100 pb-3">
+                <div class="w-10 h-10 bg-amber-100 text-amber-800 rounded-xl flex items-center justify-center font-bold text-lg">👔</div>
+                <div>
+                    <h3 class="font-extrabold text-brand-navy text-base">Thêm Nhân Viên Mới Vào Cửa Hàng</h3>
+                    <div class="text-xs text-gray-500">Điền đầy đủ thông tin hồ sơ nhân viên để khởi tạo định biên & thử việc.</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                <div id="div-add-emp-store-select" class="col-span-full hidden">
+                    <label class="block text-[11px] font-bold text-brand-navy uppercase mb-1">🏪 Chọn Cửa Hàng Tiếp Nhận Nhân Viên (*)</label>
+                    <select id="add-emp-store-select" class="input-field font-bold text-brand-navy">
+                        <option value="">-- Chọn cửa hàng --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Mã Số Nhân Viên</label>
+                    <input type="text" id="add-emp-code" class="input-field font-mono font-bold" placeholder="NVxxxxxx">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Họ và Tên (*)</label>
+                    <input type="text" id="add-emp-name" class="input-field font-bold text-brand-navy" placeholder="Nhập đầy đủ họ tên">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Giới Tính</label>
+                    <select id="add-emp-gender" class="input-field">
+                        <option value="Nữ">Nữ</option>
+                        <option value="Nam">Nam</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Vị Trí / Chức Danh (*)</label>
+                    <select id="add-emp-position" class="input-field font-bold text-brand-navy">
+                        <option value="Nhân viên bán hàng">Nhân viên bán hàng</option>
+                        <option value="Cửa hàng trưởng">Cửa hàng trưởng</option>
+                        <option value="Cửa hàng phó">Cửa hàng phó</option>
+                        <option value="Nhân viên thử việc">🎓 Nhân viên thử việc</option>
+                        <option value="Nhân viên giao nhận">Nhân viên giao nhận</option>
+                        <option value="Bảo vệ">Bảo vệ</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Lý Do Thêm Nhân Sự</label>
+                    <select id="add-emp-reason" class="input-field font-bold" onchange="toggleAddEmpReasonOther(this.value)">
+                        <option value="Nhân viên mới">✨ Nhân viên mới hoàn toàn</option>
+                        <option value="Nhân viên chuyển từ cửa hàng khác sang">🔄 Nhân viên chuyển từ cửa hàng khác sang</option>
+                        <option value="Nhận chức">🎓 Nhận chức (CHT/CHP)</option>
+                        <option value="Khác">📝 Khác (Free text)</option>
+                    </select>
+                </div>
+                <div id="div-add-emp-from-store" class="hidden col-span-full">
+                    <label class="block text-[11px] font-bold text-blue-900 uppercase mb-1">🏪 Cửa Hàng Cũ (Cửa Hàng Chuyển Đi) (*)</label>
+                    <select id="add-emp-from-store-select" class="input-field font-bold text-brand-navy">
+                        <option value="">-- Chọn cửa hàng cũ chuyển đi --</option>
+                    </select>
+                </div>
+                <div id="div-add-emp-reason-other" class="hidden col-span-full">
+                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Nhập Lý Do Khác</label>
+                    <input type="text" id="add-emp-reason-other" class="input-field" placeholder="Điền lý do cụ thể...">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Ngày Vào Làm / Nhận Chức</label>
+                    <input type="date" id="add-emp-start-date" class="input-field font-semibold">
+                </div>
+                <div class="col-span-full">
+                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Ảnh Đồng Phục (Auto nén Canvas <80KB)</label>
+                    <div class="flex items-center gap-3">
+                        <img id="add-emp-avatar-preview" src="https://ui-avatars.com/api/?name=NV+Moi&background=1B2A4A&color=fff" class="w-12 h-14 object-cover border rounded-lg shadow-xs">
+                        <input type="file" id="add-emp-avatar-file" accept="image/*" class="input-field text-xs">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
+                <button onclick="closeAddEmployeeModal()" class="btn-outline text-xs px-4 py-2">Hủy Bỏ</button>
+                <button id="btn-confirm-add-emp-submit" class="btn-primary text-xs px-5 py-2 font-bold shadow-md">
+                    ➕ Bổ Sung Nhân Viên Mới
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL KHAI BÁO BIẾN ĐỘNG NHÂN SỰ MỚI (New HR Lifecycle Ticket Modal) -->
+    <div id="modal-new-hr-ticket" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="card w-full max-w-lg p-6 space-y-4 shadow-2xl rounded-2xl relative bg-white">
+            <button onclick="closeNewHRTicketModal()" class="absolute top-4 right-4 text-gray-400 hover:text-brand-red text-xl font-bold transition-all">&times;</button>
+            <div class="flex items-center gap-2.5 border-b border-gray-100 pb-3">
+                <div class="w-10 h-10 bg-brand-red/10 text-brand-red rounded-xl flex items-center justify-center font-bold text-lg">📝</div>
+                <div>
+                    <h3 class="font-extrabold text-brand-navy text-base">Khai Báo Biến Động Nhân Sự Mới</h3>
+                    <div class="text-xs text-gray-500">Tạo ticket gửi ASM & Phòng HR xem xét xử lý theo tuần.</div>
+                </div>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div id="div-new-tk-store-select" class="hidden">
+                    <label class="block text-[11px] font-bold text-brand-navy uppercase mb-1">🏪 Chọn Cửa Hàng Phát Sinh Biến Động (*)</label>
+                    <select id="new-tk-store-select" class="input-field font-bold text-brand-navy">
+                        <option value="">-- Chọn cửa hàng --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Tên Nhân Sự (*)</label>
+                    <input type="text" id="new-tk-emp-name" class="input-field font-bold text-brand-navy" placeholder="Họ và tên nhân sự biến động">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Chức Danh</label>
+                        <select id="new-tk-emp-pos" class="input-field">
+                            <option value="Nhân viên bán hàng">Nhân viên bán hàng</option>
+                            <option value="Cửa hàng trưởng">Cửa hàng trưởng</option>
+                            <option value="Cửa hàng phó">Cửa hàng phó</option>
+                            <option value="Nhân viên thử việc">Nhân viên thử việc</option>
+                            <option value="Nhân viên giao nhận">Nhân viên giao nhận</option>
+                            <option value="Bảo vệ">Bảo vệ</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Loại Biến Động (*)</label>
+                        <select id="new-tk-event-type" class="input-field font-bold text-brand-red">
+                            <option value="Nghỉ việc">Nghỉ việc</option>
+                            <option value="Tuyển mới">Tuyển mới</option>
+                            <option value="Nghỉ thai sản">Nghỉ thai sản</option>
+                            <option value="Điều chuyển">Điều chuyển</option>
+                            <option value="Nghỉ phép dài hạn">Nghỉ phép dài hạn</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Ngày Hiệu Lực (*)</label>
+                        <input type="date" id="new-tk-eff-date" class="input-field font-semibold">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Bàn Giao Công Việc</label>
+                        <select id="new-tk-handover" class="input-field">
+                            <option value="Chưa bàn giao">Chưa bàn giao</option>
+                            <option value="Đang bàn giao">Đang bàn giao</option>
+                            <option value="Đã bàn giao hoàn tất">Đã bàn giao hoàn tất</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Lý Do & Ghi Chú Chi Tiết</label>
+                    <textarea id="new-tk-reason" class="input-field text-xs h-20" placeholder="Diễn giải nguyên nhân nghỉ việc / lý do tuyển bổ sung..."></textarea>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
+                <button onclick="closeNewHRTicketModal()" class="btn-outline text-xs px-4 py-2">Hủy Bỏ</button>
+                <button id="btn-confirm-new-tk-submit" class="btn-primary text-xs px-5 py-2 font-bold shadow-md">
+                    📩 Gửi Ticket Sự Vụ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL THÊM NHÂN SỰ HỖ TRỢ TỪ CỬA HÀNG KHÁC (Cross-Store Support Staff Modal) -->
+    <div id="modal-add-support-staff" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="card w-full max-w-lg p-6 space-y-4 shadow-2xl rounded-2xl relative bg-white">
+            <button onclick="closeAddSupportStaffModal()" class="absolute top-4 right-4 text-gray-400 hover:text-brand-red text-xl font-bold transition-all">&times;</button>
+            <div class="flex items-center gap-2.5 border-b border-gray-100 pb-3">
+                <div class="w-10 h-10 bg-blue-100 text-blue-800 rounded-xl flex items-center justify-center font-bold text-lg">🤝</div>
+                <div>
+                    <h3 class="font-extrabold text-brand-navy text-base">Thêm Nhân Sự Đến Hỗ Trợ Tạm Thời</h3>
+                    <div class="text-xs text-gray-500">Ghi nhận nhân sự điều động ngắn hạn từ các cửa hàng khác trên toàn quốc.</div>
+                </div>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div id="div-supp-to-store" class="hidden">
+                    <label class="block text-[11px] font-bold text-blue-900 uppercase mb-1">🏪 Đến Hỗ Trợ Tại Cửa Hàng Tiếp Nhận (*)</label>
+                    <select id="supp-to-store-select" class="input-field font-bold text-brand-navy">
+                        <option value="">-- Chọn cửa hàng tiếp nhận --</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Mã NV Hỗ Trợ</label>
+                        <input type="text" id="supp-emp-code" class="input-field font-mono font-bold" placeholder="Mã NV (nếu có)">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Họ và Tên (*)</label>
+                        <input type="text" id="supp-emp-name" class="input-field font-bold text-brand-navy" placeholder="Họ tên nhân sự hỗ trợ">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-blue-900 uppercase mb-1">🏪 Đi Từ Cửa Hàng Nào (*)</label>
+                    <select id="supp-from-store" class="input-field font-bold text-brand-navy">
+                        <option value="">-- Lựa chọn cửa hàng điều nhân sự sang --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Nguyên Nhân Hỗ Trợ (*)</label>
+                    <select id="supp-reason" class="input-field font-bold">
+                        <option value="Cửa hàng thiếu nhân sự">Cửa hàng thiếu nhân sự</option>
+                        <option value="Cửa hàng có event">Cửa hàng có event</option>
+                        <option value="Nhân sự đến đào tạo">Nhân sự đến đào tạo</option>
+                        <option value="Khác">Khác</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Hỗ Trợ Từ Ngày</label>
+                        <input type="date" id="supp-start-date" class="input-field font-semibold">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Đến Ngày (Dự kiến)</label>
+                        <input type="date" id="supp-end-date" class="input-field font-semibold">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
+                <button onclick="closeAddSupportStaffModal()" class="btn-outline text-xs px-4 py-2">Hủy Bỏ</button>
+                <button id="btn-confirm-add-supp-submit" class="btn-primary text-xs px-5 py-2 font-bold shadow-md">
+                    🤝 Thêm Nhân Sự Hỗ Trợ
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
