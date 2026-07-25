@@ -1175,27 +1175,35 @@
 
     <!-- QUICK REPORT OVERLAY SECTION -->
     <section id="quick-report-section" class="hidden fixed inset-0 bg-gray-50 z-40 overflow-y-auto">
+        <!-- Floating Back Button pinned at bottom-right for instant 1-click return -->
+        <button onclick="window.handleQrBack && window.handleQrBack()" class="fixed bottom-6 right-6 z-50 bg-brand-red hover:bg-rose-800 text-white font-bold px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2 text-xs border border-white/20 transition-transform active:scale-95 cursor-pointer">
+            ← Quay lại trang trước
+        </button>
+
         <div class="max-w-6xl mx-auto px-4 py-6">
-            <!-- Header -->
-            <div class="flex items-center justify-between mb-6">
+            <!-- Header (Sticky top) -->
+            <div class="sticky top-0 z-30 bg-white/95 backdrop-blur-md shadow-md p-4 mb-6 rounded-2xl border border-gray-200 flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-gradient-to-br from-brand-red to-brand-red-d rounded-xl flex items-center justify-center text-white font-black text-lg shadow">AP</div>
+                    <button onclick="window.handleQrBack && window.handleQrBack()" class="btn-outline text-xs px-3 py-1.5 font-bold flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-800 border-gray-300">
+                        ← Quay lại
+                    </button>
+                    <div class="w-9 h-9 bg-gradient-to-br from-brand-red to-brand-red-d rounded-xl flex items-center justify-center text-white font-black text-base shadow-sm">AP</div>
                     <div>
-                        <h2 class="text-xl font-extrabold text-brand-navy">Báo Cáo Nhanh</h2>
-                        <p id="qr-subtitle" class="text-xs text-gray-500">Tổng hợp dữ liệu vận hành theo tuần</p>
+                        <h2 class="text-lg font-extrabold text-brand-navy">Báo Cáo Nhanh Vận Hành & Nhân Sự</h2>
+                        <p id="qr-subtitle" class="text-xs text-gray-500">Tổng hợp dữ liệu vận hành & thâm niên nhân sự theo tuần</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 flex-wrap">
                     <div id="qr-filter-bar" class="hidden items-center gap-2">
                         <label class="text-xs font-bold text-gray-500 uppercase">Lọc ASM:</label>
-                        <select id="qr-asm-filter" class="input-field w-auto text-xs">
+                        <select id="qr-asm-filter" class="input-field w-auto text-xs py-1">
                             <option value="">-- Tất cả --</option>
                         </select>
                         <label class="text-xs font-bold text-gray-500 uppercase">Tuần báo cáo:</label>
-                        <input id="qr-date-filter" type="date" class="input-field w-auto text-xs">
+                        <input id="qr-date-filter" type="date" class="input-field w-auto text-xs py-1">
                     </div>
-                    <button id="btn-qr-back" onclick="window.handleQrBack && window.handleQrBack()" class="btn-outline text-xs flex items-center gap-1">
-                        ← Quay lại
+                    <button id="btn-qr-back" onclick="window.handleQrBack && window.handleQrBack()" class="btn-primary text-xs px-4 py-1.5 font-bold flex items-center gap-1 bg-brand-navy border-brand-navy hover:bg-slate-800">
+                        🏠 Quay lại trang chính
                     </button>
                 </div>
             </div>
@@ -4964,11 +4972,13 @@
                 }).join('');
 
                 // ── D: Tenure Cards ───────────────────────────────
-                const totalEmp = s.total_actual_headcount || 1;
+                const totalEmp = s.total_actual_headcount || (tenure ? (tenure.lt6m + tenure['6m_1y'] + tenure['1y_2y'] + tenure['2y_3y'] + tenure.gt3y) : 1) || 1;
                 const tenureMap = {
-                    'lt6m': tenure.lt6m || 0, '6m1y': tenure['6m_1y'] || 0,
-                    '1y2y': tenure['1y_2y'] || 0, '2y3y': tenure['2y_3y'] || 0,
-                    'gt3y': tenure.gt3y || 0
+                    'lt6m': (tenure.lt6m !== undefined ? tenure.lt6m : tenure.under_3m) || 0,
+                    '6m1y': (tenure['6m_1y'] !== undefined ? tenure['6m_1y'] : tenure['3m_to_1y']) || 0,
+                    '1y2y': (tenure['1y_2y'] !== undefined ? tenure['1y_2y'] : tenure['1y_to_3y']) || 0,
+                    '2y3y': (tenure['2y_3y'] !== undefined ? tenure['2y_3y'] : tenure['3y_to_5y']) || 0,
+                    'gt3y': (tenure.gt3y !== undefined ? tenure.gt3y : tenure.over_5y) || 0
                 };
                 Object.entries(tenureMap).forEach(([key, val]) => {
                     const el = document.getElementById(`tenure-${key}`);

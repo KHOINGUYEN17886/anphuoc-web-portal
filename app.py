@@ -274,28 +274,7 @@ def remove_vn_accents(text):
     return text.strip()
 
 def parse_excel_date(val):
-    if not val:
-        return ''
-    if isinstance(val, (int, float)):
-        try:
-            d = date(1899, 12, 30) + timedelta(days=int(val))
-            return d.strftime('%Y-%m-%d')
-        except Exception:
-            return ''
-    elif isinstance(val, (date, datetime)):
-        return val.strftime('%Y-%m-%d')
-    else:
-        val_str = str(val).strip()
-        if not val_str:
-            return ''
-        if '/' in val_str:
-            parts = val_str.split('/')
-            if len(parts) == 3:
-                try:
-                    return f"{parts[2].zfill(4)}-{parts[1].zfill(2)}-{parts[0].zfill(2)}"
-                except Exception:
-                    pass
-        return val_str
+    return format_excel_date_py(val)
 
 def format_excel_date_py(val):
     if not val:
@@ -1784,21 +1763,20 @@ def get_hr_analytics():
         position_dist[pos] += 1
         
         # Tenure bucket
-        apt = e.get('appointment_date') or e.get('created_at', '')
-        if apt:
+        apt_raw = e.get('appointment_date') or e.get('created_at', '')
+        apt_formatted = format_excel_date_py(apt_raw)
+        tenure_label = calculate_tenure_py(apt_formatted)
+        if apt_formatted:
             try:
-                hire_dt = date.fromisoformat(str(apt)[:10])
+                hire_dt = datetime.strptime(apt_formatted[:10], '%Y-%m-%d').date()
                 months = (today.year - hire_dt.year) * 12 + (today.month - hire_dt.month)
                 if months < 6: tenure_buckets['lt6m'] += 1
                 elif months < 12: tenure_buckets['6m_1y'] += 1
                 elif months < 24: tenure_buckets['1y_2y'] += 1
                 elif months < 36: tenure_buckets['2y_3y'] += 1
                 else: tenure_buckets['gt3y'] += 1
-                tenure_label = calculate_tenure_py(apt)
-            except:
-                tenure_label = ''
-        else:
-            tenure_label = ''
+            except Exception:
+                pass
         
         employees_out.append({
             'employee_code': e.get('employee_code', ''),
@@ -1806,7 +1784,7 @@ def get_hr_analytics():
             'gender': e.get('gender', ''),
             'position': pos,
             'store_code': e.get('store_code', ''),
-            'appointment_date': e.get('appointment_date', ''),
+            'appointment_date': apt_formatted,
             'tenure': tenure_label,
             'status': e.get('status', 'ACTIVE'),
         })
@@ -2793,6 +2771,96 @@ def export_excel():
     except Exception as e:
         return f"Lỗi xuất file Excel: {str(e)}", 500
 
+def compute_hr_seniority_summary(store_codes=None):
+    try:
+        if store_codes:
+            placeholders = ','.join(['?'] * len(store_codes))
+            query = f"SELECT * FROM tb_store_employees WHERE status != 'RESIGNED' AND store_code IN ({placeholders})"
+            employees = query_db(query, store_codes)
+        else:
+            employees = query_db("SELECT * FROM tb_store_employees WHERE status != 'RESIGNED'")
+            
+        today = date.today()
+        
+        breakdown = {
+            'under_3m': 0,
+            '3m_to_1y': 0,
+            '1y_to_3y': 0,
+            '3y_to_5y': 0,
+            'over_5y': 0
+        }
+        
+        positions = {
+            'CHT': 0,
+            'CHP': 0,
+            'NVBH': 0,
+            'BV': 0,
+            'THU_VIEC': 0,
+            'OTHER': 0
+        }
+        
+        total_days = 0
+        valid_dates_count = 0
+        
+        for emp in employees:
+            pos = str(emp.get('position') or '').strip()
+            if 'trưởng' in pos.lower():
+                positions['CHT'] += 1
+            elif 'phó' in pos.lower():
+                positions['CHP'] += 1
+            elif 'bán hàng' in pos.lower():
+                positions['NVBH'] += 1
+            elif 'bảo vệ' in pos.lower():
+                positions['BV'] += 1
+            elif 'thử việc' in pos.lower():
+                positions['THU_VIEC'] += 1
+            else:
+                positions['OTHER'] += 1
+                
+            raw_date = emp.get('appointment_date') or emp.get('created_at') or ''
+            app_date_str = format_excel_date_py(raw_date)
+            if not app_date_str:
+                continue
+                
+            try:
+                d = datetime.strptime(app_date_str[:10], '%Y-%m-%d').date()
+                days = (today - d).days
+                if days < 0:
+                    days = 0
+                total_days += days
+                valid_dates_count += 1
+                
+                if days < 90:
+                    breakdown['under_3m'] += 1
+                elif days < 365:
+                    breakdown['3m_to_1y'] += 1
+                elif days < 1095:
+                    breakdown['1y_to_3y'] += 1
+                elif days < 1825:
+                    breakdown['3y_to_5y'] += 1
+                else:
+                    breakdown['over_5y'] += 1
+            except Exception:
+                pass
+                
+        avg_days = (total_days / valid_dates_count) if valid_dates_count > 0 else 0
+        avg_years = round(avg_days / 365.25, 1)
+        
+        return {
+            'total_employees': len(employees),
+            'valid_dates_count': valid_dates_count,
+            'avg_tenure_years': avg_years,
+            'tenure_breakdown': breakdown,
+            'position_breakdown': positions
+        }
+    except Exception as e:
+        print(f"⚠️ [HR Summary Error]: {e}")
+        return {
+            'total_employees': 0, 'valid_dates_count': 0, 'avg_tenure_years': 0,
+            'tenure_breakdown': {'under_3m': 0, '3m_to_1y': 0, '1y_to_3y': 0, '3y_to_5y': 0, 'over_5y': 0},
+            'position_breakdown': {'CHT': 0, 'CHP': 0, 'NVBH': 0, 'BV': 0, 'THU_VIEC': 0, 'OTHER': 0}
+        }
+
 # ── Quick Report API ──────────────────────────────────────────────────────────
 MASTER_ASM_NAME = os.environ.get('MASTER_ASM_NAME', 'Khôi')
 
@@ -2961,6 +3029,9 @@ def quick_report():
             'support_high':   high_priority_support,
         }
 
+        # ── HR Seniority Summary ──────────────────────────────────────────────
+        hr_seniority = compute_hr_seniority_summary(store_codes)
+
         # ── ASM list (for admin filter) ───────────────────────────────────────
         asms_list = []
         if role == 'admin' or is_master:
@@ -2976,6 +3047,7 @@ def quick_report():
             'user_asm': user_id if role == 'asm' else None,
             'asms': asms_list,
             'summary': summary,
+            'hr_seniority': hr_seniority,
             'stores': stores_out,
             'contracts': [dict(r) for r in contract_rows],
             'unsigned':  [dict(r) for r in unsigned_rows],
