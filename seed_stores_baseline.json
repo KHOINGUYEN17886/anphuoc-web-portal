@@ -1,0 +1,1658 @@
+[
+  {
+    "store_code": "SO1",
+    "store_name": "Số 1",
+    "asm_name": "Linh",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Phạm Thị Hồng Nga",
+    "target_headcount": 15,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HVPLAZA",
+    "store_name": "Hùng Vương Plaza",
+    "asm_name": "Lâm",
+    "brand": "AP-PIE",
+    "cht_name": "Phạm Ngọc Bích Nhi CHP",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "DIAMOND",
+    "store_name": "Diamond Plaza",
+    "asm_name": "Tiên",
+    "brand": "AP-PIE",
+    "cht_name": "Lê Nguyễn Khánh Linh",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HBT",
+    "store_name": "Hai Bà Trưng",
+    "asm_name": "Linh",
+    "brand": "AP-PIE",
+    "cht_name": "Lê Thúy Vy",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "LYTT",
+    "store_name": "Lý Tự Trọng",
+    "asm_name": "Tiên",
+    "brand": "AP-PIE",
+    "cht_name": "Trương Thị Cẩm Tú",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "NGA6",
+    "store_name": "3 Nguyễn Trãi",
+    "asm_name": "Tiên",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Lê Phước Thảo My",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "NTQ1",
+    "store_name": "74 Nguyễn Trãi",
+    "asm_name": "Tiên",
+    "brand": "AP-PIE",
+    "cht_name": "Đặng Trần Bích Trâm",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "PTER",
+    "store_name": "Pasteur",
+    "asm_name": "Tiên",
+    "brand": "AP-PIE",
+    "cht_name": "Mai Quyền",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "NGHUE",
+    "store_name": "Nguyễn Huệ",
+    "asm_name": "Tiên",
+    "brand": "AP-PIE",
+    "cht_name": "Nguyễn Thanh Tùng",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "VINCOM",
+    "store_name": "Vin com",
+    "asm_name": "Tiên",
+    "brand": "AP-PIE",
+    "cht_name": "Hứa Lâm Trung",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "TAKA",
+    "store_name": "Takashimaya",
+    "asm_name": "Tiên",
+    "brand": "AP-PIE",
+    "cht_name": "Đoàn Song Ngọc",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "CAOTH",
+    "store_name": "Cao Thắng",
+    "asm_name": "Linh",
+    "brand": "AP-PIE",
+    "cht_name": "Trần Thị Bích Huyền",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "NTMK",
+    "store_name": "94 N.T.Minh Khai",
+    "asm_name": "Linh",
+    "brand": "AP-PIE",
+    "cht_name": "Đỗ Trần Xuân Hương",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "NDC",
+    "store_name": "Nguyễn Đình Chiểu",
+    "asm_name": "Linh",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Huỳnh Thị Kim Son",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "LVS",
+    "store_name": "Lê Văn Sỹ",
+    "asm_name": "Linh",
+    "brand": "AP-PIE",
+    "cht_name": "Trần Thúy Phượng",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "OIKHIEM",
+    "store_name": "Ông Ích Khiêm",
+    "asm_name": "Tiên",
+    "brand": "AP-PIE",
+    "cht_name": "Võ Thị Thu Hằng",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "AUCO",
+    "store_name": "Âu Cơ",
+    "asm_name": "Tiên",
+    "brand": "AP-PIE",
+    "cht_name": "Lê Nguyễn Hồng Đào",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "185_3T2",
+    "store_name": "185 Ba Tháng Hai",
+    "asm_name": "Linh",
+    "brand": "AP-PIE",
+    "cht_name": "Võ Kim Thoa",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "126_3T2",
+    "store_name": "126 Ba Tháng Hai",
+    "asm_name": "Linh",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Lê Thị Mai Thảo",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "VANHANH",
+    "store_name": "Vạn Hạnh Mall",
+    "asm_name": "Lâm",
+    "brand": "AP-PIE",
+    "cht_name": "Nguyễn Thị Thúy Hằng",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "CMT8",
+    "store_name": "CMT8",
+    "asm_name": "Dũng",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Phan Thị Bích Dân",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "CHOA",
+    "store_name": "Cộng Hòa 2",
+    "asm_name": "Tiên",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Đặng Thị Bích Ngân",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "CHOA3",
+    "store_name": "454 Cộng Hòa",
+    "asm_name": "Dũng",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Hoàng Thị Kiều Oanh",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "TCHINH",
+    "store_name": "Trường Chinh",
+    "asm_name": "Dũng",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Lê Thị Kim Huệ",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "TCHINH2",
+    "store_name": "Trường Chinh 2",
+    "asm_name": "Tiên",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Đặng Kim Ngọc",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "NGANHTHU",
+    "store_name": "Nguyễn Ảnh Thủ",
+    "asm_name": "Tiên",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Văn Tâm",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "LVKHUONG",
+    "store_name": "Lê Văn Khương",
+    "asm_name": "Tiên",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Huỳnh Thanh Hà",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "NVTROI",
+    "store_name": "Nguyễn Văn Trỗi",
+    "asm_name": "Linh",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Phan Thị Minh Thu",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "PDP",
+    "store_name": "169 Phan Đình Phùng",
+    "asm_name": "Linh",
+    "brand": "AP-PIE",
+    "cht_name": "Phan Thị Ngọc Vân",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "PDL",
+    "store_name": "Phan Đăng Lưu 1",
+    "asm_name": "Tiên",
+    "brand": "AP-PIE",
+    "cht_name": "Nguyễn Văn Dũng",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "PDL2",
+    "store_name": "Phan Đăng Lưu 2",
+    "asm_name": "Tiên",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Thị Bích Chung",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "GOVAP",
+    "store_name": "Nguyễn Văn Nghi",
+    "asm_name": "Linh",
+    "brand": "AP-PIE",
+    "cht_name": "Dương Thị Ngọc Ngân",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "LOTTEGV",
+    "store_name": "Lotte Mart Gò Vấp",
+    "asm_name": "Linh",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Võ Thị Kim Thoa",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "901QT",
+    "store_name": "Quang Trung",
+    "asm_name": "Linh",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Trần Thị Hồng Hoa",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "LQDINH",
+    "store_name": "Nguyên Hồng",
+    "asm_name": "Linh",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Phan Thị Kim Phượng",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "NGUYENOANH",
+    "store_name": "Nguyễn Oanh",
+    "asm_name": "Linh",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Trương Thị Phương",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "AEONBT",
+    "store_name": "Aeon Bình Tân",
+    "asm_name": "Tiên",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Phạm Thị Kim Thơ",
+    "target_headcount": 7,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "KINHDV",
+    "store_name": "Kinh Dương Vương",
+    "asm_name": "Hương",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Phạm Thị Như Ngọc",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HAUGIANG",
+    "store_name": "Hậu Giang",
+    "asm_name": "Hương",
+    "brand": "AP-PIE",
+    "cht_name": "Nguyễn Thanh Thư",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "AEONTP",
+    "store_name": "Aeon Tân Phú",
+    "asm_name": "Linh",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Trương Tố Uyên",
+    "target_headcount": 7,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "LBBICH",
+    "store_name": "Lũy Bán Bích",
+    "asm_name": "Dũng",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Văn Nhân",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "LETRONGTAN",
+    "store_name": "Lê Trọng Tấn",
+    "asm_name": "Linh",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Thị Yến Mai",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "PMHNDC",
+    "store_name": "Phú Mỹ Hưng 1 - Nguyễn Đức Cảnh",
+    "asm_name": "Khôi",
+    "brand": "AP-PIE",
+    "cht_name": "Bùi Hồng Đào",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "PMHNLB",
+    "store_name": "Phú Mỹ Hưng 2 - Nguyễn Lương Bằng",
+    "asm_name": "Khôi",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Huỳnh Loan Anh",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "PMHNVL",
+    "store_name": "Phú Mỹ Hưng 3 - Nguyễn Văn Linh",
+    "asm_name": "Khôi",
+    "brand": "AP-PIE",
+    "cht_name": "Nguyễn Anh Thư",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "LOTTEQ7",
+    "store_name": "Lotte Mart Quận 7",
+    "asm_name": "Khôi",
+    "brand": "AP-PIE",
+    "cht_name": "Lê Thị Kim Phụng",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "CREMALL",
+    "store_name": "Crescent Mall",
+    "asm_name": "Khôi",
+    "brand": "AP-PIE",
+    "cht_name": "Nguyễn Hoàng Thanh Tâm",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "NTT",
+    "store_name": "Nguyễn Thị Thập",
+    "asm_name": "Khôi",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Trần Ngọc Kim Anh",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "KHANHHOI",
+    "store_name": "Khánh Hội",
+    "asm_name": "Khôi",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Quốc Duy",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "DBTRAC",
+    "store_name": "Dương Bá Trạc",
+    "asm_name": "Khôi",
+    "brand": "AP-PIE",
+    "cht_name": "Dương Thị Thùy Trang",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "THUDUC",
+    "store_name": "Thủ Đức 1",
+    "asm_name": "Tín",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Ngọc Tú Trinh",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "THUDUC2",
+    "store_name": "Thủ Đức 2",
+    "asm_name": "Tín",
+    "brand": "AP-PIE",
+    "cht_name": "Huỳnh Ánh Tuyết",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "SENSECITY",
+    "store_name": "Sense City Phạm Văn Đồng",
+    "asm_name": "Lâm",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Thị Mỹ Tâm",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "VINCOMTD",
+    "store_name": "Vincom Grand Park",
+    "asm_name": "Lâm",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Trần Thị Yến Ngân",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "VINCOMLVV",
+    "store_name": "Vincom Lê Văn Việt",
+    "asm_name": "Lâm",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Lê Nguyễn Kiều Mi",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "VINCOMQ2",
+    "store_name": "Vincom Thảo Điền",
+    "asm_name": "Lâm",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Phạm Nguyễn Phương Trinh",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "CUCHI",
+    "store_name": "Củ Chi",
+    "asm_name": "Tiên",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Huỳnh Thị Linh Phương",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "ONLINEWEB",
+    "store_name": "Cửa hàng Online",
+    "asm_name": "Ni",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Lê Trọng Hữu",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "BDUONG",
+    "store_name": "Bình Dương",
+    "asm_name": "Khôi",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Trần Đặng Quốc Hòa",
+    "target_headcount": 8,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "DLBD",
+    "store_name": "Đại Lộ Bình Dương",
+    "asm_name": "Khôi",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Thị Thanh Vân",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "FLDBDUONG",
+    "store_name": "Nguyễn Đình Chiểu Bình Dương",
+    "asm_name": "Khôi",
+    "brand": "A-B",
+    "cht_name": "Chướng Nhầm Kíu",
+    "target_headcount": 3,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "AEONBD",
+    "store_name": "Aeon Bình Dương",
+    "asm_name": "Khôi",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Võ Thị Hồng Mến",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "DIANBD",
+    "store_name": "Dĩ An",
+    "asm_name": "Khôi",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Văn Phương",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "VTAU4",
+    "store_name": "Vũng Tàu 1 - Lê Hồng Phong",
+    "asm_name": "Khôi",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Văn Phúc",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "VTAU2",
+    "store_name": "Vũng Tàu 2 - Bacu",
+    "asm_name": "Khôi",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Trần Thị Mai Trinh",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "VTAU3004",
+    "store_name": "Vũng Tàu 3 - 30/4",
+    "asm_name": "Khôi",
+    "brand": "AP-PIE",
+    "cht_name": "Huỳnh Nguyễn Uyên Phương",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "BARIA",
+    "store_name": "Bà Rịa",
+    "asm_name": "Khôi",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Trần Thị Thúy",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "BPHUOC",
+    "store_name": "Bình Phước",
+    "asm_name": "Tín",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Thanh Sáng Thế",
+    "target_headcount": 8,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "BINHLONG",
+    "store_name": "Bình Long",
+    "asm_name": "Tín",
+    "brand": "AP-PIE",
+    "cht_name": "Nguyễn Thị Thu Huệ",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "BCDN",
+    "store_name": "Big C Đồng Nai",
+    "asm_name": "Tín",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Huỳnh Thị Kim Thanh",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "VINCOMBH",
+    "store_name": "Vincom Biên Hòa",
+    "asm_name": "Tín",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Thị Mai Ngân",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "BIENHOA",
+    "store_name": "Biên Hoà",
+    "asm_name": "Tín",
+    "brand": "AP-PIE",
+    "cht_name": "Bùi Quý Kiệt",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "BHNAQUOC",
+    "store_name": "Biên Hòa - Nguyễn Ái Quốc",
+    "asm_name": "Tín",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Lâm Thanh Yên",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "TAMHIEP",
+    "store_name": "Tam Hiệp",
+    "asm_name": "Tín",
+    "brand": "AP-PIE",
+    "cht_name": "Đặng Lê Nhật Vy",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "LONGKHANH",
+    "store_name": "Long Khánh",
+    "asm_name": "Tín",
+    "brand": "AP-PIE",
+    "cht_name": "Cao Kỳ Duyên",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "LONGTHANH",
+    "store_name": "Long Thành",
+    "asm_name": "Tín",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Thị Kim Ngân",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "TAYNINH",
+    "store_name": "Tây Ninh",
+    "asm_name": "Tín",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Phạm Thị Mỹ Nguyên",
+    "target_headcount": 7,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "BENLUC",
+    "store_name": "Bến Lức",
+    "asm_name": "Tín",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Trần Ngọc Khánh",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "LONGAN",
+    "store_name": "Long An",
+    "asm_name": "Tín",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Thị Thúy Hoa",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "MYTHO",
+    "store_name": "Mỹ Tho 1 - Ấp Bắc",
+    "asm_name": "Hương",
+    "brand": "AP-PIE",
+    "cht_name": "Lê Thị Khuyến",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "MYTHO2",
+    "store_name": "Mỹ Tho 2 - Đinh Bộ Lĩnh",
+    "asm_name": "Hương",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Mã Ngọc Hoàng Mai",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "CAYLAY",
+    "store_name": "Cai Lậy",
+    "asm_name": "Hương",
+    "brand": "AP-PIE",
+    "cht_name": "Phạm Thị Cẩm Vân",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "CAOLANH",
+    "store_name": "Cao Lãnh - Đồng Tháp",
+    "asm_name": "Hương",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Thị Thu Thảo",
+    "target_headcount": 8,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HONGNGU",
+    "store_name": "Hồng Ngự",
+    "asm_name": "Hương",
+    "brand": "AP-PIE",
+    "cht_name": "Đồng Thị Ý Như",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "SADEC",
+    "store_name": "Sa Đéc",
+    "asm_name": "Hương",
+    "brand": "AP-PIE",
+    "cht_name": "Trần Thị Châu Đoan",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "LXUYEN",
+    "store_name": "Long Xuyên 1 - Hai Bà Trưng",
+    "asm_name": "Hương",
+    "brand": "AP-PIE",
+    "cht_name": "Đặng Thị Kiều Loan",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "LONGXUYEN2",
+    "store_name": "Long Xuyên 2 - Trần Hưng Đạo",
+    "asm_name": "Hương",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Phan Thị Minh Phương",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "LONGXUYEN3",
+    "store_name": "Long Xuyên 3 - Trần Hưng Đạo",
+    "asm_name": "Hương",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Huỳnh Thị Mỹ Tiên",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "CHAUDOC",
+    "store_name": "Châu Đốc - Lê Lợi",
+    "asm_name": "Hương",
+    "brand": "AP-PIE",
+    "cht_name": "Huỳnh Thị Mủi",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "RGIA",
+    "store_name": "Rạch Gía 1 - Nguyễn Trung Trực",
+    "asm_name": "Hương",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Phạm Quốc Thanh",
+    "target_headcount": 7,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "RGIA2",
+    "store_name": "Rạch Giá 2 - Trần Phú",
+    "asm_name": "Hương",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Đoàn Thị Bích",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "RACHGIA3",
+    "store_name": "Rạch Giá 3 - Cách Mạng Tháng 8",
+    "asm_name": "Hương",
+    "brand": "AP-PIE",
+    "cht_name": "Nguyễn Minh Sang",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HATIEN",
+    "store_name": "Hà Tiên",
+    "asm_name": "Hương",
+    "brand": "AP-PIE",
+    "cht_name": "Nguyễn Thị Hoài Linh",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "BENTRE",
+    "store_name": "Bến Tre",
+    "asm_name": "Hương",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Phạm Thị Kim Ngọc",
+    "target_headcount": 8,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "VINHLONG",
+    "store_name": "Vĩnh Long 1 - Lê Thái Tổ",
+    "asm_name": "Hương",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Trần Xuân Thụy",
+    "target_headcount": 7,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "VINHLONG2",
+    "store_name": "Vĩnh Long 2 - Phạm Thái Bường",
+    "asm_name": "Hương",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Thị Bảo Trâm",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "TRAVINH",
+    "store_name": "Trà Vinh",
+    "asm_name": "Hương",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Lê Thị Ngọc Hưởng",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "CTHO",
+    "store_name": "Cần Thơ - Nguyễn Trãi",
+    "asm_name": "Hương",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Võ Thị Ngọc Diệu",
+    "target_headcount": 7,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "CTHO2",
+    "store_name": "Cần Thơ - Mậu Thân",
+    "asm_name": "Hương",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Phạm Thị Thủy Tiên",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "CTHO3",
+    "store_name": "Cần Thơ - Hoà Bình",
+    "asm_name": "Hương",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Hồ Thị Kim Thoa",
+    "target_headcount": 12,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "CTHO6",
+    "store_name": "Cần Thơ - Nguyễn Văn Cừ",
+    "asm_name": "Hương",
+    "brand": "AP-PIE",
+    "cht_name": "Nguyễn Thị Nguyệt Thu",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "CANTHO3T2",
+    "store_name": "Cần Thơ - 3t2",
+    "asm_name": "Hương",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Thị Bé Thi",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "APHAUGIANG",
+    "store_name": "Vị Thanh",
+    "asm_name": "Hương",
+    "brand": "AP-PIE",
+    "cht_name": "Đinh Thị Diễm My",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "STR",
+    "store_name": "Sóc Trăng 1 - Hai Bà Trưng",
+    "asm_name": "Hương",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Liêu Thị Kiều Uyên",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "STR2",
+    "store_name": "Sóc Trăng 2 - Trần Hưng Đạo",
+    "asm_name": "Hương",
+    "brand": "AP-PIE",
+    "cht_name": "Trần Thị Cẩm Tú",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "BACLIEU",
+    "store_name": "Bạc Liêu 1 - Trần Phú",
+    "asm_name": "Hương",
+    "brand": "AP-PIE",
+    "cht_name": "Dương Xuân Ngân",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "BACLIEU2",
+    "store_name": "Bạc Liêu 2 - Trần Huỳnh",
+    "asm_name": "Hương",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Phạm Thanh Thảo",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "CMAU",
+    "store_name": "Cà Mau 1 - Trần Hưng Đạo",
+    "asm_name": "Hương",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Võ Thị Thảo  Nguyên",
+    "target_headcount": 8,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "CMAU2",
+    "store_name": "Cà Mau 2 - Nguyễn Tất Thành",
+    "asm_name": "Hương",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Lư Kiều Diễm",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "QBINH",
+    "store_name": "Quảng Bình",
+    "asm_name": "Dũng",
+    "brand": "AP-PIE",
+    "cht_name": "Nguyễn Thị Kim Hạnh",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "QUANGTRI",
+    "store_name": "Quảng Trị",
+    "asm_name": "Quân",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Thị Thu Hồng",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "BIGCHUE",
+    "store_name": "Aeon Huế",
+    "asm_name": "Quân",
+    "brand": "AP",
+    "cht_name": "Ngô Thiên Minh",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HUE2",
+    "store_name": "Huế 2 - 32 Hùng Vương",
+    "asm_name": "Quân",
+    "brand": "AP-PIE",
+    "cht_name": "Nguyễn Thị Diệu Huyền",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "DN",
+    "store_name": "Đà Nẵng 1 - Hoàng Diệu",
+    "asm_name": "Quân",
+    "brand": "AP-PIE",
+    "cht_name": "Phan Lê Thùy Linh",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "DN2",
+    "store_name": "Đà Nẵng 2 - Lê Duẩn",
+    "asm_name": "Quân",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Trần Thị Bích Thảo",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "DN3",
+    "store_name": "Đà Nẵng 3 - Nguyễn Văn Linh",
+    "asm_name": "Quân",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Phạm Thị Li Ly",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "DN4",
+    "store_name": "Đà Nẵng 4 - Vincom Đà Nẵng",
+    "asm_name": "Quân",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Võ Thị Huỳnh Nga",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "DN5DBP",
+    "store_name": "Đà Nẵng 5 - Điện Biên Phủ",
+    "asm_name": "Quân",
+    "brand": "AP-PIE",
+    "cht_name": "Hồ Thanh Ngọc Thùy",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "TAMKY",
+    "store_name": "Tam Kỳ",
+    "asm_name": "Quân",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Trần Hạ Chiêu",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "QNGAI",
+    "store_name": "Quảng Ngãi",
+    "asm_name": "Quân",
+    "brand": "AP-PIE",
+    "cht_name": "Phạm Thị Kiều Trinh",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "KONTUM",
+    "store_name": "Kon Tum",
+    "asm_name": "Dũng",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nông Thị Nhung",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "QUINHON2",
+    "store_name": "Quy Nhơn 1 - Phan Bội Châu",
+    "asm_name": "Quân",
+    "brand": "AP-PIE",
+    "cht_name": "Huỳnh Lê Tuyết Nhung",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "QUYNHON3",
+    "store_name": "Quy Nhơn 2 - Lý Thường Kiệt",
+    "asm_name": "Quân",
+    "brand": "AP-PIE",
+    "cht_name": "Ôn Bích Thảo",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "GIALAI",
+    "store_name": "Gia Lai",
+    "asm_name": "Dũng",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Hồ Thị Thu Hằng",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "NHT3",
+    "store_name": "Nha Trang 1 - Thái Nguyên",
+    "asm_name": "Quân",
+    "brand": "AP-PIE",
+    "cht_name": "Nguyễn Thị Diệu Khánh",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "NHT2",
+    "store_name": "Nha Trang 2 - Lý Tự Trọng",
+    "asm_name": "Quân",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Châu Thị Ngọc Dung",
+    "target_headcount": 8,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "FLDLTTON",
+    "store_name": "Nha Trang - Lý Thánh Tôn",
+    "asm_name": "Hương",
+    "brand": "A-B",
+    "cht_name": "Võ Anh Thư",
+    "target_headcount": 3,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "CAMRANH",
+    "store_name": "Cam Ranh",
+    "asm_name": "Quân",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Thị Thủy",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "PHANRANG2",
+    "store_name": "Phan Rang - Yersin",
+    "asm_name": "Quân",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Trần Thị Nhật Linh",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "PTHIET",
+    "store_name": "Phan Thiết",
+    "asm_name": "Dũng",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Đỗ Thị Kim Bằng",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "PHUYEN",
+    "store_name": "Phú Yên",
+    "asm_name": "Quân",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Hoàng Anh",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "DAKLAK",
+    "store_name": "Daklak 1 - Phan Chu Trinh",
+    "asm_name": "Dũng",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Thị Kỳ Duyên",
+    "target_headcount": 8,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "DAKLAK2",
+    "store_name": "Daklak 2 - Nguyễn Tất Thành",
+    "asm_name": "Dũng",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Lê Vũ Hiến",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "DAKLAK5",
+    "store_name": "Buôn Hồ",
+    "asm_name": "Dũng",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Trần Thị Huyền",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "DAKNONG",
+    "store_name": "Đắk Nông",
+    "asm_name": "Dũng",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Sùng Thị Mú",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "DALAT",
+    "store_name": "Đà Lạt",
+    "asm_name": "Dũng",
+    "brand": "AP-PIE",
+    "cht_name": "Trần Thị Thu Quý",
+    "target_headcount": 4,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "DALAT2",
+    "store_name": "Đà Lạt 2",
+    "asm_name": "Dũng",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Trần Tuyết Trinh",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "BAOLOC",
+    "store_name": "Bảo Lộc",
+    "asm_name": "Dũng",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Trần Thị Phương Thảo",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HN1",
+    "store_name": "Hà Nội 1 - Tower",
+    "asm_name": "HN",
+    "brand": "AP-PIE",
+    "cht_name": "Trương Thị Quyên",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HN2",
+    "store_name": "Hà Nội 2 - Trường Chinh",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Đinh Thị Trang",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HN3",
+    "store_name": "Hà Nội 3 - T. H. Đạo",
+    "asm_name": "HN",
+    "brand": "AP-PIE",
+    "cht_name": "Nguyễn Thị Hằng",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HN4",
+    "store_name": "Hà Nội 4 - Chùa Bộc",
+    "asm_name": "HN",
+    "brand": "AP-PIE",
+    "cht_name": "Nguyễn Thành Chung",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HN5",
+    "store_name": "Hà Nội 5 - Nguyễn Khánh Toàn",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Thị Hà",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HN6",
+    "store_name": "Hà Nội 6 - Láng Hạ",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Phạm Bích Đào",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HN8",
+    "store_name": "Hà Nội 8 - Đại Cồ Việt",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Lê Thu Trang",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HN10",
+    "store_name": "Hà Nội 10 - Hàng Bài",
+    "asm_name": "HN",
+    "brand": "AP-PIE",
+    "cht_name": "Nguyễn Ánh Ngọc",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HN11",
+    "store_name": "Hà Nội 11 - Quang Trung",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Phạm Thị Nhung",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HN12",
+    "store_name": "Hà Nội 12 - Xã Đàn",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Vũ Diệu Linh",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HTMAU",
+    "store_name": "Hà Nội 14 - Hồ Tùng Mậu",
+    "asm_name": "HN",
+    "brand": "AP-PIE",
+    "cht_name": "Đào Thị Diệu",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HN15",
+    "store_name": "Hà Nội 15 - Lạc Long Quân",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Trần Bá Cường",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HN16",
+    "store_name": "Hà Nội 16 - Thái Hà",
+    "asm_name": "HN",
+    "brand": "AP-PIE",
+    "cht_name": "Cao Thị Hòa",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HN17",
+    "store_name": "Hà Nội 17 - Trần Duy Hưng",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Phùng Thị Vân Anh",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HN18",
+    "store_name": "Hà Nội 18 - Lê Văn Lương",
+    "asm_name": "HN",
+    "brand": "AP-PIE",
+    "cht_name": "Lưu Thị Cẩm Nhung",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HN19",
+    "store_name": "Hà Nội 19 - Nguyễn Trãi",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Phạm Thị Thêu",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HN20",
+    "store_name": "Hà Nội 20 - Trần Phú",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Trần Thị Vân",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HN21",
+    "store_name": "Hà Nội 21 -Nguyễn Chí Thanh",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Thu Hiền",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HN22",
+    "store_name": "Hà Nội 22 - Nguyễn Văn Cừ",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nông Cẩm Vân",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HN23",
+    "store_name": "Hà Nội 23 - Trung Kính",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Thị Thu Hà",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HN24",
+    "store_name": "Hà Nội 24 - Hoàng Quốc Việt",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Phạm Thị Mai",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HN25",
+    "store_name": "Hà Nội 25 - Vincom Ocean Park",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Ngô Thị Thu Hiền",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HN26",
+    "store_name": "Hà Nội 26 - Mạc Thị Bưởi",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nghiêm Thùy Dương",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "CAUGIAYHN",
+    "store_name": "Hà Nội 27 - Cầu Giấy",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Bùi Thị Thùy Dương",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HNTN",
+    "store_name": "Thái Nguyên",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nông Thị Khánh Huyền",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "TUYENQUANG",
+    "store_name": "Tuyên Quang",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Hoàng Thị Dung",
+    "target_headcount": 6,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HP",
+    "store_name": "Hải Phòng 1 - Quang Trung",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Phạm Thị Minh Diệp",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HP3",
+    "store_name": "Hải Phòng 2 - Điện Biên Phủ",
+    "asm_name": "HN",
+    "brand": "AP-PIE",
+    "cht_name": "Ngô Thị Lan Anh",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HP4",
+    "store_name": "Hải Phòng 4 - Thủy Nguyên",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Thị Thoan",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "LACHTRAYHP",
+    "store_name": "Hải Phòng 3 - Lạch Tray",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Thị Vi",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "TBINH",
+    "store_name": "Vincom Thái Bình",
+    "asm_name": "HN",
+    "brand": "AP-PIE",
+    "cht_name": "Nguyễn Thị Thanh Loan",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "QNINH",
+    "store_name": "Quảng Ninh 1 - Lê Thánh Tông",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Trương Thị Dậu",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "THANHHOA",
+    "store_name": "Thanh Hóa",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Đỗ Thị Thu Trang",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "VINH1",
+    "store_name": "Vinh 1 - Nguyễn Văn Cừ",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Hồ Thị Mai Sương",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "VINH2",
+    "store_name": "Vinh 2 - Lê Lợi",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Phạm Anh Tú",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HATINH",
+    "store_name": "Hà Tĩnh",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Hoàng Thị Nga",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "NINHBINH",
+    "store_name": "Ninh Bình",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Đặng Thị Hiền",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "HAGIANG",
+    "store_name": "Hà Giang",
+    "asm_name": "HN",
+    "brand": "AP-PIE",
+    "cht_name": "Nguyễn Thị Giang",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "VIETTRI",
+    "store_name": "Việt Trì",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Trần Thu Trang",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "BACNINH",
+    "store_name": "Bắc Ninh",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Vương Duy Tùng",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "NAMDINH",
+    "store_name": "Nam Định",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Thị Thu Hương",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "BACGIANG",
+    "store_name": "Bắc Giang",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Thị Thu Trang",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "VINHYEN",
+    "store_name": "Vĩnh Yên",
+    "asm_name": "HN",
+    "brand": "AP-PIE",
+    "cht_name": "Vũ Thị Thanh Thu",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "LAOCAI",
+    "store_name": "Lào Cai",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Nguyễn Thị Kim Ngân",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "YENBAI",
+    "store_name": "Yên Bái",
+    "asm_name": "HN",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Lương Thị Hải",
+    "target_headcount": 5,
+    "passcode": "1111"
+  },
+  {
+    "store_code": "QUYNHON",
+    "store_name": "Quy Nhơn 3 - Trần Hưng Đạo",
+    "asm_name": "Quân",
+    "brand": "AP-PIE-A-B",
+    "cht_name": "Trần Thị Viễn Thảo",
+    "target_headcount": 7,
+    "passcode": "1111"
+  }
+]

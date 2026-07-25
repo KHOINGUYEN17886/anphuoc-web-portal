@@ -929,6 +929,15 @@
 
             <!-- ASM Tab 4: Passcode Management (Admin Only) -->
             <div id="status-tab-passcodes-content" class="hidden card rounded-b-2xl p-5 border-t-0 space-y-6">
+                <div class="flex flex-wrap items-center justify-between border-b border-gray-100 pb-3 gap-2">
+                    <div>
+                        <h4 class="font-extrabold text-brand-navy text-sm uppercase">🔑 Quản Lý Mã PIN & Phân Cụm Quản Lý ASM</h4>
+                        <p class="text-xs text-gray-500">Cập nhật mã PIN hoặc phân bổ lại Cửa Hàng cho từng ASM quản lý</p>
+                    </div>
+                    <button class="btn-gold text-xs px-3.5 py-2 font-bold shadow-xs flex items-center gap-1.5" onclick="syncOnlineStoresFromExcel()">
+                        🔄 Đồng Bộ Lại từ Excel StoresInfo
+                    </button>
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- ASM PINs -->
                     <div class="space-y-3">
@@ -948,21 +957,22 @@
                             </table>
                         </div>
                     </div>
-                    <!-- Store PINs -->
+                    <!-- Store PINs & ASM Assignment -->
                     <div class="space-y-3">
-                        <h4 class="font-extrabold text-brand-navy text-xs uppercase border-b border-gray-200 pb-2">🏪 Mã PIN Cửa Hàng (CHT)</h4>
+                        <h4 class="font-extrabold text-brand-navy text-xs uppercase border-b border-gray-200 pb-2">🏪 Phân Cụm ASM & Mã PIN Cửa Hàng</h4>
                         <div class="overflow-x-auto max-h-[400px]">
                             <table class="tbl w-full rounded-xl overflow-hidden text-xs">
                                 <thead>
                                     <tr>
                                         <th>Mã CH</th>
                                         <th>Tên Cửa Hàng</th>
+                                        <th>ASM Quản Lý</th>
                                         <th>Mã PIN</th>
                                         <th class="text-center">Hành động</th>
                                     </tr>
                                 </thead>
                                 <tbody id="table-passcodes-stores" class="divide-y divide-gray-100">
-                                    <tr><td colspan="4" class="text-center py-4 text-gray-400">Đang tải...</td></tr>
+                                    <tr><td colspan="5" class="text-center py-4 text-gray-400">Đang tải...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -3144,10 +3154,48 @@
             }
         }
 
+        window.updateStoreAsmAssignment = async function(storeCode, newAsm) {
+            try {
+                const pin = currentStore ? currentStore.pin : '8888';
+                const res = await fetch('/api/admin/update_store_asm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ store_code: storeCode, asm_name: newAsm, pin: pin })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    showToast("✅ Đã Cập Nhật ASM", `Cửa hàng ${storeCode} đã được chuyển sang ASM ${newAsm}`, "✅");
+                    await loadASMs();
+                } else {
+                    showToast("❌ Lỗi Cập Nhật", data.error || "Không thể cập nhật ASM", "❌");
+                }
+            } catch(err) {
+                showToast("❌ Lỗi Mạng", "Không thể kết nối máy chủ", "❌");
+            }
+        };
+
+        window.syncOnlineStoresFromExcel = async function() {
+            if (!confirm("Bạn có chắc muốn đồng bộ lại toàn bộ Danh sách ASM - Cửa hàng từ file StoresInfo.xlsx (cột J)?")) return;
+            try {
+                const pin = currentStore ? currentStore.pin : '8888';
+                const res = await fetch(`/api/seed_online_stores?pin=${encodeURIComponent(pin)}`);
+                const data = await res.json();
+                if (data.ok) {
+                    showToast("✅ Đồng Bộ Thành Công", `Đã cập nhật 184 cửa hàng và ${data.asms.length} ASM từ StoresInfo.xlsx!`, "✅");
+                    await loadASMs();
+                    await loadPasscodes();
+                } else {
+                    showToast("❌ Lỗi Đồng Bộ", data.error || "Không thể đồng bộ", "❌");
+                }
+            } catch(err) {
+                showToast("❌ Lỗi Mạng", "Không thể kết nối máy chủ", "❌");
+            }
+        };
+
         // Passcodes load function
         async function loadPasscodes() {
             tablePasscodesAsms.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-400">Đang tải...</td></tr>';
-            tablePasscodesStores.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-400">Đang tải...</td></tr>';
+            tablePasscodesStores.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-400">Đang tải...</td></tr>';
             try {
                 const res = await fetch(`/api/get_all_passcodes?admin_pin=${currentStore.pin}`);
                 const data = await res.json();
@@ -3169,16 +3217,25 @@
                     });
                     
                     tablePasscodesStores.innerHTML = '';
+                    const allAsmNames = data.asms ? data.asms.map(a => a.asm_name) : ['Dũng', 'HN', 'Hương', 'Khôi', 'Linh', 'Lâm', 'Ni', 'Quân', 'Tiên', 'Tín'];
+                    
                     data.stores.forEach(s => {
+                        const currentAsm = s.asm_name || '';
+                        const asmSelectHtml = `
+                            <select class="input-field text-xs py-1 font-semibold w-full" onchange="updateStoreAsmAssignment('${s.store_code}', this.value)">
+                                ${allAsmNames.map(a => `<option value="${a}" ${a === currentAsm ? 'selected' : ''}>${a}</option>`).join('')}
+                            </select>
+                        `;
                         tablePasscodesStores.innerHTML += `
                             <tr class="border-b border-gray-100 hover:bg-brand-red-l">
                                 <td class="py-3 px-3 text-gray-900 font-mono font-bold">${s.store_code}</td>
-                                <td class="py-3 px-3 text-gray-600 font-medium">${s.store_name}</td>
-                                <td class="py-3 px-3 font-mono text-brand-red font-extrabold text-sm">${s.passcode || '1234'}</td>
+                                <td class="py-3 px-3 text-gray-600 font-medium text-xs">${s.store_name}</td>
+                                <td class="py-2 px-2">${asmSelectHtml}</td>
+                                <td class="py-3 px-3 font-mono text-brand-red font-extrabold text-xs">${s.passcode || '1111'}</td>
                                 <td class="py-3 px-3 text-center">
                                     <button class="btn-outline text-[11px] px-2.5 py-1"
                                         onclick="showChangePinModalAdmin('store', '${s.store_code}')">
-                                        ✏️ Sửa PIN
+                                        ✏️ PIN
                                     </button>
                                 </td>
                             </tr>

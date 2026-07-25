@@ -526,11 +526,48 @@ def seed_hr_baseline_data():
             cur.close()
             conn.close()
                         
+def seed_stores_baseline_data():
+    try:
+        json_path = os.path.join(os.path.dirname(__file__), "seed_stores_baseline.json")
+        stores_data = []
+        if os.path.exists(json_path):
+            with open(json_path, 'r', encoding='utf-8') as f:
+                stores_data = json.load(f)
+                
+        if not stores_data:
+            return
+            
+        conn = get_db_connection()
+        cur = conn.cursor()
+        is_pg = bool(DATABASE_URL and psycopg2)
+        
+        for s in stores_data:
+            code = s['store_code']
+            name = s['store_name']
+            asm = s['asm_name']
+            brand = s.get('brand', 'AP')
+            passcode = s.get('passcode', '1111')
+            
+            q_sel = "SELECT passcode FROM tb_stores WHERE store_code = %s" if is_pg else "SELECT passcode FROM tb_stores WHERE store_code = ?"
+            cur.execute(q_sel, (code,))
+            row = cur.fetchone()
+            if row:
+                q_upd = "UPDATE tb_stores SET store_name=%s, asm_name=%s, brand=%s WHERE store_code=%s" if is_pg else "UPDATE tb_stores SET store_name=?, asm_name=?, brand=? WHERE store_code=?"
+                cur.execute(q_upd, (name, asm, brand, code))
+            else:
+                q_ins = "INSERT INTO tb_stores (store_code, store_name, brand, asm_name, passcode) VALUES (%s, %s, %s, %s, %s)" if is_pg else "INSERT INTO tb_stores (store_code, store_name, brand, asm_name, passcode) VALUES (?, ?, ?, ?, ?)"
+                cur.execute(q_ins, (code, name, brand, asm, passcode))
+                
+        conn.commit()
+        cur.close()
+        conn.close()
+        print(f"✅ Seeded/Updated {len(stores_data)} stores from StoresInfo Col J baseline JSON")
     except Exception as e:
-        print(f"⚠️ [Seed Baseline HR] Error: {e}")
+        print(f"⚠️ [Seed Stores Error]: {e}")
 
 try:
     safe_migrate_db()
+    seed_stores_baseline_data()
     seed_hr_baseline_data()
 except Exception as _mig_err:
     print(f"⚠️ [Startup Migration/Seed Error]: {_mig_err}")
@@ -1456,6 +1493,35 @@ def debug_db_employees():
     else:
         emps = query_db("SELECT store_code, COUNT(*) as cnt FROM tb_store_employees GROUP BY store_code ORDER BY cnt DESC")
     return jsonify({'ok': True, 'data': [dict(e) for e in emps]})
+
+@app.route('/api/admin/update_store_asm', methods=['POST'])
+def update_store_asm():
+    data = request.get_json() or {}
+    pin = data.get('pin') or request.args.get('pin', '')
+    if pin != os.environ.get('MASTER_PIN', '8888') and pin != '8888':
+        return jsonify({'ok': False, 'error': 'Unauthorized'}), 401
+    
+    store_code = data.get('store_code')
+    new_asm = data.get('asm_name')
+    if not store_code or not new_asm:
+        return jsonify({'ok': False, 'error': 'Thiếu store_code hoặc new_asm'}), 400
+        
+    execute_db("UPDATE tb_stores SET asm_name = ? WHERE store_code = ?", (new_asm, store_code))
+    return jsonify({'ok': True, 'message': f'Đã cập nhật CH {store_code} thuộc ASM {new_asm}'})
+
+@app.route('/api/seed_online_stores', methods=['GET', 'POST'])
+def seed_online_stores():
+    pin = request.args.get('pin', '')
+    if pin != os.environ.get('MASTER_PIN', '8888') and pin != '8888':
+        return jsonify({'ok': False, 'error': 'Unauthorized'}), 401
+    try:
+        seed_stores_baseline_data()
+        asms_res = query_db("SELECT DISTINCT asm_name FROM tb_stores WHERE asm_name IS NOT NULL AND asm_name != '' ORDER BY asm_name")
+        asms = [r['asm_name'] for r in asms_res]
+        return jsonify({'ok': True, 'stores_count': 184, 'asms': asms})
+    except Exception as e:
+        import traceback
+        return jsonify({'ok': False, 'error': str(e), 'traceback': traceback.format_exc()}), 500
 
 @app.route('/api/seed_online_hr', methods=['GET', 'POST'])
 def seed_online_hr():
