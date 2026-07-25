@@ -290,4 +290,111 @@ if os.path.exists(stores_info_path):
 else:
     print(f"Error: StoresInfo.xlsx not found at {stores_info_path}")
 
+# 3. Parse StaffList_Store_20.04.26.xlsx to seed real employee data
+staff_list_path = r"C:\All_Report\1_Mapping\StaffList_Store_20.04.26.xlsx"
+if os.path.exists(staff_list_path):
+    print(f"Seeding tb_store_employees from {staff_list_path}...")
+    import openpyxl
+    from datetime import datetime, timedelta, date
+    
+    wb_staff = openpyxl.load_workbook(staff_list_path, data_only=True)
+    ws_staff = wb_staff['Sheet1']
+    
+    cursor.execute("SELECT store_code, store_name FROM tb_stores")
+    st_rows = cursor.fetchall()
+    st_map = {}
+    for scode, sname in st_rows:
+        st_map[sname.strip().lower()] = scode
+        clean_name = sname.replace('CH', '').replace('Cửa hàng', '').strip().lower()
+        st_map[clean_name] = scode
+        
+    def parse_excel_date_py(val):
+        if not val:
+            return datetime.today().strftime('%Y-%m-%d')
+        if isinstance(val, (datetime, date)):
+            return val.strftime('%Y-%m-%d')
+        try:
+            s = str(val).strip()
+            if s.isdigit() and len(s) == 5:
+                d = datetime(1899, 12, 30) + timedelta(days=int(s))
+                return d.strftime('%Y-%m-%d')
+            elif s.replace('.', '', 1).isdigit() and 40000 <= float(s) <= 60000:
+                d = datetime(1899, 12, 30) + timedelta(days=int(float(s)))
+                return d.strftime('%Y-%m-%d')
+            elif '/' in s:
+                parts = s.split('/')
+                if len(parts) == 3:
+                    return f"{parts[2].zfill(4)}-{parts[1].zfill(2)}-{parts[0].zfill(2)}"
+            elif len(s) >= 10 and '-' in s:
+                return s[:10]
+        except Exception:
+            pass
+        return datetime.today().strftime('%Y-%m-%d')
+
+    emp_count = 0
+    for r in range(3, ws_staff.max_row + 1):
+        emp_code = ws_staff.cell(row=r, column=1).value
+        emp_name = ws_staff.cell(row=r, column=2).value
+        pos = ws_staff.cell(row=r, column=4).value
+        hire_date_raw = ws_staff.cell(row=r, column=5).value
+        dob_raw = ws_staff.cell(row=r, column=6).value
+        gender = ws_staff.cell(row=r, column=7).value
+        workplace = ws_staff.cell(row=r, column=9).value
+        
+        if not emp_code or not emp_name:
+            continue
+        emp_code = str(emp_code).strip()
+        emp_name = str(emp_name).strip()
+        if emp_name.lower() == 'x' or len(emp_name) < 2:
+            continue
+            
+        pos = str(pos).strip() if pos else 'Nhân viên bán hàng'
+        if pos == 'CH Trưởng': pos = 'Cửa hàng trưởng'
+        elif pos == 'CH Phó': pos = 'Cửa hàng phó'
+        
+        gender = str(gender).strip() if gender else 'Nữ'
+        hire_date = parse_excel_date_py(hire_date_raw)
+        dob = str(dob_raw).strip() if dob_raw else ''
+        workplace_clean = str(workplace).strip().lower() if workplace else ''
+        
+        st_code = st_map.get(workplace_clean)
+        if not st_code:
+            for sname, scode in st_map.items():
+                if sname in workplace_clean or workplace_clean in sname:
+                    st_code = scode
+                    break
+        if not st_code: st_code = 'STORE_GENERAL'
+        
+        avatar_url = f"https://ui-avatars.com/api/?name={emp_name.replace(' ', '+')}&background=1B2A4A&color=fff"
+        
+        try:
+            if is_postgres:
+                cursor.execute("""
+                    INSERT INTO tb_store_employees (employee_code, store_code, full_name, position, gender, dob, appointment_date, avatar_url, status, created_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'ACTIVE', %s)
+                    ON CONFLICT (employee_code) DO UPDATE SET
+                        store_code = EXCLUDED.store_code,
+                        full_name = EXCLUDED.full_name,
+                        position = EXCLUDED.position,
+                        gender = EXCLUDED.gender,
+                        appointment_date = EXCLUDED.appointment_date
+                """, (emp_code, st_code, emp_name, pos, gender, dob, hire_date, avatar_url, hire_date))
+            else:
+                cursor.execute("""
+                    INSERT INTO tb_store_employees (employee_code, store_code, full_name, position, gender, dob, appointment_date, avatar_url, status, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE', ?)
+                    ON CONFLICT(employee_code) DO UPDATE SET
+                        store_code = excluded.store_code,
+                        full_name = excluded.full_name,
+                        position = excluded.position,
+                        gender = excluded.gender,
+                        appointment_date = excluded.appointment_date
+                """, (emp_code, st_code, emp_name, pos, gender, dob, hire_date, avatar_url, hire_date))
+            emp_count += 1
+        except Exception as e:
+            print(f"Error seeding employee {emp_code}: {e}")
+            
+    conn.commit()
+    print(f"Successfully seeded {emp_count} real employees into database from StaffList_Store_20.04.26.xlsx!")
+
 conn.close()
