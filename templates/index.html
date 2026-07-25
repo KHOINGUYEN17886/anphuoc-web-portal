@@ -1194,7 +1194,7 @@
                         <label class="text-xs font-bold text-gray-500 uppercase">Tuần báo cáo:</label>
                         <input id="qr-date-filter" type="date" class="input-field w-auto text-xs">
                     </div>
-                    <button id="btn-qr-back" class="btn-outline text-xs flex items-center gap-1">
+                    <button id="btn-qr-back" onclick="window.handleQrBack && window.handleQrBack()" class="btn-outline text-xs flex items-center gap-1">
                         ← Quay lại
                     </button>
                 </div>
@@ -3768,16 +3768,24 @@
         if (btnQuickReport) btnQuickReport.addEventListener('click', openQuickReport);
         if (btnQuickReportInline) btnQuickReportInline.addEventListener('click', openQuickReport);
         window.handleQrBack = function() {
-            if (window.history.length > 1 && location.hash === '#quick-report') {
-                window.history.back();
+            // Always navigate back directly - don't rely on hash being set
+            if (currentStore) {
+                if (currentStore.role === 'asm' || currentStore.role === 'admin') {
+                    switchView('asm', false);
+                } else {
+                    switchView('store', false);
+                }
             } else {
-                if (currentStore && (currentStore.role==='asm'||currentStore.role==='admin')) switchView('asm', false);
-                else if (currentStore) switchView('store', false);
-                else switchView('login', false);
+                switchView('login', false);
             }
         };
 
-        if (btnQrBack) btnQrBack.addEventListener('click', window.handleQrBack);
+        if (btnQrBack) {
+            // Remove any existing listeners by cloning
+            const newBtnQrBack = btnQrBack.cloneNode(true);
+            btnQrBack.parentNode.replaceChild(newBtnQrBack, btnQrBack);
+            newBtnQrBack.addEventListener('click', window.handleQrBack);
+        }
         if (qrDateFilter) qrDateFilter.addEventListener('change', loadQuickReport);
         if (qrAsmFilter) qrAsmFilter.addEventListener('change', loadQuickReport);
         // ====================== END QUICK REPORT ======================
@@ -4530,9 +4538,12 @@
         }
 
         // Add Employee Modal Logic
-        window.openAddEmployeeModal = function() {
+        window.openAddEmployeeModal = async function() {
             try {
-                if (allStoresList.length === 0) loadAllStoresList();
+                // AWAIT store list before showing modal so dropdowns are populated
+                if (allStoresList.length === 0) {
+                    await loadAllStoresList();
+                }
                 populateStoreDropdowns();
 
                 const addEmpStoreSel = document.getElementById('add-emp-store-select');
@@ -4744,9 +4755,11 @@
         }
 
         // New Ticket Modal Logic
-        window.openNewHRTicketModal = function() {
+        window.openNewHRTicketModal = async function() {
             try {
-                if (allStoresList.length === 0) loadAllStoresList();
+                if (allStoresList.length === 0) {
+                    await loadAllStoresList();
+                }
                 populateStoreDropdowns();
                 
                 const storeSel = document.getElementById('new-tk-store-select');
@@ -4835,9 +4848,11 @@
         }
 
         // Add Support Staff Modal Logic
-        window.openAddSupportStaffModal = function() {
+        window.openAddSupportStaffModal = async function() {
             try {
-                if (allStoresList.length === 0) loadAllStoresList();
+                if (allStoresList.length === 0) {
+                    await loadAllStoresList();
+                }
                 populateStoreDropdowns();
                 
                 const toStoreSel = document.getElementById('supp-to-store-select');
