@@ -383,10 +383,6 @@ def get_auth_scope(role, asm_name, pin, store_code):
 
 def seed_hr_baseline_data():
     try:
-        existing = query_db("SELECT COUNT(*) as cnt FROM tb_store_employees", one=True)
-        cnt = (existing['cnt'] if existing else 0) if existing else 0
-        if cnt >= 1000:
-            return
             
         stores_info_path = r"C:\All_Report\1_Mapping\StoresInfo.xlsx"
         staff_list_path = r"C:\All_Report\1_Mapping\StaffList_Store_20.04.26.xlsx"
