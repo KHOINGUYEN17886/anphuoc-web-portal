@@ -1419,6 +1419,15 @@ def get_non_purchase_analytics():
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
 
+@app.route('/api/debug_db_employees', methods=['GET'])
+def debug_db_employees():
+    code = request.args.get('code', '')
+    if code:
+        emps = query_db("SELECT * FROM tb_store_employees WHERE store_code = ?", (code,))
+    else:
+        emps = query_db("SELECT store_code, COUNT(*) as cnt FROM tb_store_employees GROUP BY store_code ORDER BY cnt DESC")
+    return jsonify({'ok': True, 'data': [dict(e) for e in emps]})
+
 @app.route('/api/seed_online_hr', methods=['GET', 'POST'])
 def seed_online_hr():
     pin = request.args.get('pin', '')
