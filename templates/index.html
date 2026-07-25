@@ -3051,9 +3051,17 @@
             const role = currentStore ? currentStore.role : 'store';
             const pin = currentStore ? currentStore.pin : '';
             const storeCode = (role === 'store' && currentStore) ? currentStore.code : '';
-            let asmVal = (qrAsmFilter ? qrAsmFilter.value : 'ALL');
-            if (role === 'asm' && !isKhoi) {
-                asmVal = currentStore.asm;
+            
+            let asmVal = 'ALL';
+            if (role === 'admin') {
+                asmVal = (adminAsmFilter && adminAsmFilter.value) ? adminAsmFilter.value : 'ALL';
+            } else if (role === 'asm') {
+                if (isKhoi) {
+                    const filterVal = (adminAsmFilter && adminAsmFilter.value) ? adminAsmFilter.value : '';
+                    asmVal = filterVal || currentStore.asm;
+                } else {
+                    asmVal = currentStore.asm;
+                }
             }
             
             window.location.href = `/api/export_excel?report_date=${dateVal}&asm=${encodeURIComponent(asmVal)}&store_code=${encodeURIComponent(storeCode)}&role=${role}&pin=${encodeURIComponent(pin)}`;

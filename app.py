@@ -373,6 +373,20 @@ def is_asm_khoi(asm_name):
 def get_auth_scope(role, asm_name, pin, store_code):
     if role == 'admin' or pin == MASTER_PIN:
         return {'type': 'ALL'}
+    
+    # Special check for ASM Khôi: if the pin belongs to Khôi, and is NOT a shared pin of other ASMs
+    if role == 'asm' and pin:
+        try:
+            matching_asms = query_db("SELECT asm_name FROM tb_asms WHERE passcode = ?", (pin,))
+            asm_names = [r['asm_name'] for r in matching_asms]
+            has_khoi = any(is_asm_khoi(name) for name in asm_names)
+            if has_khoi:
+                other_asms = [name for name in asm_names if not is_asm_khoi(name)]
+                if not other_asms:  # Unique PIN for Khôi!
+                    return {'type': 'ALL'}
+        except Exception:
+            pass
+
     if role == 'asm' and is_asm_khoi(asm_name):
         return {'type': 'ALL'}
     if role == 'asm' and asm_name and asm_name != 'ALL':
