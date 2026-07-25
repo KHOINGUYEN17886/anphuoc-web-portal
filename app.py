@@ -397,6 +397,14 @@ def get_auth_scope(role, asm_name, pin, store_code):
 
 def seed_hr_baseline_data():
     try:
+        # Check if already seeded to prevent slow startup/imports with Neon Postgres
+        try:
+            cnt = query_db("SELECT COUNT(*) as count FROM tb_store_employees", one=True)
+            if cnt and cnt['count'] > 0:
+                print("Database already seeded with employees. Skipping baseline seed.")
+                return
+        except Exception as e:
+            print(f"Checking seed status failed, proceeding to seed: {e}")
             
         stores_info_path = r"C:\All_Report\1_Mapping\StoresInfo.xlsx"
         staff_list_path = r"C:\All_Report\1_Mapping\StaffList_Store_20.04.26.xlsx"
@@ -544,6 +552,15 @@ def seed_hr_baseline_data():
                         
 def seed_stores_baseline_data():
     try:
+        # Check if already seeded to prevent slow startup/imports with Neon Postgres
+        try:
+            cnt = query_db("SELECT COUNT(*) as count FROM tb_stores", one=True)
+            if cnt and cnt['count'] > 0:
+                print("Database already seeded with stores. Skipping baseline store seed.")
+                return
+        except Exception as e:
+            print(f"Checking store seed status failed, proceeding: {e}")
+            
         json_path = os.path.join(os.path.dirname(__file__), "seed_stores_baseline.json")
         stores_data = []
         if os.path.exists(json_path):
@@ -555,29 +572,31 @@ def seed_stores_baseline_data():
             
         conn = get_db_connection()
         cur = conn.cursor()
-        is_pg = bool(DATABASE_URL and psycopg2)
-        
-        for s in stores_data:
-            code = s['store_code']
-            name = s['store_name']
-            asm = s['asm_name']
-            brand = s.get('brand', 'AP')
-            passcode = s.get('passcode', '1111')
+        try:
+            is_pg = bool(DATABASE_URL and psycopg2)
             
-            q_sel = "SELECT passcode FROM tb_stores WHERE store_code = %s" if is_pg else "SELECT passcode FROM tb_stores WHERE store_code = ?"
-            cur.execute(q_sel, (code,))
-            row = cur.fetchone()
-            if row:
-                q_upd = "UPDATE tb_stores SET store_name=%s, asm_name=%s, brand=%s WHERE store_code=%s" if is_pg else "UPDATE tb_stores SET store_name=?, asm_name=?, brand=? WHERE store_code=?"
-                cur.execute(q_upd, (name, asm, brand, code))
-            else:
-                q_ins = "INSERT INTO tb_stores (store_code, store_name, brand, asm_name, passcode) VALUES (%s, %s, %s, %s, %s)" if is_pg else "INSERT INTO tb_stores (store_code, store_name, brand, asm_name, passcode) VALUES (?, ?, ?, ?, ?)"
-                cur.execute(q_ins, (code, name, brand, asm, passcode))
+            for s in stores_data:
+                code = s['store_code']
+                name = s['store_name']
+                asm = s['asm_name']
+                brand = s.get('brand', 'AP')
+                passcode = s.get('passcode', '1111')
                 
-        conn.commit()
-        cur.close()
-        conn.close()
-        print(f"✅ Seeded/Updated {len(stores_data)} stores from StoresInfo Col J baseline JSON")
+                q_sel = "SELECT passcode FROM tb_stores WHERE store_code = %s" if is_pg else "SELECT passcode FROM tb_stores WHERE store_code = ?"
+                cur.execute(q_sel, (code,))
+                row = cur.fetchone()
+                if row:
+                    q_upd = "UPDATE tb_stores SET store_name=%s, asm_name=%s, brand=%s WHERE store_code=%s" if is_pg else "UPDATE tb_stores SET store_name=?, asm_name=?, brand=? WHERE store_code=?"
+                    cur.execute(q_upd, (name, asm, brand, code))
+                else:
+                    q_ins = "INSERT INTO tb_stores (store_code, store_name, brand, asm_name, passcode) VALUES (%s, %s, %s, %s, %s)" if is_pg else "INSERT INTO tb_stores (store_code, store_name, brand, asm_name, passcode) VALUES (?, ?, ?, ?, ?)"
+                    cur.execute(q_ins, (code, name, brand, asm, passcode))
+                    
+            conn.commit()
+            print(f"✅ Seeded/Updated {len(stores_data)} stores from StoresInfo Col J baseline JSON")
+        finally:
+            cur.close()
+            conn.close()
     except Exception as e:
         print(f"⚠️ [Seed Stores Error]: {e}")
 
