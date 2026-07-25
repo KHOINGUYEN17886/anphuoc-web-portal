@@ -453,10 +453,12 @@ def seed_hr_baseline_data():
                 return best_code
             return ''
 
+        json_seed_path = os.path.join(os.path.dirname(__file__), "seed_employees_baseline.json")
+        staff_tuples = []
+
         if os.path.exists(staff_list_path) and openpyxl:
             wb_emp = openpyxl.load_workbook(staff_list_path, data_only=True)
             ws_emp = wb_emp.active
-            staff_tuples = []
             for row in list(ws_emp.iter_rows(min_row=3, values_only=True)):
                 emp_code = str(row[0]).strip() if row[0] else ''
                 emp_name = str(row[1]).strip() if row[1] else ''
@@ -473,6 +475,19 @@ def seed_hr_baseline_data():
                     if not st_code:
                         st_code = 'ONLINE'
                     staff_tuples.append((emp_code, st_code, emp_name, gender, dob_raw, title, date_hire, date_hire))
+        elif os.path.exists(json_seed_path):
+            with open(json_seed_path, 'r', encoding='utf-8') as f:
+                json_data = json.load(f)
+            for item in json_data:
+                e_code = item.get('employee_code')
+                st_code = item.get('store_code')
+                fname = item.get('full_name')
+                gen = item.get('gender', 'Nữ')
+                dob = item.get('dob', '')
+                pos = item.get('position', 'Nhân viên bán hàng')
+                apt = format_excel_date_py(item.get('appointment_date', ''))
+                if e_code and fname:
+                    staff_tuples.append((e_code, st_code, fname, gen, dob, pos, apt, apt))
             
             if staff_tuples:
                 batch_size = 100
@@ -500,8 +515,9 @@ def seed_hr_baseline_data():
 
 try:
     safe_migrate_db()
+    seed_baseline_hr()
 except Exception as _mig_err:
-    print(f"⚠️ [Startup Migration Error]: {_mig_err}")
+    print(f"⚠️ [Startup Migration/Seed Error]: {_mig_err}")
 
 def async_sync_and_alert(store_code, report_date, support_requests):
     def worker():
