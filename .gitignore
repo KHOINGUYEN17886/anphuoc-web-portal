@@ -14,6 +14,7 @@ jspm_packages/
 .npm
 %USERPROFILE%
 operational_data.db
+*.db
 backups/
 sent_emails/
 scratch/

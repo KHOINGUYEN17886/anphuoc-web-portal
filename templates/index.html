@@ -4825,39 +4825,62 @@
 
         // Save Store HR Function
         async function executeSaveStoreHR() {
+            if (!currentStore || !currentStore.code) {
+                showToast("❌ Lỗi", "Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", "❌");
+                return;
+            }
+
             const empRows = document.querySelectorAll('#store-employee-table-body .emp-row');
             const employees = [];
             empRows.forEach(tr => {
                 const empCode = tr.dataset.code;
-                const name = tr.querySelector('.emp-name').value ? tr.querySelector('.emp-name').value.trim() : '';
+                const nameEl = tr.querySelector('.emp-name');
+                const name = nameEl ? nameEl.value.trim() : '';
                 if (!name) return;
+                
+                const genderEl = tr.querySelector('.emp-gender');
+                const dobEl = tr.querySelector('.emp-dob');
+                const phoneEl = tr.querySelector('.emp-phone');
+                const posEl = tr.querySelector('.emp-position');
+                const appDateEl = tr.querySelector('.emp-app-date');
+                const avatarPreview = tr.querySelector('.img-avatar-preview');
                 
                 employees.push({
                     employee_code: empCode,
                     full_name: name,
-                    gender: tr.querySelector('.emp-gender').value,
-                    dob: tr.querySelector('.emp-dob').value,
-                    phone_number: tr.querySelector('.emp-phone').value,
-                    position: tr.querySelector('.emp-position').value,
-                    appointment_date: tr.querySelector('.emp-app-date').value,
-                    avatar_url: tr.dataset.avatar || (tr.querySelector('.img-avatar-preview') ? tr.querySelector('.img-avatar-preview').src : '')
+                    gender: genderEl ? genderEl.value : 'Nữ',
+                    dob: dobEl ? dobEl.value : '',
+                    phone_number: phoneEl ? phoneEl.value : '',
+                    position: posEl ? posEl.value : 'Nhân viên bán hàng',
+                    appointment_date: appDateEl ? appDateEl.value : '',
+                    avatar_url: tr.dataset.avatar || (avatarPreview ? avatarPreview.src : '')
                 });
             });
             
             const probCards = document.querySelectorAll('#probation-list-container .prob-card');
             const probation_updates = [];
             probCards.forEach(card => {
+                const trainerEl = card.querySelector('.prob-trainer');
+                const endDateEl = card.querySelector('.prob-end-date');
+                const opRulesEl = card.querySelector('.chk-op-rules');
+                const workProcessEl = card.querySelector('.chk-work-process');
+                const productsEl = card.querySelector('.chk-products');
+                const displayEl = card.querySelector('.chk-display');
+                const inventoryEl = card.querySelector('.chk-inventory');
+                const notesEl = card.querySelector('.prob-notes');
+                const resultEl = card.querySelector('.prob-result');
+
                 probation_updates.push({
                     employee_code: card.dataset.code,
-                    trainer_name: card.querySelector('.prob-trainer').value,
-                    probation_end_date: card.querySelector('.prob-end-date').value,
-                    train_op_rules: card.querySelector('.chk-op-rules').checked,
-                    train_work_process: card.querySelector('.chk-work-process').checked,
-                    train_products: card.querySelector('.chk-products').checked,
-                    train_display: card.querySelector('.chk-display').checked,
-                    train_inventory: card.querySelector('.chk-inventory').checked,
-                    training_notes: card.querySelector('.prob-notes').value,
-                    probation_result: card.querySelector('.prob-result').value
+                    trainer_name: trainerEl ? trainerEl.value : '',
+                    probation_end_date: endDateEl ? endDateEl.value : '',
+                    train_op_rules: opRulesEl ? opRulesEl.checked : false,
+                    train_work_process: workProcessEl ? workProcessEl.checked : false,
+                    train_products: productsEl ? productsEl.checked : false,
+                    train_display: displayEl ? displayEl.checked : false,
+                    train_inventory: inventoryEl ? inventoryEl.checked : false,
+                    training_notes: notesEl ? notesEl.value : '',
+                    probation_result: resultEl ? resultEl.value : 'Đang thử việc'
                 });
             });
             

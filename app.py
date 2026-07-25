@@ -2,7 +2,7 @@ import os
 import calendar
 from datetime import date, datetime, timedelta
 from collections import defaultdict
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, g, has_app_context
 import sqlite3
 import threading
 import urllib.request
@@ -54,15 +54,30 @@ DATABASE_URL = os.environ.get('DATABASE_URL')
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'operational_data.db')
 
 def get_db_connection():
-    if DATABASE_URL and psycopg2:
-        # PostgreSQL (Neon Cloud)
-        conn = psycopg2.connect(DATABASE_URL)
-        return conn
+    if has_app_context():
+        if not hasattr(g, 'db_conn'):
+            if DATABASE_URL and psycopg2:
+                g.db_conn = psycopg2.connect(DATABASE_URL)
+            else:
+                g.db_conn = sqlite3.connect(DB_PATH, timeout=30.0)
+                g.db_conn.row_factory = sqlite3.Row
+        return g.db_conn
     else:
-        # SQLite (Local Dev)
-        conn = sqlite3.connect(DB_PATH, timeout=30.0)
-        conn.row_factory = sqlite3.Row
-        return conn
+        if DATABASE_URL and psycopg2:
+            return psycopg2.connect(DATABASE_URL)
+        else:
+            conn = sqlite3.connect(DB_PATH, timeout=30.0)
+            conn.row_factory = sqlite3.Row
+            return conn
+
+@app.teardown_appcontext
+def close_db_connection(exception):
+    db_conn = getattr(g, 'db_conn', None)
+    if db_conn is not None:
+        try:
+            db_conn.close()
+        except Exception:
+            pass
 
 def execute_db(query, args=()):
     conn = get_db_connection()
@@ -72,10 +87,15 @@ def execute_db(query, args=()):
     cur.execute(query, args)
     conn.commit()
     cur.close()
-    conn.close()
+    if not has_app_context():
+        conn.close()
 
-def query_db(query, args=(), one=False):
-    conn = get_db_connection()
+def query_db(query, args=(), one=False, conn=None):
+    close_conn = False
+    if conn is None:
+        conn = get_db_connection()
+        if not has_app_context():
+            close_conn = True
     # Use DictCursor for PostgreSQL to act like sqlite3.Row
     if DATABASE_URL and psycopg2:
         cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
@@ -94,7 +114,8 @@ def query_db(query, args=(), one=False):
         rv = [dict(r) for r in rv]
         
     cur.close()
-    conn.close()
+    if close_conn:
+        conn.close()
     return (rv[0] if rv else None) if one else rv
 
 # Get reporting date (Friday of the current week or previous week if early in the week)
@@ -374,20 +395,18 @@ def get_auth_scope(role, asm_name, pin, store_code):
     if role == 'admin' or pin == MASTER_PIN:
         return {'type': 'ALL'}
     
-    # Special check for ASM Khôi: if the pin belongs to Khôi, and is NOT a shared pin of other ASMs
+    # Special check for ASM Khôi
     if role == 'asm' and pin:
         try:
             matching_asms = query_db("SELECT asm_name FROM tb_asms WHERE passcode = ?", (pin,))
             asm_names = [r['asm_name'] for r in matching_asms]
             has_khoi = any(is_asm_khoi(name) for name in asm_names)
             if has_khoi:
-                other_asms = [name for name in asm_names if not is_asm_khoi(name)]
-                if not other_asms:  # Unique PIN for Khôi!
-                    return {'type': 'ALL'}
+                return {'type': 'ALL'}
         except Exception:
             pass
 
-    if role == 'asm' and is_asm_khoi(asm_name):
+    if role == 'asm' and (is_asm_khoi(asm_name) or asm_name == 'ALL'):
         return {'type': 'ALL'}
     if role == 'asm' and asm_name and asm_name != 'ALL':
         return {'type': 'ASM', 'asm': asm_name}
@@ -397,6 +416,14 @@ def get_auth_scope(role, asm_name, pin, store_code):
 
 def seed_hr_baseline_data():
     try:
+        # Check if already seeded to prevent slow startup/imports with Neon Postgres
+        try:
+            cnt = query_db("SELECT COUNT(*) as count FROM tb_store_employees", one=True)
+            if cnt and cnt['count'] > 0:
+                print("Database already seeded with employees. Skipping baseline seed.")
+                return
+        except Exception as e:
+            print(f"Checking seed status failed, proceeding to seed: {e}")
             
         stores_info_path = r"C:\All_Report\1_Mapping\StoresInfo.xlsx"
         staff_list_path = r"C:\All_Report\1_Mapping\StaffList_Store_20.04.26.xlsx"
@@ -544,6 +571,15 @@ def seed_hr_baseline_data():
                         
 def seed_stores_baseline_data():
     try:
+        # Check if already seeded to prevent slow startup/imports with Neon Postgres
+        try:
+            cnt = query_db("SELECT COUNT(*) as count FROM tb_stores", one=True)
+            if cnt and cnt['count'] > 0:
+                print("Database already seeded with stores. Skipping baseline store seed.")
+                return
+        except Exception as e:
+            print(f"Checking store seed status failed, proceeding: {e}")
+            
         json_path = os.path.join(os.path.dirname(__file__), "seed_stores_baseline.json")
         stores_data = []
         if os.path.exists(json_path):
@@ -555,29 +591,31 @@ def seed_stores_baseline_data():
             
         conn = get_db_connection()
         cur = conn.cursor()
-        is_pg = bool(DATABASE_URL and psycopg2)
-        
-        for s in stores_data:
-            code = s['store_code']
-            name = s['store_name']
-            asm = s['asm_name']
-            brand = s.get('brand', 'AP')
-            passcode = s.get('passcode', '1111')
+        try:
+            is_pg = bool(DATABASE_URL and psycopg2)
             
-            q_sel = "SELECT passcode FROM tb_stores WHERE store_code = %s" if is_pg else "SELECT passcode FROM tb_stores WHERE store_code = ?"
-            cur.execute(q_sel, (code,))
-            row = cur.fetchone()
-            if row:
-                q_upd = "UPDATE tb_stores SET store_name=%s, asm_name=%s, brand=%s WHERE store_code=%s" if is_pg else "UPDATE tb_stores SET store_name=?, asm_name=?, brand=? WHERE store_code=?"
-                cur.execute(q_upd, (name, asm, brand, code))
-            else:
-                q_ins = "INSERT INTO tb_stores (store_code, store_name, brand, asm_name, passcode) VALUES (%s, %s, %s, %s, %s)" if is_pg else "INSERT INTO tb_stores (store_code, store_name, brand, asm_name, passcode) VALUES (?, ?, ?, ?, ?)"
-                cur.execute(q_ins, (code, name, brand, asm, passcode))
+            for s in stores_data:
+                code = s['store_code']
+                name = s['store_name']
+                asm = s['asm_name']
+                brand = s.get('brand', 'AP')
+                passcode = s.get('passcode', '1111')
                 
-        conn.commit()
-        cur.close()
-        conn.close()
-        print(f"✅ Seeded/Updated {len(stores_data)} stores from StoresInfo Col J baseline JSON")
+                q_sel = "SELECT passcode FROM tb_stores WHERE store_code = %s" if is_pg else "SELECT passcode FROM tb_stores WHERE store_code = ?"
+                cur.execute(q_sel, (code,))
+                row = cur.fetchone()
+                if row:
+                    q_upd = "UPDATE tb_stores SET store_name=%s, asm_name=%s, brand=%s WHERE store_code=%s" if is_pg else "UPDATE tb_stores SET store_name=?, asm_name=?, brand=? WHERE store_code=?"
+                    cur.execute(q_upd, (name, asm, brand, code))
+                else:
+                    q_ins = "INSERT INTO tb_stores (store_code, store_name, brand, asm_name, passcode) VALUES (%s, %s, %s, %s, %s)" if is_pg else "INSERT INTO tb_stores (store_code, store_name, brand, asm_name, passcode) VALUES (?, ?, ?, ?, ?)"
+                    cur.execute(q_ins, (code, name, brand, asm, passcode))
+                    
+            conn.commit()
+            print(f"✅ Seeded/Updated {len(stores_data)} stores from StoresInfo Col J baseline JSON")
+        finally:
+            cur.close()
+            conn.close()
     except Exception as e:
         print(f"⚠️ [Seed Stores Error]: {e}")
 
@@ -2129,13 +2167,14 @@ def style_sheet(ws, title, subtitle, date_range_str, role_str):
     # Enable grid lines explicitly
     ws.views.sheetView[0].showGridLines = True
     
-    # 1. Title Block (Rows 1 to 3)
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
     
     navy_fill = PatternFill(start_color="1B365D", end_color="1B365D", fill_type="solid")
+    max_cols = ws.max_column
     
     # Merge cells for Title on Row 1
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=ws.max_column)
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=max_cols)
     title_cell = ws.cell(row=1, column=1)
     title_cell.value = title.upper()
     title_cell.font = Font(name="Segoe UI", size=13, bold=True, color="FFFFFF")
@@ -2144,7 +2183,7 @@ def style_sheet(ws, title, subtitle, date_range_str, role_str):
     ws.row_dimensions[1].height = 28
     
     # Merge cells for Subtitle on Row 2 (Date Range & Target)
-    ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=ws.max_column)
+    ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=max_cols)
     sub_cell = ws.cell(row=2, column=1)
     sub_cell.value = f"Tuần báo cáo: {date_range_str}  |  Đối tượng: {role_str}"
     sub_cell.font = Font(name="Segoe UI", size=9, italic=True, color="FFFFFF")
@@ -2153,7 +2192,7 @@ def style_sheet(ws, title, subtitle, date_range_str, role_str):
     ws.row_dimensions[2].height = 18
     
     # Merge cells for Metadata on Row 3 (Export info)
-    ws.merge_cells(start_row=3, start_column=1, end_row=3, end_column=ws.max_column)
+    ws.merge_cells(start_row=3, start_column=1, end_row=3, end_column=max_cols)
     meta_cell = ws.cell(row=3, column=1)
     from datetime import datetime
     now_str = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -2176,13 +2215,18 @@ def style_sheet(ws, title, subtitle, date_range_str, role_str):
         bottom=Side(style='thin', color='D3D3D3')
     )
     
-    # Format Headers
-    for col in range(1, ws.max_column + 1):
+    # Format Headers & Cache Header Names + Widths
+    header_names = []
+    col_widths = []
+    for col in range(1, max_cols + 1):
         cell = ws.cell(row=5, column=col)
         cell.font = header_font
         cell.fill = header_fill
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
         cell.border = thin_border
+        val = str(cell.value or "")
+        header_names.append(val)
+        col_widths.append(len(val))
     ws.row_dimensions[5].height = 24
     
     # Format Data Rows (Row 6 onwards)
@@ -2190,52 +2234,49 @@ def style_sheet(ws, title, subtitle, date_range_str, role_str):
     zebra_fill = PatternFill(start_color="F2F4F7", end_color="F2F4F7", fill_type="solid")
     white_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
     
-    for row in range(6, ws.max_row + 1):
+    max_row = ws.max_row
+    align_center = Alignment(horizontal="center", vertical="center")
+    align_right = Alignment(horizontal="right", vertical="center")
+    align_left = Alignment(horizontal="left", vertical="center")
+
+    for row in range(6, max_row + 1):
         is_even = (row % 2 == 0)
         row_fill = zebra_fill if is_even else white_fill
         ws.row_dimensions[row].height = 18
         
-        for col in range(1, ws.max_column + 1):
-            cell = ws.cell(row=row, column=col)
+        for col_idx in range(max_cols):
+            cell = ws.cell(row=row, column=col_idx + 1)
             cell.font = data_font
             if cell.fill.fill_type is None:
                 cell.fill = row_fill
             cell.border = thin_border
             
-            # Auto-align and format number cells
             val = cell.value
-            col_name = ws.cell(row=5, column=col).value or ""
-            
+            if val is not None:
+                s_len = len(str(val))
+                if s_len > col_widths[col_idx]:
+                    col_widths[col_idx] = s_len
+                    
+            col_name = header_names[col_idx]
             if isinstance(val, (int, float)):
                 if "%" in col_name or "Tỷ Lệ" in col_name:
                     cell.number_format = '0.0"%"'
-                    cell.alignment = Alignment(horizontal="right", vertical="center")
+                    cell.alignment = align_right
                 elif "Giá Trị" in col_name or "Số Tiền" in col_name or "Cọc" in col_name or "Đợt 2" in col_name or "HĐ" in col_name:
                     cell.number_format = '#,##0.00'
-                    cell.alignment = Alignment(horizontal="right", vertical="center")
+                    cell.alignment = align_right
                 else:
                     cell.number_format = '#,##0'
-                    cell.alignment = Alignment(horizontal="right", vertical="center")
+                    cell.alignment = align_right
             elif val == "Chưa nộp" or val == "Chưa nhập" or val == "N/A":
-                cell.alignment = Alignment(horizontal="center", vertical="center")
+                cell.alignment = align_center
             else:
-                cell.alignment = Alignment(horizontal="left", vertical="center")
+                cell.alignment = align_left
                 
-    # Auto-adjust column widths
-    from openpyxl.utils import get_column_letter
-    for col in ws.columns:
-        max_len = 0
-        col_idx = col[0].column
+    # Apply Auto Column Widths
+    for col_idx, max_w in enumerate(col_widths, 1):
         col_letter = get_column_letter(col_idx)
-        for cell in col:
-            if cell.row < 5:
-                continue
-            if cell.value is not None:
-                max_len = max(max_len, len(str(cell.value)))
-        header_val = ws.cell(row=5, column=col_idx).value
-        if header_val:
-            max_len = max(max_len, len(str(header_val)))
-        ws.column_dimensions[col_letter].width = max(max_len + 3, 11)
+        ws.column_dimensions[col_letter].width = max(max_w + 3, 11)
 
 def style_input_traffic_sheet(ws):
     ws.views.sheetView[0].showGridLines = True
@@ -2384,7 +2425,7 @@ def export_excel():
         elif scope['type'] == 'ASM':
             stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores WHERE asm_name = ? ORDER BY store_code", (scope['asm'],))
         else:
-            if asm and asm != 'ALL' and not is_asm_khoi(asm):
+            if asm and asm != 'ALL':
                 stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores WHERE asm_name = ? ORDER BY store_code", (asm,))
             else:
                 stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores ORDER BY store_code")
@@ -2592,27 +2633,37 @@ def export_excel():
                     })
         df_daily_detail = pd.DataFrame(daily_detail_data)
         
-        # Process Input_Traffic sheet data
-        store_traffic_all_map = defaultdict(list)
+        # Process Input_Traffic sheet data with O(1) dictionary lookups
+        store_traffic_date_map = {}
         for r in all_traffic_rows:
-            store_traffic_all_map[r['store_code']].append(r)
+            if r['traffic_val'] is not None:
+                store_traffic_date_map[(r['store_code'], r['traffic_date'])] = r['traffic_val']
+                
+        def get_date_list(s_str, e_str):
+            s_dt = datetime.strptime(s_str, '%Y-%m-%d')
+            e_dt = datetime.strptime(e_str, '%Y-%m-%d')
+            days = (e_dt - s_dt).days + 1
+            return [(s_dt + timedelta(days=d)).strftime('%Y-%m-%d') for d in range(days)]
             
-        def get_range_sum(rows, start, end):
-            matching_vals = [r['traffic_val'] for r in rows if start <= r['traffic_date'] <= end and r['traffic_val'] is not None]
-            if not matching_vals:
-                return None
-            return sum(matching_vals)
+        dates_w_curr = get_date_list(w_curr_start, w_curr_end)
+        dates_w_prev = get_date_list(w_prev_start, w_prev_end)
+        dates_w_ly   = get_date_list(w_ly_start, w_ly_end)
+        dates_m_curr = get_date_list(m_curr_start, m_curr_end)
+        dates_m_prev = get_date_list(m_prev_start, m_prev_end)
+        dates_m_ly   = get_date_list(m_ly_start, m_ly_end)
+        
+        def calc_sum(code, d_list):
+            vals = [store_traffic_date_map[(code, d)] for d in d_list if (code, d) in store_traffic_date_map]
+            return sum(vals) if vals else None
             
         input_traffic_data = []
         for code, s in store_map.items():
-            rows = store_traffic_all_map.get(code, [])
-            
-            val_w_curr = get_range_sum(rows, w_curr_start, w_curr_end)
-            val_w_prev = get_range_sum(rows, w_prev_start, w_prev_end)
-            val_w_ly = get_range_sum(rows, w_ly_start, w_ly_end)
-            val_m_curr = get_range_sum(rows, m_curr_start, m_curr_end)
-            val_m_prev = get_range_sum(rows, m_prev_start, m_prev_end)
-            val_m_ly = get_range_sum(rows, m_ly_start, m_ly_end)
+            val_w_curr = calc_sum(code, dates_w_curr)
+            val_w_prev = calc_sum(code, dates_w_prev)
+            val_w_ly   = calc_sum(code, dates_w_ly)
+            val_m_curr = calc_sum(code, dates_m_curr)
+            val_m_prev = calc_sum(code, dates_m_prev)
+            val_m_ly   = calc_sum(code, dates_m_ly)
             
             input_traffic_data.append({
                 'Cửa Hàng': s['store_name'],
@@ -2718,14 +2769,14 @@ def export_excel():
         df_support = pd.DataFrame(support_data) if support_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'Khu Vực', 'Danh Mục Hỗ Trợ', 'Độ Ưu Tiên', 'Nội Dung Sự Việc Cụ Thể', 'Thời Hạn Hoàn Thành', 'Người Chịu Trách Nhiệm'])
         
         # Sheet 7: Phân Tích Lý Do Khách Không Mua Hàng
-        np_rows = query_db("""
+        np_rows = query_db(f"""
             SELECT t.store_code, s.store_name, s.asm_name, s.region,
                    t.traffic_date, t.traffic_val, t.bills_val, t.non_purchase_reasons
             FROM tb_traffic t
             JOIN tb_stores s ON t.store_code = s.store_code
-            WHERE t.traffic_date >= ? AND t.traffic_date <= ?
+            WHERE t.traffic_date >= ? AND t.traffic_date <= ? AND t.store_code IN ({placeholders})
             ORDER BY s.asm_name, s.store_name, t.traffic_date
-        """, (start_date, end_date))
+        """, [start_date, end_date] + store_codes)
         
         np_data = []
         for r in np_rows:
