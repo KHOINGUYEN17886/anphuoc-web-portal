@@ -3041,7 +3041,7 @@
 
         // Excel Export listener
         btnExportExcel.addEventListener('click', () => {
-            const dateVal = qrDateFilter ? qrDateFilter.value : (statusReportDate ? statusReportDate.value : '');
+            const dateVal = (statusReportDate && statusReportDate.value) ? statusReportDate.value : (qrDateFilter ? qrDateFilter.value : '');
             if (!dateVal) {
                 showToast("⚠️ Cảnh báo", "Vui lòng chọn ngày báo cáo cần xuất.", "⚠️");
                 return;
