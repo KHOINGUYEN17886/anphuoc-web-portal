@@ -490,25 +490,23 @@ def seed_hr_baseline_data():
                     staff_tuples.append((e_code, st_code, fname, gen, dob, pos, apt, apt))
             
             if staff_tuples:
-                batch_size = 100
-                for i in range(0, len(staff_tuples), batch_size):
-                    batch = staff_tuples[i:i + batch_size]
+                for tup in staff_tuples:
+                    e_code, st_code, fname, gen, dob, pos, apt, crt = tup
                     try:
-                        conn = get_db_connection()
-                        cur = conn.cursor()
-                        sql = """
+                        execute_db("""
                             INSERT INTO tb_store_employees (employee_code, store_code, full_name, gender, dob, position, appointment_date, created_at, status)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')
                             ON CONFLICT(employee_code) DO UPDATE SET store_code=excluded.store_code, full_name=excluded.full_name, gender=excluded.gender, dob=excluded.dob, position=excluded.position, appointment_date=excluded.appointment_date
-                        """
-                        if DATABASE_URL and psycopg2:
-                            sql = sql.replace('?', '%s')
-                        cur.executemany(sql, batch)
-                        conn.commit()
-                        cur.close()
-                        conn.close()
-                    except Exception as err:
-                        print(f"⚠️ [Batch Insert] Error on batch {i}: {err}")
+                        """, (e_code, st_code, fname, gen, dob, pos, apt, crt))
+                    except Exception:
+                        try:
+                            res = query_db("SELECT id FROM tb_store_employees WHERE employee_code = ?", (e_code,), one=True)
+                            if res:
+                                execute_db("UPDATE tb_store_employees SET store_code=?, full_name=?, gender=?, dob=?, position=?, appointment_date=? WHERE employee_code=?", (st_code, fname, gen, dob, pos, apt, e_code))
+                            else:
+                                execute_db("INSERT INTO tb_store_employees (employee_code, store_code, full_name, gender, dob, position, appointment_date, created_at, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')", (e_code, st_code, fname, gen, dob, pos, apt, crt))
+                        except Exception as e_row:
+                            pass
                         
     except Exception as e:
         print(f"⚠️ [Seed Baseline HR] Error: {e}")
