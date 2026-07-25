@@ -1431,9 +1431,13 @@ def seed_online_hr():
     try:
         seed_baseline_hr()
         count = query_db("SELECT COUNT(*) as cnt FROM tb_store_employees WHERE status != 'RESIGNED'", one=True)
-        return jsonify({'ok': True, 'total_active_employees': count['cnt'] if count else 0})
+        cnt_val = count['cnt'] if (count and 'cnt' in count) else 0
+        return jsonify({'ok': True, 'total_active_employees': cnt_val})
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        import traceback
+        err_msg = traceback.format_exc()
+        print(f"⚠️ [seed_online_hr Error]: {err_msg}")
+        return jsonify({'ok': False, 'error': str(e), 'traceback': err_msg}), 500
 
 @app.route('/api/get_store_hr', methods=['GET'])
 def get_store_hr():
