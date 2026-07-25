@@ -1855,18 +1855,23 @@
 
         // Init ASMs List
         async function loadASMs() {
+            const fallbackAsms = ['Dũng', 'HN', 'Hương', 'Khôi', 'Linh', 'Lâm', 'Quân', 'Thắng', 'Tiên', 'Tín'];
             try {
                 const res = await fetch('/api/asms');
                 const data = await res.json();
-                if (data.ok) {
-                    regSelect.innerHTML = '<option value="">-- Chọn Quản lý (ASM) --</option>';
-                    regSelect.innerHTML += '<option value="ADMIN">🔑 [ADMIN - QUẢN TRỊ VIÊN]</option>';
-                    data.asms.forEach(asm => {
-                        regSelect.innerHTML += `<option value="${asm}">${asm}</option>`;
-                    });
-                }
+                const asms = (data && data.ok && data.asms && data.asms.length > 0) ? data.asms : fallbackAsms;
+                regSelect.innerHTML = '<option value="">-- Chọn Quản lý (ASM) --</option>';
+                regSelect.innerHTML += '<option value="ADMIN">🔑 [ADMIN - QUẢN TRỊ VIÊN]</option>';
+                asms.forEach(asm => {
+                    regSelect.innerHTML += `<option value="${asm}">${asm}</option>`;
+                });
             } catch (err) {
-                console.error("Lỗi load ASM:", err);
+                console.error("Lỗi load ASM, dùng fallback:", err);
+                regSelect.innerHTML = '<option value="">-- Chọn Quản lý (ASM) --</option>';
+                regSelect.innerHTML += '<option value="ADMIN">🔑 [ADMIN - QUẢN TRỊ VIÊN]</option>';
+                fallbackAsms.forEach(asm => {
+                    regSelect.innerHTML += `<option value="${asm}">${asm}</option>`;
+                });
             }
         }
 
@@ -5312,7 +5317,7 @@
             }
         };
 
-        window.addEventListener('DOMContentLoaded', async () => {
+        async function initApp() {
             await loadASMs();
             loadAllStoresList();
             
@@ -5341,7 +5346,13 @@
                     }
                 }, 100);
             }
-        });
+        }
+
+        if (document.readyState === 'loading') {
+            window.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            initApp();
+        }
     </script>
     <!-- MODAL THÊM NHÂN VIÊN MỚI CHUẨN HÓA (Standardized Add Employee Modal) -->
     <div id="modal-add-employee" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
