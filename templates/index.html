@@ -4091,7 +4091,7 @@
 
         async function loadAllStoresList() {
             try {
-                const res = await fetch('/api/stores?asm=ALL');
+                const res = await fetch('/api/stores?asm=all');
                 const data = await res.json();
                 if (data.ok && data.stores) {
                     allStoresList = data.stores;
