@@ -525,6 +525,8 @@ def seed_hr_baseline_data():
                 conn.commit()
             cur.close()
             conn.close()
+    except Exception as e:
+        print(f"⚠️ [Seed Baseline HR] Error: {e}")
                         
 def seed_stores_baseline_data():
     try:
