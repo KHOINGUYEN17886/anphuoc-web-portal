@@ -3678,7 +3678,10 @@
             statusTableBody.innerHTML = '<tr><td colspan="7" class="text-center py-6 text-gray-400">Đang tải trạng thái...</td></tr>';
             
             try {
-                let url = `/api/submission_status?report_date=${dateVal}`;
+                const role = currentStore ? currentStore.role : '';
+                const pin = currentStore ? (currentStore.pin || '') : '';
+                const storeCode = currentStore ? (currentStore.store_code || '') : '';
+                let url = `/api/submission_status?report_date=${dateVal}&role=${encodeURIComponent(role)}&pin=${encodeURIComponent(pin)}&store_code=${encodeURIComponent(storeCode)}`;
                 if (currentStore) {
                     if (currentStore.role === 'asm') {
                         url += `&asm=${encodeURIComponent(currentStore.asm)}`;
@@ -3783,11 +3786,13 @@
         // ASM Tab 2 load
         async function loadDailyTrafficSummary() {
             let asm = '';
+            const role = currentStore ? currentStore.role : '';
+            const pin = currentStore ? (currentStore.pin || '') : '';
             if (currentStore) {
                 if (currentStore.role === 'asm') {
                     asm = currentStore.asm;
                 } else if (currentStore.role === 'admin') {
-                    asm = adminAsmFilter.value;
+                    asm = (typeof adminAsmFilter !== 'undefined' && adminAsmFilter) ? adminAsmFilter.value : '';
                 }
             }
             const start = statusTrafficStart.value;
@@ -3796,7 +3801,7 @@
             statusTrafficTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-gray-400">Đang tính toán tiến độ...</td></tr>';
             
             try {
-                const res = await fetch(`/api/asm_traffic_summary?asm=${encodeURIComponent(asm)}&start_date=${start}&end_date=${end}`);
+                const res = await fetch(`/api/asm_traffic_summary?asm=${encodeURIComponent(asm)}&start_date=${start}&end_date=${end}&role=${encodeURIComponent(role)}&pin=${encodeURIComponent(pin)}`);
                 const data = await res.json();
                 
                 if (data.ok) {
@@ -3837,9 +3842,15 @@
             statusSupportTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-gray-400">Đang tải yêu cầu hỗ trợ...</td></tr>';
             
             try {
-                let url = `/api/get_support_requests?report_date=${dateVal}`;
+                const role = currentStore ? currentStore.role : '';
+                const pin = currentStore ? (currentStore.pin || '') : '';
+                const storeCode = currentStore ? (currentStore.store_code || '') : '';
+                let url = `/api/get_support_requests?report_date=${dateVal}&role=${encodeURIComponent(role)}&pin=${encodeURIComponent(pin)}&store_code=${encodeURIComponent(storeCode)}`;
                 if (currentStore && currentStore.role === 'asm') {
                     url += `&asm=${encodeURIComponent(currentStore.asm)}`;
+                } else if (currentStore && currentStore.role === 'admin') {
+                    const filterAsmVal = (typeof adminAsmFilter !== 'undefined' && adminAsmFilter) ? adminAsmFilter.value : '';
+                    if (filterAsmVal) url += `&asm=${encodeURIComponent(filterAsmVal)}`;
                 }
                 const res = await fetch(url);
                 const data = await res.json();
