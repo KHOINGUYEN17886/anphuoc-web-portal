@@ -506,7 +506,7 @@ def seed_hr_baseline_data():
 
 try:
     safe_migrate_db()
-    seed_baseline_hr()
+    seed_hr_baseline_data()
 except Exception as _mig_err:
     print(f"⚠️ [Startup Migration/Seed Error]: {_mig_err}")
 
@@ -1429,7 +1429,7 @@ def seed_online_hr():
     if pin != os.environ.get('MASTER_PIN', '8888'):
         return jsonify({'ok': False, 'error': 'Unauthorized'}), 401
     try:
-        seed_baseline_hr()
+        seed_hr_baseline_data()
         count = query_db("SELECT COUNT(*) as cnt FROM tb_store_employees WHERE status != 'RESIGNED'", one=True)
         cnt_val = count['cnt'] if (count and 'cnt' in count) else 0
         return jsonify({'ok': True, 'total_active_employees': cnt_val})
