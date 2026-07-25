@@ -861,6 +861,32 @@
             <!-- ASM Tab 3: Support Requests (Section 4.5 - Ticket Hub) -->
             <div id="status-tab-support-content" class="hidden card rounded-b-2xl p-5 border-t-0 space-y-4">
                 <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs font-bold text-gray-500 uppercase">Tuần Báo Cáo:</label>
+                        <input id="status-support-report-date" type="date" value="{{ default_date }}" class="input-field w-auto text-xs">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs font-bold text-gray-500 uppercase">Lọc Trạng Thái:</label>
+                        <select id="status-support-filter" class="input-field text-xs py-1.5 w-auto">
+                            <option value="">-- Tất cả --</option>
+                            <option value="Mới ghi nhận">Mới ghi nhận</option>
+                            <option value="Đang xem xét">Đang xem xét</option>
+                            <option value="Đang xử lý">Đang xử lý</option>
+                            <option value="Hoàn tất">Hoàn tất</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="tbl w-full rounded-xl overflow-hidden text-xs">
+                        <thead>
+                            <tr>
+                                <th>Mã CH</th>
+                                <th>Loại Yêu Cầu</th>
+                                <th class="text-center">Mức Độ</th>
+                                <th>Chi Tiết Yêu Cầu</th>
+                                <th>Thời Hạn</th>
+                                <th>Trạng Thái</th>
                                 <th>Phản Hồi ASM / HQ</th>
                                 <th class="text-center">Thao Tác</th>
                             </tr>
