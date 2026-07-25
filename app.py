@@ -1432,9 +1432,18 @@ def get_non_purchase_analytics():
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
 
-# ──────────────────────────────────────────────────────────────────────────────
-# NEW APIs: STORE HR & ONBOARDING TRAINING MODULE
-# ──────────────────────────────────────────────────────────────────────────────
+@app.route('/api/seed_online_hr', methods=['GET', 'POST'])
+def seed_online_hr():
+    pin = request.args.get('pin', '')
+    if pin != os.environ.get('MASTER_PIN', '8888'):
+        return jsonify({'ok': False, 'error': 'Unauthorized'}), 401
+    try:
+        seed_baseline_hr()
+        count = query_db("SELECT COUNT(*) as cnt FROM tb_store_employees WHERE status != 'RESIGNED'", one=True)
+        return jsonify({'ok': True, 'total_active_employees': count['cnt'] if count else 0})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
 @app.route('/api/get_store_hr', methods=['GET'])
 def get_store_hr():
     store_code = request.args.get('store_code', '').strip()
