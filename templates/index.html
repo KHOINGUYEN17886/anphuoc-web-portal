@@ -757,9 +757,14 @@
                         <option value="">-- Tất cả ASM --</option>
                     </select>
                 </div>
-                <button id="btn-export-excel" class="btn-gold text-xs px-4 py-2.5 flex items-center gap-1.5 shadow-md">
-                    📥 Xuất Excel Báo Cáo Tuần
-                </button>
+                <div class="flex items-center gap-2">
+                    <button id="btn-asm-quick-report" class="btn-primary text-xs px-4 py-2.5 flex items-center gap-1.5 shadow-md" onclick="openQuickReport()">
+                        📊 Xem Báo Cáo Nhanh
+                    </button>
+                    <button id="btn-export-excel" class="btn-gold text-xs px-4 py-2.5 flex items-center gap-1.5 shadow-md">
+                        📥 Xuất Excel Báo Cáo Tuần
+                    </button>
+                </div>
             </div>
 
             <!-- Tab switcher inside status page -->
@@ -821,26 +826,34 @@
                             <input id="status-traffic-start" type="date" class="input-field w-auto text-xs">
                         </div>
                         <div>
-                            <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Đến hết hôm qua</label>
+                            <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Đến ngày</label>
                             <input id="status-traffic-end" type="date" class="input-field w-auto text-xs">
                         </div>
+                        <div class="self-end">
+                            <button id="btn-refresh-traffic-status" class="btn-primary text-xs px-3 py-2 font-bold">
+                                🔄 Xem Tiến Độ Daily
+                            </button>
+                        </div>
                     </div>
-                    <button id="btn-refresh-traffic-status" class="btn-gold text-xs px-3.5 py-2">
-                        🔄 Cập Nhật Lại
-                    </button>
                 </div>
 
                 <div class="overflow-x-auto">
                     <table class="tbl w-full rounded-xl overflow-hidden text-xs">
                         <thead>
                             <tr>
-                                <th>Cửa Hàng</th>
-                                <th class="text-center">Đã Nhập</th>
-                                <th class="text-center">Tỷ Lệ</th>
-                                <th>Các ngày bị thiếu (Chỉ hiện tối đa 10 ngày)</th>
+                                <th>Cụm</th>
+                                <th>Mã CH</th>
+                                <th>Tên Cửa Hàng</th>
+                                <th class="text-center">Tổng Số Ngày</th>
+                                <th class="text-center">Số Ngày Đã Nhập</th>
+                                <th class="text-center">Số Ngày Thiếu</th>
+                                <th class="text-center">Tỷ Lệ Hoàn Thành</th>
+                                <th class="text-center">Trạng Thái</th>
                             </tr>
                         </thead>
-                        <tbody id="status-traffic-table-body" class="divide-y divide-gray-100"></tbody>
+                        <tbody id="status-traffic-table-body" class="divide-y divide-gray-100">
+                            <tr><td colspan="8" class="text-center py-6 text-gray-400">Đang tải tiến độ...</td></tr>
+                        </tbody>
                     </table>
                 </div>
             </div>
@@ -848,34 +861,6 @@
             <!-- ASM Tab 3: Support Requests (Section 4.5 - Ticket Hub) -->
             <div id="status-tab-support-content" class="hidden card rounded-b-2xl p-5 border-t-0 space-y-4">
                 <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
-                    <div class="flex flex-wrap items-center gap-3">
-                        <div class="flex items-center gap-1.5">
-                            <label class="text-xs font-bold text-gray-500 uppercase">Tuần Báo Cáo:</label>
-                            <input id="status-support-report-date" type="date" class="input-field w-auto text-xs">
-                        </div>
-                        <div class="flex items-center gap-1.5">
-                            <label class="text-xs font-bold text-gray-500 uppercase">Trạng Thái:</label>
-                            <select id="status-support-filter" class="input-field w-auto text-xs font-bold">
-                                <option value="ACTIVE">⚡ Đang xử lý / Chưa xong</option>
-                                <option value="ALL">📋 Tất cả sự vụ</option>
-                                <option value="COMPLETED">🟢 Đã hoàn tất</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="text-xs text-gray-500">
-                        Hệ thống tự động theo dõi tiến độ đến khi hoàn tất.
-                    </div>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="tbl w-full rounded-xl overflow-hidden text-xs">
-                        <thead>
-                            <tr>
-                                <th>Mã Ticket</th>
-                                <th>Cửa Hàng</th>
-                                <th>Nội Dung Yêu Cầu Hỗ Trợ</th>
-                                <th>Hạn / Phụ Trách</th>
-                                <th class="text-center">Trạng Thái</th>
-                                <th>Cửa Hàng Cập Nhật</th>
                                 <th>Phản Hồi ASM / HQ</th>
                                 <th class="text-center">Thao Tác</th>
                             </tr>
@@ -5005,14 +4990,155 @@
                 hrRenderTicketHub(tickets);
 
                 // ── Bind filter events ────────────────────────────
-                document.getElementById('hr-store-search').oninput = hrRenderStoreTable;
-                document.getElementById('hr-store-filter-diff').onchange = hrRenderStoreTable;
-                document.getElementById('hr-emp-search').oninput = hrRenderEmpTable;
-                document.getElementById('hr-emp-filter-store').onchange = hrRenderEmpTable;
-                document.getElementById('hr-emp-filter-pos').onchange = hrRenderEmpTable;
+                const sSearch = document.getElementById('hr-store-search');
+                if (sSearch) sSearch.oninput = hrRenderStoreTable;
+                const sFilter = document.getElementById('hr-store-filter-diff');
+                if (sFilter) sFilter.onchange = hrRenderStoreTable;
+                const eSearch = document.getElementById('hr-emp-search');
+                if (eSearch) eSearch.oninput = hrRenderEmpTable;
+                const eStoreF = document.getElementById('hr-emp-filter-store');
+                if (eStoreF) eStoreF.onchange = hrRenderEmpTable;
+                const ePosF = document.getElementById('hr-emp-filter-pos');
+                if (ePosF) ePosF.onchange = hrRenderEmpTable;
+
+                // ── Render ASM Status HR Dashboard ────────────────
+                renderStatusHRTab(data);
 
             } catch (err) {
                 console.error("Lỗi nạp HR Analytics:", err);
+            }
+        }
+
+        let statusTenureChart = null;
+        let statusPositionsChart = null;
+
+        window.openStoreHRDetail = function(storeCode) {
+            if (typeof openQuickReport === 'function') openQuickReport();
+            setTimeout(() => {
+                const storeFilterSel = document.getElementById('hr-emp-filter-store');
+                if (storeFilterSel) {
+                    storeFilterSel.value = storeCode;
+                    storeFilterSel.dispatchEvent(new Event('change'));
+                }
+                const hrTabSwitch = document.querySelector('.qr-tab-switch[data-tab="nhan-su"]');
+                if (hrTabSwitch) hrTabSwitch.click();
+            }, 250);
+        };
+
+        function renderStatusHRTab(data) {
+            if (!data || !data.ok) return;
+
+            const storeRows = data.store_hr_rows || [];
+            const posDist = data.position_distribution || {};
+            const tenure = data.tenure_buckets || {};
+
+            // 1. Render Tenure Bar Chart (status-chart-tenure)
+            const tenureEl = document.getElementById('status-chart-tenure');
+            if (tenureEl) {
+                const tenureCtx = tenureEl.getContext('2d');
+                const tenureLabels = ['Dưới 3 tháng', '3m - 1 năm', '1 - 3 năm', '3 - 5 năm', 'Trên 5 năm'];
+                const tenureValues = [
+                    (tenure.under_3m !== undefined ? tenure.under_3m : tenure.lt6m) || 0,
+                    (tenure['3m_to_1y'] !== undefined ? tenure['3m_to_1y'] : tenure['6m_1y']) || 0,
+                    (tenure['1y_to_3y'] !== undefined ? tenure['1y_to_3y'] : tenure['1y_3y']) || 0,
+                    (tenure['3y_to_5y'] !== undefined ? tenure['3y_to_5y'] : tenure['3y_5y']) || 0,
+                    (tenure.over_5y !== undefined ? tenure.over_5y : tenure.gt5y) || 0
+                ];
+
+                if (statusTenureChart) statusTenureChart.destroy();
+                statusTenureChart = new Chart(tenureCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: tenureLabels,
+                        datasets: [{
+                            label: 'Số nhân sự',
+                            data: tenureValues,
+                            backgroundColor: ['#F59E0B', '#3B82F6', '#10B981', '#6366F1', '#1B2A4A'],
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y} người` } }
+                        },
+                        scales: {
+                            x: { ticks: { font: { size: 9 } } },
+                            y: { beginAtZero: true, ticks: { font: { size: 9 }, stepSize: 1 } }
+                        }
+                    }
+                });
+            }
+
+            // 2. Render Position Donut Chart (status-chart-positions)
+            const posEl = document.getElementById('status-chart-positions');
+            if (posEl) {
+                const posCtx = posEl.getContext('2d');
+                const posLabels = Object.keys(posDist);
+                const posValues = Object.values(posDist);
+                const posColors = ['#C41E3A', '#1B2A4A', '#C8A951', '#3B82F6', '#10B981', '#F59E0B', '#6366F1'];
+
+                if (statusPositionsChart) statusPositionsChart.destroy();
+                statusPositionsChart = new Chart(posCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: posLabels,
+                        datasets: [{
+                            data: posValues,
+                            backgroundColor: posColors.slice(0, posLabels.length),
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '60%',
+                        plugins: {
+                            legend: { position: 'right', labels: { font: { size: 9 }, boxWidth: 8 } },
+                            tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} người` } }
+                        }
+                    }
+                });
+            }
+
+            // 3. Render Headcount Table (status-hr-headcount-body)
+            const tbody = document.getElementById('status-hr-headcount-body');
+            if (tbody) {
+                if (!storeRows || storeRows.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-400">Không có dữ liệu định biên</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = storeRows.map(r => {
+                    const diff = r.surplus_deficit;
+                    let badge = '';
+                    if (diff < 0) {
+                        badge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">Thiếu ${Math.abs(diff)}</span>`;
+                    } else if (diff > 0) {
+                        badge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">Thừa +${diff}</span>`;
+                    } else {
+                        badge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">Đủ (0)</span>`;
+                    }
+                    const pct = r.pct_achieved ? Math.round(r.pct_achieved) : 0;
+                    return `
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="font-bold text-brand-navy">${r.store_code}</td>
+                            <td class="font-medium text-gray-800">${r.store_name || r.store_code}</td>
+                            <td class="text-center font-bold text-gray-600">${r.target_headcount || 0}</td>
+                            <td class="text-center font-bold text-brand-navy">${r.actual_headcount || 0}</td>
+                            <td class="text-center">${badge}</td>
+                            <td class="text-center font-semibold text-gray-700">${pct}%</td>
+                            <td class="text-center">
+                                <button class="text-xs bg-brand-navy text-white px-2 py-1 rounded hover:bg-brand-navy-l transition-all font-semibold" onclick="openStoreHRDetail('${r.store_code}')">
+                                    📋 Chi Tiết
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
             }
         }
 
