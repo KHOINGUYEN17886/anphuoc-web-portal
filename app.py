@@ -2,7 +2,7 @@ import os
 import calendar
 from datetime import date, datetime, timedelta
 from collections import defaultdict
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, g, has_app_context
 import sqlite3
 import threading
 import urllib.request
@@ -54,15 +54,30 @@ DATABASE_URL = os.environ.get('DATABASE_URL')
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'operational_data.db')
 
 def get_db_connection():
-    if DATABASE_URL and psycopg2:
-        # PostgreSQL (Neon Cloud)
-        conn = psycopg2.connect(DATABASE_URL)
-        return conn
+    if has_app_context():
+        if not hasattr(g, 'db_conn'):
+            if DATABASE_URL and psycopg2:
+                g.db_conn = psycopg2.connect(DATABASE_URL)
+            else:
+                g.db_conn = sqlite3.connect(DB_PATH, timeout=30.0)
+                g.db_conn.row_factory = sqlite3.Row
+        return g.db_conn
     else:
-        # SQLite (Local Dev)
-        conn = sqlite3.connect(DB_PATH, timeout=30.0)
-        conn.row_factory = sqlite3.Row
-        return conn
+        if DATABASE_URL and psycopg2:
+            return psycopg2.connect(DATABASE_URL)
+        else:
+            conn = sqlite3.connect(DB_PATH, timeout=30.0)
+            conn.row_factory = sqlite3.Row
+            return conn
+
+@app.teardown_appcontext
+def close_db_connection(exception):
+    db_conn = getattr(g, 'db_conn', None)
+    if db_conn is not None:
+        try:
+            db_conn.close()
+        except Exception:
+            pass
 
 def execute_db(query, args=()):
     conn = get_db_connection()
@@ -72,10 +87,15 @@ def execute_db(query, args=()):
     cur.execute(query, args)
     conn.commit()
     cur.close()
-    conn.close()
+    if not has_app_context():
+        conn.close()
 
-def query_db(query, args=(), one=False):
-    conn = get_db_connection()
+def query_db(query, args=(), one=False, conn=None):
+    close_conn = False
+    if conn is None:
+        conn = get_db_connection()
+        if not has_app_context():
+            close_conn = True
     # Use DictCursor for PostgreSQL to act like sqlite3.Row
     if DATABASE_URL and psycopg2:
         cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
@@ -94,7 +114,8 @@ def query_db(query, args=(), one=False):
         rv = [dict(r) for r in rv]
         
     cur.close()
-    conn.close()
+    if close_conn:
+        conn.close()
     return (rv[0] if rv else None) if one else rv
 
 # Get reporting date (Friday of the current week or previous week if early in the week)
