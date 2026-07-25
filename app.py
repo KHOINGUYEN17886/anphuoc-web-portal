@@ -485,17 +485,46 @@ def seed_hr_baseline_data():
                 if e_code and fname:
                     staff_tuples.append((e_code, st_code, fname, gen, dob, pos, apt, apt))
             
-            if staff_tuples:
+        if staff_tuples:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            is_pg = bool(DATABASE_URL and psycopg2)
+            try:
+                cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_emp_code_uniq ON tb_store_employees(employee_code)")
+                conn.commit()
+            except Exception:
+                pass
+                
+            sql = """
+                INSERT INTO tb_store_employees (employee_code, store_code, full_name, gender, dob, position, appointment_date, created_at, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')
+                ON CONFLICT(employee_code) DO UPDATE SET store_code=excluded.store_code, full_name=excluded.full_name, gender=excluded.gender, dob=excluded.dob, position=excluded.position, appointment_date=excluded.appointment_date
+            """
+            if is_pg:
+                sql = sql.replace('?', '%s')
+            try:
+                cur.executemany(sql, staff_tuples)
+                conn.commit()
+                print(f"✅ Fast batch seeded {len(staff_tuples)} employees into DB.")
+            except Exception as e_batch:
+                conn.rollback()
+                print(f"⚠️ Batch seed fallback: {e_batch}")
                 for tup in staff_tuples:
                     e_code, st_code, fname, gen, dob, pos, apt, crt = tup
                     try:
-                        res = query_db("SELECT id FROM tb_store_employees WHERE employee_code = ?", (e_code,), one=True)
-                        if res:
-                            execute_db("UPDATE tb_store_employees SET store_code=?, full_name=?, gender=?, dob=?, position=?, appointment_date=?, status='ACTIVE' WHERE employee_code=?", (st_code, fname, gen, dob, pos, apt, e_code))
+                        q_sel = "SELECT id FROM tb_store_employees WHERE employee_code = %s" if is_pg else "SELECT id FROM tb_store_employees WHERE employee_code = ?"
+                        cur.execute(q_sel, (e_code,))
+                        if cur.fetchone():
+                            q_upd = "UPDATE tb_store_employees SET store_code=%s, full_name=%s, gender=%s, dob=%s, position=%s, appointment_date=%s, status='ACTIVE' WHERE employee_code=%s" if is_pg else "UPDATE tb_store_employees SET store_code=?, full_name=?, gender=?, dob=?, position=?, appointment_date=?, status='ACTIVE' WHERE employee_code=?"
+                            cur.execute(q_upd, (st_code, fname, gen, dob, pos, apt, e_code))
                         else:
-                            execute_db("INSERT INTO tb_store_employees (employee_code, store_code, full_name, gender, dob, position, appointment_date, created_at, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')", (e_code, st_code, fname, gen, dob, pos, apt, crt))
-                    except Exception as e_row:
-                        print(f"⚠️ [Seed HR Row Error] {e_code}: {e_row}")
+                            q_ins = "INSERT INTO tb_store_employees (employee_code, store_code, full_name, gender, dob, position, appointment_date, created_at, status) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'ACTIVE')" if is_pg else "INSERT INTO tb_store_employees (employee_code, store_code, full_name, gender, dob, position, appointment_date, created_at, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')"
+                            cur.execute(q_ins, (e_code, st_code, fname, gen, dob, pos, apt, crt))
+                    except Exception:
+                        pass
+                conn.commit()
+            cur.close()
+            conn.close()
                         
     except Exception as e:
         print(f"⚠️ [Seed Baseline HR] Error: {e}")
