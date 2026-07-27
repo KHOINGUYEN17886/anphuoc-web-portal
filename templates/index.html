@@ -4483,9 +4483,11 @@
             }
         };
 
-        const btnConfirmAddEmpSubmit = document.getElementById('btn-confirm-add-emp-submit');
-        if (btnConfirmAddEmpSubmit) {
-            btnConfirmAddEmpSubmit.addEventListener('click', () => {
+        // FIX: nút #btn-confirm-add-emp-submit nằm trong modal (dòng ~5561) được parse SAU
+        // khối script này → getElementById lúc load luôn = null → guard bỏ qua → listener
+        // KHÔNG BAO GIỜ gắn → bấm "Bổ Sung Nhân Viên Mới" trơ, thêm mới không ghi nhận.
+        // Chuyển sang hàm global + onclick inline (bind tại thời điểm click, không phụ thuộc parse order).
+        window.confirmAddEmpSubmit = function() {
                 const code = document.getElementById('add-emp-code').value.trim() || ('NV' + Math.floor(100000 + Math.random() * 900000));
                 const name = document.getElementById('add-emp-name').value.trim();
                 if (!name) {
@@ -4627,8 +4629,7 @@
                 
                 closeAddEmployeeModal();
                 showToast("✅ Đã Thêm Nhân Sự", `Đã bổ sung nhân viên ${name} (${code}). Nhớ bấm 'Lưu Hồ Sơ' bên dưới.`, "✅");
-            });
-        }
+        };
 
         // New Ticket Modal Logic
         window.openNewHRTicketModal = async function() {
@@ -4671,9 +4672,9 @@
             document.getElementById('modal-new-hr-ticket').classList.add('hidden');
         };
 
-        const btnConfirmNewTkSubmit = document.getElementById('btn-confirm-new-tk-submit');
-        if (btnConfirmNewTkSubmit) {
-            btnConfirmNewTkSubmit.addEventListener('click', async () => {
+        // FIX: nút nằm trong modal (parse sau khối script) → listener không gắn được.
+        // Chuyển sang hàm global + onclick inline (xem confirmAddEmpSubmit).
+        window.confirmNewTkSubmit = async function() {
                 const empName = document.getElementById('new-tk-emp-name').value.trim();
                 if (!empName) {
                     alert("⚠️ Vui lòng nhập Tên Nhân Sự!");
@@ -4720,8 +4721,7 @@
                 } catch(e) {
                     showToast("❌ Lỗi Mạng", "Không thể gửi dữ liệu đến máy chủ", "❌");
                 }
-            });
-        }
+        };
 
         // Add Support Staff Modal Logic
         window.openAddSupportStaffModal = async function() {
@@ -4767,9 +4767,9 @@
             document.getElementById('modal-add-support-staff').classList.add('hidden');
         };
 
-        const btnConfirmAddSuppSubmit = document.getElementById('btn-confirm-add-supp-submit');
-        if (btnConfirmAddSuppSubmit) {
-            btnConfirmAddSuppSubmit.addEventListener('click', () => {
+        // FIX: nút nằm trong modal (parse sau khối script) → listener không gắn được.
+        // Chuyển sang hàm global + onclick inline (xem confirmAddEmpSubmit).
+        window.confirmAddSuppSubmit = function() {
                 const code = document.getElementById('supp-emp-code').value.trim();
                 const name = document.getElementById('supp-emp-name').value.trim();
                 const fromStore = document.getElementById('supp-from-store').value;
@@ -4815,8 +4815,7 @@
                 
                 closeAddSupportStaffModal();
                 showToast("🤝 Đã Thêm Hỗ Trợ", `Đã ghi nhận nhân sự hỗ trợ ${name} từ cửa hàng ${fromStore}. Bấm 'Lưu Hồ Sơ' để hoàn tất.`, "🤝");
-            });
-        }
+        };
 
         window.removeSupportStaffRow = function(btn) {
             const tr = btn.closest('tr');
@@ -5558,7 +5557,7 @@
 
             <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
                 <button onclick="closeAddEmployeeModal()" class="btn-outline text-xs px-4 py-2">Hủy Bỏ</button>
-                <button id="btn-confirm-add-emp-submit" class="btn-primary text-xs px-5 py-2 font-bold shadow-md">
+                <button id="btn-confirm-add-emp-submit" onclick="confirmAddEmpSubmit()" class="btn-primary text-xs px-5 py-2 font-bold shadow-md">
                     ➕ Bổ Sung Nhân Viên Mới
                 </button>
             </div>
@@ -5633,7 +5632,7 @@
 
             <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
                 <button onclick="closeNewHRTicketModal()" class="btn-outline text-xs px-4 py-2">Hủy Bỏ</button>
-                <button id="btn-confirm-new-tk-submit" class="btn-primary text-xs px-5 py-2 font-bold shadow-md">
+                <button id="btn-confirm-new-tk-submit" onclick="confirmNewTkSubmit()" class="btn-primary text-xs px-5 py-2 font-bold shadow-md">
                     📩 Gửi Ticket Sự Vụ
                 </button>
             </div>
@@ -5698,7 +5697,7 @@
 
             <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
                 <button onclick="closeAddSupportStaffModal()" class="btn-outline text-xs px-4 py-2">Hủy Bỏ</button>
-                <button id="btn-confirm-add-supp-submit" class="btn-primary text-xs px-5 py-2 font-bold shadow-md">
+                <button id="btn-confirm-add-supp-submit" onclick="confirmAddSuppSubmit()" class="btn-primary text-xs px-5 py-2 font-bold shadow-md">
                     🤝 Thêm Nhân Sự Hỗ Trợ
                 </button>
             </div>
