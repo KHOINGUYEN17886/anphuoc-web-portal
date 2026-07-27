@@ -18,3 +18,4 @@ operational_data.db
 backups/
 sent_emails/
 scratch/
+sync_logs/

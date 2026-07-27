@@ -84,11 +84,22 @@ def execute_db(query, args=()):
     cur = conn.cursor()
     if DATABASE_URL:
         query = query.replace('?', '%s')
-    cur.execute(query, args)
-    conn.commit()
-    cur.close()
-    if not has_app_context():
-        conn.close()
+    try:
+        cur.execute(query, args)
+        conn.commit()
+    except Exception:
+        # Rollback ngay để không đẩy connection dùng chung (g.db_conn) vào
+        # trạng thái InFailedSqlTransaction, làm mọi lệnh sau trong cùng
+        # request đều lỗi theo (CLAUDE.md — Transaction Safety trên Postgres).
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
+    finally:
+        cur.close()
+        if not has_app_context():
+            conn.close()
 
 def query_db(query, args=(), one=False, conn=None):
     close_conn = False
@@ -233,6 +244,90 @@ def safe_migrate_db():
             conn.commit()
         except Exception as e:
             conn.rollback()
+
+    # ── Tự dò & bù cột thiếu cho các bảng HR ────────────────────────────────
+    # Lý do: các bảng HR dùng CREATE TABLE IF NOT EXISTS. Nếu bảng đã tồn tại
+    # trên Neon từ schema cũ (thiếu cột như updated_at, train_*, reason_note...),
+    # CREATE IF NOT EXISTS sẽ KHÔNG thêm cột → INSERT/UPDATE trong save_store_hr
+    # ném lỗi → HR "hoàn toàn không ghi nhận". Khối này thêm cột còn thiếu.
+    def _existing_cols(table):
+        try:
+            if is_pg:
+                cur.execute(
+                    "SELECT column_name FROM information_schema.columns WHERE table_name = %s",
+                    (table,),
+                )
+                cols = {r[0] for r in cur.fetchall()}
+            else:
+                cur.execute(f"PRAGMA table_info({table})")
+                cols = {r[1] for r in cur.fetchall()}
+            conn.commit()
+            return cols
+        except Exception:
+            conn.rollback()
+            return set()
+
+    hr_columns = {
+        'tb_store_employees': {
+            'gender': "VARCHAR(10) DEFAULT 'Nữ'",
+            'dob': "VARCHAR(20) DEFAULT ''",
+            'phone_number': "VARCHAR(30) DEFAULT ''",
+            'position': "VARCHAR(50) DEFAULT 'Nhân viên bán hàng'",
+            'appointment_date': "VARCHAR(20) DEFAULT ''",
+            'avatar_url': "TEXT DEFAULT ''",
+            'status': "VARCHAR(30) DEFAULT 'ACTIVE'",
+            'created_at': "VARCHAR(30) DEFAULT ''",
+            'updated_at': "VARCHAR(30) DEFAULT ''",
+        },
+        'tb_hr_lifecycle_tickets': {
+            'employee_code': "VARCHAR(50) DEFAULT ''",
+            'reason_note': "TEXT DEFAULT ''",
+            'handover_status': "VARCHAR(50) DEFAULT 'Chưa bàn giao'",
+            'status': "VARCHAR(30) DEFAULT 'Mới ghi nhận'",
+            'store_progress_note': "TEXT DEFAULT ''",
+            'asm_hr_note': "TEXT DEFAULT ''",
+            'created_at': "VARCHAR(30) DEFAULT ''",
+            'updated_at': "VARCHAR(30) DEFAULT ''",
+        },
+        'tb_employee_probation': {
+            'trainer_employee_code': "VARCHAR(50) DEFAULT ''",
+            'trainer_name': "VARCHAR(100) DEFAULT ''",
+            'train_op_rules': "INTEGER DEFAULT 0",
+            'train_work_process': "INTEGER DEFAULT 0",
+            'train_products': "INTEGER DEFAULT 0",
+            'train_display': "INTEGER DEFAULT 0",
+            'train_inventory': "INTEGER DEFAULT 0",
+            'training_notes': "TEXT DEFAULT ''",
+            'probation_end_date': "VARCHAR(20) DEFAULT ''",
+            'probation_result': "VARCHAR(50) DEFAULT 'Đang thử việc'",
+            'updated_at': "VARCHAR(30) DEFAULT ''",
+        },
+        'tb_store_support_staff': {
+            'employee_code': "VARCHAR(50) DEFAULT ''",
+            'reason': "VARCHAR(100) DEFAULT 'Cửa hàng thiếu nhân sự'",
+            'start_date': "VARCHAR(20) DEFAULT ''",
+            'end_date': "VARCHAR(20) DEFAULT ''",
+            'created_at': "VARCHAR(30) DEFAULT ''",
+        },
+        'tb_store_headcount_targets': {
+            'cht_name': "VARCHAR(100) DEFAULT ''",
+            'updated_at': "VARCHAR(30) DEFAULT ''",
+        },
+    }
+    for _table, _cols in hr_columns.items():
+        _present = _existing_cols(_table)
+        if not _present:
+            continue  # bảng chưa tồn tại (sẽ do CREATE lo) hoặc introspect lỗi
+        for _col, _coldef in _cols.items():
+            if _col in _present:
+                continue
+            try:
+                cur.execute(f"ALTER TABLE {_table} ADD COLUMN {_col} {_coldef}")
+                conn.commit()
+                print(f"✅ [Migration] Đã thêm cột thiếu {_table}.{_col}")
+            except Exception as _e:
+                conn.rollback()
+                print(f"⚠️ [Migration] Không thêm được {_table}.{_col}: {_e}")
 
     migrations = [
         "ALTER TABLE tb_contracts ADD COLUMN customer_name TEXT DEFAULT ''",
@@ -413,6 +508,33 @@ def get_auth_scope(role, asm_name, pin, store_code):
     if store_code:
         return {'type': 'STORE', 'store': store_code}
     return {'type': 'STORE', 'store': store_code or ''}
+
+def _hr_pin_authorized(store, pin):
+    """Cho phép xem/sửa HR của một cửa hàng nếu PIN là:
+      - passcode của chính cửa hàng (cửa hàng trưởng), HOẶC
+      - MASTER_PIN (admin), HOẶC
+      - PIN của một ASM: Khôi (hoặc pin dùng chung có Khôi) → mọi cửa hàng;
+        ASM khác → chỉ cửa hàng thuộc cụm mình quản lý (store.asm_name).
+    Trước đây get_store_hr/save_store_hr/save_shift_config chỉ chấp nhận passcode
+    cửa hàng hoặc master_pin → ASM (kể cả Khôi) dùng PIN 9999 luôn bị 401
+    'Mã PIN không đúng' khi bấm 'Quản Lý HR'. Dùng chung logic với get_auth_scope.
+    """
+    if not store:
+        return False
+    if pin and (pin == store['passcode'] or pin == MASTER_PIN):
+        return True
+    if not pin:
+        return False
+    try:
+        rows = query_db("SELECT asm_name FROM tb_asms WHERE passcode = ?", (pin,))
+        asm_names = [r['asm_name'] for r in rows]
+        if any(is_asm_khoi(n) for n in asm_names):
+            return True
+        if store['asm_name'] in asm_names:
+            return True
+    except Exception:
+        pass
+    return False
 
 def seed_hr_baseline_data():
     try:
@@ -1603,7 +1725,7 @@ def get_store_hr():
         
     store = query_db("SELECT * FROM tb_stores WHERE store_code = ?", (store_code,), one=True)
     master_pin = os.environ.get('MASTER_PIN', '8888')
-    if not store or (store['passcode'] != pin and pin != master_pin):
+    if not _hr_pin_authorized(store, pin):
         return jsonify({'ok': False, 'error': 'Mã PIN không đúng'}), 401
         
     target_rec = query_db("SELECT target_headcount, cht_name FROM tb_store_headcount_targets WHERE store_code = ?", (store_code,), one=True)
@@ -1677,7 +1799,7 @@ def save_store_hr():
         
     store = query_db("SELECT * FROM tb_stores WHERE store_code = ?", (store_code,), one=True)
     master_pin = os.environ.get('MASTER_PIN', '8888')
-    if not store or (store['passcode'] != pin and pin != master_pin):
+    if not _hr_pin_authorized(store, pin):
         return jsonify({'ok': False, 'error': 'Mã PIN không đúng'}), 401
         
     # Process offboard / transfer actions
@@ -1836,7 +1958,7 @@ def save_shift_config():
         
     store = query_db("SELECT * FROM tb_stores WHERE store_code = ?", (store_code,), one=True)
     master_pin = os.environ.get('MASTER_PIN', '8888')
-    if not store or (store['passcode'] != pin and pin != master_pin):
+    if not _hr_pin_authorized(store, pin):
         return jsonify({'ok': False, 'error': 'Mã PIN không đúng'}), 401
         
     s1_name = data.get('shift_1_name', 'Ca 1 (Sáng)')
