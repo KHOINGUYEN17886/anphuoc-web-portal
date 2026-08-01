@@ -129,6 +129,28 @@ def query_db(query, args=(), one=False, conn=None):
         conn.close()
     return (rv[0] if rv else None) if one else rv
 
+def _log_ticket_history(ticket_type, ticket_code, store_code, old_status, new_status, note=''):
+    """
+    Ghi 1 dòng vào tb_ticket_status_history mỗi khi 1 ticket (SUPPORT hoặc HR)
+    đổi trạng thái THẬT (bỏ qua nếu old_status == new_status — tránh log rác
+    khi request chỉ sửa ghi chú/người phụ trách mà không đổi status). Đây là
+    audit trail bắt buộc để dựng SLA/thời gian xử lý thật cho sổ theo dõi sự
+    vụ vận hành (qlkd_operational/ticket_lifecycle_sheet.py) — KHÔNG dùng
+    updated_at của bảng gốc làm proxy vì cột đó bị ghi đè bởi MỌI thay đổi
+    (kể cả sửa ghi chú), không riêng đổi trạng thái.
+    """
+    if old_status == new_status:
+        return
+    now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    try:
+        execute_db("""
+            INSERT INTO tb_ticket_status_history
+            (ticket_type, ticket_code, store_code, old_status, new_status, changed_at, note)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (ticket_type, ticket_code, store_code, old_status or '', new_status, now_str, note or ''))
+    except Exception as _e:
+        print(f"⚠️ [TicketHistory] Không ghi được history cho {ticket_type} {ticket_code}: {_e}")
+
 # Get reporting date (Friday of the current week or previous week if early in the week)
 def get_report_date():
     today = date.today()
@@ -234,6 +256,18 @@ def safe_migrate_db():
             start_date VARCHAR(20) DEFAULT '',
             end_date VARCHAR(20) DEFAULT '',
             created_at VARCHAR(30) DEFAULT ''
+        )
+        """,
+        f"""
+        CREATE TABLE IF NOT EXISTS tb_ticket_status_history (
+            id {pk_auto},
+            ticket_type VARCHAR(20) NOT NULL,
+            ticket_code VARCHAR(50) NOT NULL,
+            store_code VARCHAR(50) NOT NULL,
+            old_status VARCHAR(30) DEFAULT '',
+            new_status VARCHAR(30) NOT NULL,
+            changed_at VARCHAR(30) DEFAULT '',
+            note TEXT DEFAULT ''
         )
         """
     ]
@@ -1230,11 +1264,14 @@ def submit_data():
             pstatus = str(psu.get('status', 'Đang xử lý')).strip()
             pnote = str(psu.get('store_progress_note', '')).strip()
             if tcode:
+                _old_t = query_db("SELECT status FROM tb_support_requests WHERE ticket_code = ? AND store_code = ?",
+                                   (tcode, store_code), one=True)
                 execute_db("""
                 UPDATE tb_support_requests
                 SET status = ?, store_progress_note = ?, updated_at = ?
                 WHERE ticket_code = ? AND store_code = ?
                 """, (pstatus, pnote, now_str, tcode, store_code))
+                _log_ticket_history('SUPPORT', tcode, store_code, _old_t.get('status') if _old_t else None, pstatus)
 
         # Second: Save current week's support requests
         execute_db("DELETE FROM tb_support_requests WHERE store_code = ? AND report_date = ?", (store_code, report_date))
@@ -1252,10 +1289,11 @@ def submit_data():
             
             if item:
                 execute_db("""
-                INSERT INTO tb_support_requests 
+                INSERT INTO tb_support_requests
                 (ticket_code, store_code, report_date, category, priority, issue_item, deadline, person_in_charge, status, store_progress_note, asm_hq_note, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (tcode, store_code, report_date, cat, pri, item, dl, pic, status, sp_note, hq_note, now_str, now_str))
+                _log_ticket_history('SUPPORT', tcode, store_code, None, status)
         
         if support_requests:
             async_sync_and_alert(store_code, report_date, support_requests)
@@ -1472,7 +1510,9 @@ def update_support_ticket():
     
     query = f"UPDATE tb_support_requests SET {', '.join(updates)} WHERE ticket_code = ?"
     execute_db(query, tuple(args))
-    
+    if status is not None:
+        _log_ticket_history('SUPPORT', ticket_code, ticket['store_code'], ticket.get('status'), status)
+
     return jsonify({'ok': True, 'message': f'Đã cập nhật sự vụ {ticket_code} thành công!'})
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1820,24 +1860,28 @@ def save_store_hr():
         seq = datetime.now().strftime('%H%M%S')
         ticket_code = f"HR-{store_code}-{report_date.replace('-', '')}-{seq}"
         
+        _now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         if reason == 'TRANSFER' and target_store:
             execute_db("UPDATE tb_store_employees SET store_code = ?, appointment_date = ?, updated_at = CURRENT_TIMESTAMP WHERE employee_code = ?", (target_store, date.today().strftime('%Y-%m-%d'), emp_code))
             execute_db("""
-                INSERT INTO tb_hr_lifecycle_tickets (ticket_code, store_code, report_date, employee_code, employee_name, position, event_type, effective_date, reason_note, status)
-                VALUES (?, ?, ?, ?, ?, ?, 'Chuyển cửa hàng', ?, ?, 'Mới ghi nhận')
-            """, (ticket_code, store_code, report_date, emp_code, emp_name, pos, date.today().strftime('%Y-%m-%d'), f"Chuyển sang cửa hàng {target_store}. Ghi chú: {note}"))
+                INSERT INTO tb_hr_lifecycle_tickets (ticket_code, store_code, report_date, employee_code, employee_name, position, event_type, effective_date, reason_note, status, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, 'Chuyển cửa hàng', ?, ?, 'Mới ghi nhận', ?, ?)
+            """, (ticket_code, store_code, report_date, emp_code, emp_name, pos, date.today().strftime('%Y-%m-%d'), f"Chuyển sang cửa hàng {target_store}. Ghi chú: {note}", _now_str, _now_str))
+            _log_ticket_history('HR', ticket_code, store_code, None, 'Mới ghi nhận')
         elif reason == 'RESIGNED':
             execute_db("UPDATE tb_store_employees SET status = 'RESIGNED', updated_at = CURRENT_TIMESTAMP WHERE employee_code = ?", (emp_code,))
             execute_db("""
-                INSERT INTO tb_hr_lifecycle_tickets (ticket_code, store_code, report_date, employee_code, employee_name, position, event_type, effective_date, reason_note, status)
-                VALUES (?, ?, ?, ?, ?, ?, 'Nghỉ việc', ?, ?, 'Mới ghi nhận')
-            """, (ticket_code, store_code, report_date, emp_code, emp_name, pos, date.today().strftime('%Y-%m-%d'), f"Nhân sự nghỉ việc. Ghi chú: {note}"))
+                INSERT INTO tb_hr_lifecycle_tickets (ticket_code, store_code, report_date, employee_code, employee_name, position, event_type, effective_date, reason_note, status, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, 'Nghỉ việc', ?, ?, 'Mới ghi nhận', ?, ?)
+            """, (ticket_code, store_code, report_date, emp_code, emp_name, pos, date.today().strftime('%Y-%m-%d'), f"Nhân sự nghỉ việc. Ghi chú: {note}", _now_str, _now_str))
+            _log_ticket_history('HR', ticket_code, store_code, None, 'Mới ghi nhận')
         elif reason == 'MATERNITY_LEAVE':
             execute_db("UPDATE tb_store_employees SET status = 'MATERNITY_LEAVE', updated_at = CURRENT_TIMESTAMP WHERE employee_code = ?", (emp_code,))
             execute_db("""
-                INSERT INTO tb_hr_lifecycle_tickets (ticket_code, store_code, report_date, employee_code, employee_name, position, event_type, effective_date, reason_note, status)
-                VALUES (?, ?, ?, ?, ?, ?, 'Nghỉ thai sản', ?, ?, 'Mới ghi nhận')
-            """, (ticket_code, store_code, report_date, emp_code, emp_name, pos, date.today().strftime('%Y-%m-%d'), f"Nhân sự nghỉ thai sản. Ghi chú: {note}"))
+                INSERT INTO tb_hr_lifecycle_tickets (ticket_code, store_code, report_date, employee_code, employee_name, position, event_type, effective_date, reason_note, status, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, 'Nghỉ thai sản', ?, ?, 'Mới ghi nhận', ?, ?)
+            """, (ticket_code, store_code, report_date, emp_code, emp_name, pos, date.today().strftime('%Y-%m-%d'), f"Nhân sự nghỉ thai sản. Ghi chú: {note}", _now_str, _now_str))
+            _log_ticket_history('HR', ticket_code, store_code, None, 'Mới ghi nhận')
 
     employees = data.get('employees', [])
     for emp in employees:
@@ -1924,10 +1968,12 @@ def save_store_hr():
         handover = new_ticket.get('handover_status', 'Chưa bàn giao')
         
         if emp_name:
+            _now_str2 = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             execute_db("""
-                INSERT INTO tb_hr_lifecycle_tickets (ticket_code, store_code, report_date, employee_name, position, event_type, effective_date, reason_note, handover_status, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Mới ghi nhận')
-            """, (ticket_code, store_code, report_date, emp_name, pos, evt_type, eff_date, reason, handover))
+                INSERT INTO tb_hr_lifecycle_tickets (ticket_code, store_code, report_date, employee_name, position, event_type, effective_date, reason_note, handover_status, status, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Mới ghi nhận', ?, ?)
+            """, (ticket_code, store_code, report_date, emp_name, pos, evt_type, eff_date, reason, handover, _now_str2, _now_str2))
+            _log_ticket_history('HR', ticket_code, store_code, None, 'Mới ghi nhận')
             
     support_staff_updates = data.get('support_staff_updates', [])
     execute_db("DELETE FROM tb_store_support_staff WHERE store_code = ?", (store_code,))
@@ -1997,9 +2043,10 @@ def update_hr_ticket():
     ticket = query_db("SELECT * FROM tb_hr_lifecycle_tickets WHERE ticket_code = ?", (ticket_code,), one=True)
     if not ticket:
         return jsonify({'ok': False, 'error': 'Không tìm thấy ticket sự vụ'}), 404
-        
+
     if status:
         execute_db("UPDATE tb_hr_lifecycle_tickets SET status = ? WHERE ticket_code = ?", (status, ticket_code))
+        _log_ticket_history('HR', ticket_code, ticket['store_code'], ticket.get('status'), status)
     if store_progress_note:
         execute_db("UPDATE tb_hr_lifecycle_tickets SET store_progress_note = ? WHERE ticket_code = ?", (store_progress_note, ticket_code))
     if asm_hr_note:
@@ -3030,6 +3077,64 @@ def export_excel():
             })
         df_hr_tickets = pd.DataFrame(ticket_data) if ticket_data else pd.DataFrame(columns=['Mã Ticket', 'Mã Cửa Hàng', 'Tên Cửa Hàng', 'ASM Phụ Trách', 'Tên Nhân Sự', 'Chức Danh', 'Loại Sự Vụ', 'Ngày Hiệu Lực', 'Lý Do / Nội Dung', 'Bàn Giao Công Việc', 'Trạng Thái Giải Quyết', 'Tiến Độ Cửa Hàng', 'Ghi Chú ASM / HR'])
 
+        # Sheet 12: Toàn Bộ Sự Vụ Hỗ Trợ KT (lifecycle đầy đủ — KHÔNG lọc report_date,
+        # khác với df_support ở trên vốn CỐ Ý chỉ lấy đúng report_date cho Section 4.5
+        # core của báo cáo tuần. Sheet này phục vụ sổ theo dõi sự vụ vận hành bên
+        # qlkd_operational — cần TOÀN BỘ lịch sử để tính tuổi ticket/tái phát sinh).
+        support_full_rows = query_db(f"""
+            SELECT r.*, s.store_name, s.asm_name
+            FROM tb_support_requests r
+            JOIN tb_stores s ON r.store_code = s.store_code
+            WHERE r.store_code IN ({placeholders})
+            ORDER BY r.created_at DESC
+        """, store_codes)
+        support_full_data = []
+        for r in support_full_rows:
+            support_full_data.append({
+                'Mã Ticket': r['ticket_code'],
+                'Mã Cửa Hàng': r['store_code'],
+                'Tên Cửa Hàng': r['store_name'],
+                'ASM Phụ Trách': r['asm_name'],
+                'Danh Mục Hỗ Trợ': r['category'],
+                'Độ Ưu Tiên': r['priority'],
+                'Nội Dung Sự Việc Cụ Thể': r['issue_item'],
+                'Thời Hạn Hoàn Thành': r['deadline'],
+                'Người Chịu Trách Nhiệm': r['person_in_charge'],
+                'Trạng Thái': r['status'],
+                'Ngày Tạo': r['created_at'],
+                'Ngày Cập Nhật Cuối': r['updated_at'],
+                'Ghi Chú Cửa Hàng': r['store_progress_note'],
+                'Ghi Chú ASM / HQ': r['asm_hq_note'],
+            })
+        df_support_full = pd.DataFrame(support_full_data) if support_full_data else pd.DataFrame(columns=['Mã Ticket', 'Mã Cửa Hàng', 'Tên Cửa Hàng', 'ASM Phụ Trách', 'Danh Mục Hỗ Trợ', 'Độ Ưu Tiên', 'Nội Dung Sự Việc Cụ Thể', 'Thời Hạn Hoàn Thành', 'Người Chịu Trách Nhiệm', 'Trạng Thái', 'Ngày Tạo', 'Ngày Cập Nhật Cuối', 'Ghi Chú Cửa Hàng', 'Ghi Chú ASM / HQ'])
+
+        # Sheet 13: Lịch Sử Trạng Thái Sự Vụ (audit trail dùng chung SUPPORT + HR —
+        # nguồn cho SLA/thời gian xử lý thật ở qlkd_operational). Join qua store_code
+        # (ticket_code có 2 namespace khác nhau: TK-... và HR-... nên không join
+        # trực tiếp bằng ticket_code sang tb_stores được, dùng store_code có sẵn
+        # ngay trên chính bảng history).
+        ticket_history_rows = query_db(f"""
+            SELECT h.*, s.store_name, s.asm_name
+            FROM tb_ticket_status_history h
+            JOIN tb_stores s ON h.store_code = s.store_code
+            WHERE h.store_code IN ({placeholders})
+            ORDER BY h.changed_at DESC
+        """, store_codes)
+        history_data = []
+        for h in ticket_history_rows:
+            history_data.append({
+                'Loại Ticket': h['ticket_type'],
+                'Mã Ticket': h['ticket_code'],
+                'Mã Cửa Hàng': h['store_code'],
+                'Tên Cửa Hàng': h['store_name'],
+                'ASM Phụ Trách': h['asm_name'],
+                'Trạng Thái Cũ': h['old_status'],
+                'Trạng Thái Mới': h['new_status'],
+                'Thời Điểm Đổi': h['changed_at'],
+                'Ghi Chú': h['note'],
+            })
+        df_ticket_history = pd.DataFrame(history_data) if history_data else pd.DataFrame(columns=['Loại Ticket', 'Mã Ticket', 'Mã Cửa Hàng', 'Tên Cửa Hàng', 'ASM Phụ Trách', 'Trạng Thái Cũ', 'Trạng Thái Mới', 'Thời Điểm Đổi', 'Ghi Chú'])
+
         # 3. Create Excel File in memory
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
@@ -3044,7 +3149,9 @@ def export_excel():
             df_store_hr.to_excel(writer, sheet_name='Định Biên & Hồ Sơ Nhân Sự', index=False, startrow=4)
             df_hr_probation.to_excel(writer, sheet_name='Theo Dõi Thử Việc & Đào Tạo', index=False, startrow=4)
             df_hr_tickets.to_excel(writer, sheet_name='Theo Dõi Sự Vụ Nhân Sự', index=False, startrow=4)
-            
+            df_support_full.to_excel(writer, sheet_name='Toàn Bộ Sự Vụ Hỗ Trợ KT', index=False, startrow=4)
+            df_ticket_history.to_excel(writer, sheet_name='Lịch Sử Trạng Thái Sự Vụ', index=False, startrow=4)
+
             # Access workbook and apply corporate styling
             workbook = writer.book
             date_range_str = f"Từ {datetime.strptime(start_date, '%Y-%m-%d').strftime('%d/%m/%Y')} đến {datetime.strptime(end_date, '%Y-%m-%d').strftime('%d/%m/%Y')}"
@@ -3061,7 +3168,10 @@ def export_excel():
             style_sheet(workbook['Định Biên & Hồ Sơ Nhân Sự'], "Báo Cáo Định Biên & Hồ Sơ Nhân Sự Cửa Hàng", "Quản lý nhân sự và đánh giá thừa/thiếu định biên", date_range_str, role_str)
             style_sheet(workbook['Theo Dõi Thử Việc & Đào Tạo'], "Báo Cáo Theo Dõi Nhân Sự Thử Việc & Đào Tạo Tại Quầy", "Đào tạo checklist 5 bài học và kết quả thử việc", date_range_str, role_str)
             style_sheet(workbook['Theo Dõi Sự Vụ Nhân Sự'], "Nhật Ký Theo Dõi Sự Vụ & Biến Động Nhân Sự", "Vòng đời xử lý ticket sự vụ nhân sự toàn hệ thống", date_range_str, role_str)
-            
+            style_sheet(workbook['Toàn Bộ Sự Vụ Hỗ Trợ KT'], "Toàn Bộ Sự Vụ Hỗ Trợ Kỹ Thuật (Lifecycle)", "Không lọc theo tuần — phục vụ sổ theo dõi tồn đọng/tái phát sinh", date_range_str, role_str)
+            style_sheet(workbook['Lịch Sử Trạng Thái Sự Vụ'], "Lịch Sử Đổi Trạng Thái Sự Vụ (Hỗ Trợ KT + Nhân Sự)", "Audit trail — nguồn tính thời gian xử lý thật", date_range_str, role_str)
+
+
         output.seek(0)
         
         # Format filename
