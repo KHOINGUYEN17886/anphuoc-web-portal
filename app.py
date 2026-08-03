@@ -269,6 +269,22 @@ def safe_migrate_db():
             changed_at VARCHAR(30) DEFAULT '',
             note TEXT DEFAULT ''
         )
+        """,
+        f"""
+        CREATE TABLE IF NOT EXISTS tb_store_closures (
+            id {pk_auto},
+            closure_code VARCHAR(50) UNIQUE NOT NULL,
+            store_code VARCHAR(50) NOT NULL,
+            event_type VARCHAR(30) NOT NULL,
+            start_date VARCHAR(20) NOT NULL,
+            end_date VARCHAR(20) DEFAULT '',
+            status VARCHAR(30) DEFAULT 'ĐANG ĐÓNG',
+            reason_note TEXT DEFAULT '',
+            reported_by VARCHAR(50) DEFAULT '',
+            source VARCHAR(20) DEFAULT 'ASM',
+            created_at VARCHAR(30) DEFAULT '',
+            updated_at VARCHAR(30) DEFAULT ''
+        )
         """
     ]
     
@@ -2056,6 +2072,142 @@ def update_hr_ticket():
     
     return jsonify({'ok': True, 'message': 'Đã cập nhật ticket sự vụ nhân sự thành công'})
 
+# ──────────────────────────────────────────────────────────────────────────────
+# STORE CLOSURES (đóng cửa: sửa chữa / di dời / mở mới) — ASM khai báo
+# Engine qlkd_operational đọc qua export → tính Ngày HĐ + %HT điều chỉnh + đối
+# soát với Data Lake. Portal KHÔNG truy cập Data Lake nên chỉ giữ khai báo;
+# đối soát chạy ở engine (nơi thấy cả 2 nguồn).
+# ──────────────────────────────────────────────────────────────────────────────
+_CLOSURE_EVENT_TYPES = {'SỬA CHỮA', 'DI DỜI', 'MỞ MỚI', 'ĐÓNG TẠM'}
+_CLOSURE_STATUSES    = {'ĐANG ĐÓNG', 'ĐÃ MỞ LẠI', 'KẾ HOẠCH', 'ĐÃ HỦY'}
+
+
+def _closure_pin_authorized(store_code, pin):
+    """ASM/admin được khai đóng cửa. Dùng chung logic get_auth_scope: MASTER_PIN
+    hoặc PIN ASM (Khôi = mọi CH; ASM khác = CH thuộc cụm mình).
+
+    ⚠️ QUAN TRỌNG (fix 2026-08-03 sau khi test UI thật gặp lỗi 401): PIN ASM ở
+    hệ thống này là PIN DÙNG CHUNG (mọi ASM đều '9999') → query one=True trả về
+    1 ASM NGẪU NHIÊN trong số đó, nếu ASM đó không quản CH đang khai thì bị từ
+    chối oan. Phải lấy TẤT CẢ asm_name khớp PIN rồi kiểm tra xem có ai hợp lệ
+    không — cùng cách get_auth_scope() đã làm (nó dùng query_db không one=True).
+    """
+    if not pin:
+        return False
+    if pin == MASTER_PIN or _default_pin_allowed(pin):
+        return True
+    rows = query_db("SELECT asm_name FROM tb_asms WHERE passcode = ?", (pin,))
+    asm_names = [r['asm_name'] for r in (rows or [])]
+    if not asm_names:
+        return False
+    # Khôi (hoặc PIN dùng chung có Khôi) → mọi cửa hàng
+    if any(is_asm_khoi(n) for n in asm_names):
+        return True
+    # ASM thường: chỉ CH thuộc cụm của MỘT TRONG các ASM khớp PIN
+    st = query_db("SELECT asm_name FROM tb_stores WHERE store_code = ?", (store_code,), one=True)
+    return bool(st and st.get('asm_name') in asm_names)
+
+
+@app.route('/api/get_store_closures', methods=['GET'])
+def get_store_closures():
+    """Danh sách khai báo đóng cửa: theo store_code, hoặc theo asm (mọi CH cụm)."""
+    store_code = request.args.get('store_code', '').strip()
+    asm = request.args.get('asm', '').strip()
+    if store_code:
+        rows = query_db("""
+            SELECT c.*, s.store_name FROM tb_store_closures c
+            LEFT JOIN tb_stores s ON c.store_code = s.store_code
+            WHERE c.store_code = ? ORDER BY c.start_date DESC
+        """, (store_code,))
+    elif asm:
+        rows = query_db("""
+            SELECT c.*, s.store_name FROM tb_store_closures c
+            JOIN tb_stores s ON c.store_code = s.store_code
+            WHERE s.asm_name = ? ORDER BY c.start_date DESC
+        """, (asm,))
+    else:
+        rows = query_db("""
+            SELECT c.*, s.store_name FROM tb_store_closures c
+            LEFT JOIN tb_stores s ON c.store_code = s.store_code
+            ORDER BY c.start_date DESC
+        """)
+    return jsonify({'ok': True, 'closures': [dict(r) for r in rows]})
+
+
+@app.route('/api/save_store_closure', methods=['POST'])
+def save_store_closure():
+    """ASM tạo 1 khai báo đóng cửa mới."""
+    data = request.json or {}
+    store_code = str(data.get('store_code', '')).strip()
+    event_type = str(data.get('event_type', '')).strip()
+    start_date = str(data.get('start_date', '')).strip()
+    end_date   = str(data.get('end_date', '')).strip()
+    reason     = str(data.get('reason_note', '')).strip()
+    pin        = str(data.get('pin', '')).strip()
+    reported_by = str(data.get('reported_by', '')).strip()
+
+    if not store_code or not event_type or not start_date:
+        return jsonify({'ok': False, 'error': 'Thiếu cửa hàng / loại / ngày bắt đầu'}), 400
+    if event_type not in _CLOSURE_EVENT_TYPES:
+        return jsonify({'ok': False, 'error': f'Loại không hợp lệ (chỉ: {", ".join(sorted(_CLOSURE_EVENT_TYPES))})'}), 400
+    if not _closure_pin_authorized(store_code, pin):
+        return jsonify({'ok': False, 'error': 'Mã PIN không có quyền khai báo cho cửa hàng này'}), 401
+
+    # status suy từ end_date: có end_date <= hôm nay → ĐÃ MỞ LẠI; ngày bắt đầu tương lai → KẾ HOẠCH
+    today = date.today().strftime('%Y-%m-%d')
+    if start_date > today:
+        status = 'KẾ HOẠCH'
+    elif end_date and end_date <= today:
+        status = 'ĐÃ MỞ LẠI'
+    else:
+        status = 'ĐANG ĐÓNG'
+
+    seq = datetime.now().strftime('%H%M%S')
+    closure_code = f"CLS-{store_code}-{start_date.replace('-', '')}-{seq}"
+    now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    execute_db("""
+        INSERT INTO tb_store_closures
+        (closure_code, store_code, event_type, start_date, end_date, status,
+         reason_note, reported_by, source, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ASM', ?, ?)
+    """, (closure_code, store_code, event_type, start_date, end_date, status,
+          reason, reported_by, now_str, now_str))
+    _log_ticket_history('CLOSURE', closure_code, store_code, None, status)
+    return jsonify({'ok': True, 'closure_code': closure_code,
+                    'message': f'Đã ghi nhận đóng cửa {store_code} ({event_type})'})
+
+
+@app.route('/api/update_store_closure', methods=['POST'])
+def update_store_closure():
+    """Cập nhật 1 khai báo (đổi status / end_date / ghi chú)."""
+    data = request.json or {}
+    closure_code = str(data.get('closure_code', '')).strip()
+    pin = str(data.get('pin', '')).strip()
+    if not closure_code:
+        return jsonify({'ok': False, 'error': 'Thiếu mã khai báo'}), 400
+    cls = query_db("SELECT * FROM tb_store_closures WHERE closure_code = ?", (closure_code,), one=True)
+    if not cls:
+        return jsonify({'ok': False, 'error': 'Không tìm thấy khai báo'}), 404
+    if not _closure_pin_authorized(cls['store_code'], pin):
+        return jsonify({'ok': False, 'error': 'Mã PIN không có quyền cập nhật khai báo này'}), 401
+
+    now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    new_status = str(data.get('status', '')).strip()
+    new_end    = data.get('end_date', None)
+    new_note   = data.get('reason_note', None)
+    if new_status and new_status not in _CLOSURE_STATUSES:
+        return jsonify({'ok': False, 'error': 'Trạng thái không hợp lệ'}), 400
+
+    if new_status:
+        execute_db("UPDATE tb_store_closures SET status = ? WHERE closure_code = ?", (new_status, closure_code))
+        _log_ticket_history('CLOSURE', closure_code, cls['store_code'], cls.get('status'), new_status)
+    if new_end is not None:
+        execute_db("UPDATE tb_store_closures SET end_date = ? WHERE closure_code = ?", (str(new_end).strip(), closure_code))
+    if new_note is not None:
+        execute_db("UPDATE tb_store_closures SET reason_note = ? WHERE closure_code = ?", (str(new_note).strip(), closure_code))
+    execute_db("UPDATE tb_store_closures SET updated_at = ? WHERE closure_code = ?", (now_str, closure_code))
+    return jsonify({'ok': True, 'message': f'Đã cập nhật khai báo {closure_code}'})
+
 @app.route('/api/get_hr_analytics', methods=['GET'])
 def get_hr_analytics():
     report_date = request.args.get('report_date', get_report_date().strftime('%Y-%m-%d'))
@@ -3135,6 +3287,35 @@ def export_excel():
             })
         df_ticket_history = pd.DataFrame(history_data) if history_data else pd.DataFrame(columns=['Loại Ticket', 'Mã Ticket', 'Mã Cửa Hàng', 'Tên Cửa Hàng', 'ASM Phụ Trách', 'Trạng Thái Cũ', 'Trạng Thái Mới', 'Thời Điểm Đổi', 'Ghi Chú'])
 
+        # Sheet 14: Khai Báo Đóng Cửa CH (sửa chữa/di dời/mở mới) — ASM khai báo,
+        # engine qlkd_operational đọc để tính Ngày HĐ + %HT điều chỉnh + đối soát
+        # Data Lake. KHÔNG lọc report_date (lifecycle đầy đủ toàn lịch sử).
+        closure_rows = query_db(f"""
+            SELECT c.*, s.store_name, s.asm_name
+            FROM tb_store_closures c
+            JOIN tb_stores s ON c.store_code = s.store_code
+            WHERE c.store_code IN ({placeholders})
+            ORDER BY c.start_date DESC
+        """, store_codes)
+        closure_data = []
+        for c in closure_rows:
+            closure_data.append({
+                'Mã Khai Báo': c['closure_code'],
+                'Mã Cửa Hàng': c['store_code'],
+                'Tên Cửa Hàng': c['store_name'],
+                'ASM Phụ Trách': c['asm_name'],
+                'Loại Sự Kiện': c['event_type'],
+                'Từ Ngày': c['start_date'],
+                'Đến Ngày': c['end_date'],
+                'Trạng Thái': c['status'],
+                'Lý Do / Nội Dung': c['reason_note'],
+                'Người Khai Báo': c['reported_by'],
+                'Nguồn': c['source'],
+                'Ngày Tạo': c['created_at'],
+                'Ngày Cập Nhật': c['updated_at'],
+            })
+        df_closures = pd.DataFrame(closure_data) if closure_data else pd.DataFrame(columns=['Mã Khai Báo', 'Mã Cửa Hàng', 'Tên Cửa Hàng', 'ASM Phụ Trách', 'Loại Sự Kiện', 'Từ Ngày', 'Đến Ngày', 'Trạng Thái', 'Lý Do / Nội Dung', 'Người Khai Báo', 'Nguồn', 'Ngày Tạo', 'Ngày Cập Nhật'])
+
         # 3. Create Excel File in memory
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
@@ -3151,6 +3332,7 @@ def export_excel():
             df_hr_tickets.to_excel(writer, sheet_name='Theo Dõi Sự Vụ Nhân Sự', index=False, startrow=4)
             df_support_full.to_excel(writer, sheet_name='Toàn Bộ Sự Vụ Hỗ Trợ KT', index=False, startrow=4)
             df_ticket_history.to_excel(writer, sheet_name='Lịch Sử Trạng Thái Sự Vụ', index=False, startrow=4)
+            df_closures.to_excel(writer, sheet_name='Khai Báo Đóng Cửa CH', index=False, startrow=4)
 
             # Access workbook and apply corporate styling
             workbook = writer.book
@@ -3170,6 +3352,7 @@ def export_excel():
             style_sheet(workbook['Theo Dõi Sự Vụ Nhân Sự'], "Nhật Ký Theo Dõi Sự Vụ & Biến Động Nhân Sự", "Vòng đời xử lý ticket sự vụ nhân sự toàn hệ thống", date_range_str, role_str)
             style_sheet(workbook['Toàn Bộ Sự Vụ Hỗ Trợ KT'], "Toàn Bộ Sự Vụ Hỗ Trợ Kỹ Thuật (Lifecycle)", "Không lọc theo tuần — phục vụ sổ theo dõi tồn đọng/tái phát sinh", date_range_str, role_str)
             style_sheet(workbook['Lịch Sử Trạng Thái Sự Vụ'], "Lịch Sử Đổi Trạng Thái Sự Vụ (Hỗ Trợ KT + Nhân Sự)", "Audit trail — nguồn tính thời gian xử lý thật", date_range_str, role_str)
+            style_sheet(workbook['Khai Báo Đóng Cửa CH'], "Khai Báo Đóng Cửa Cửa Hàng (Sửa Chữa / Di Dời / Mở Mới)", "ASM khai báo — engine tính Ngày HĐ + %HT điều chỉnh + đối soát Data Lake", date_range_str, role_str)
 
 
         output.seek(0)

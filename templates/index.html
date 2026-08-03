@@ -781,6 +781,9 @@
                 <button id="status-tab-hr-btn" class="tab-btn">
                     👥 Định Biên & Báo Cáo Nhân Sự Cụm
                 </button>
+                <button id="status-tab-closure-btn" class="tab-btn">
+                    🏗️ Đóng Cửa CH (Sửa/Dời/Mở mới)
+                </button>
                 <button id="status-tab-passcodes-btn" class="tab-btn hidden">
                     🔑 Quản lý PIN
                 </button>
@@ -947,6 +950,91 @@
                             </thead>
                             <tbody id="status-hr-headcount-body">
                                 <tr><td colspan="7" class="text-center py-4 text-gray-400">Bấm "Tải Lại Dữ Liệu HR" để nạp báo cáo...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ASM Tab 6: Khai Báo Đóng Cửa CH (sửa chữa / di dời / mở mới) -->
+            <div id="status-tab-closure-content" class="hidden card rounded-b-2xl p-5 border-t-0 space-y-5">
+                <div class="flex flex-wrap items-center justify-between border-b border-gray-100 pb-3 gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl">🏗️</span>
+                        <div>
+                            <h4 class="font-extrabold text-brand-navy uppercase text-sm">Khai Báo Đóng Cửa Cửa Hàng</h4>
+                            <p class="text-xs text-gray-500">Sửa chữa / di dời / mở mới — ngày đóng sẽ được TRỪ khỏi %HT target trong báo cáo</p>
+                        </div>
+                    </div>
+                    <button class="btn-gold text-xs px-3 py-1.5 font-bold" onclick="loadStoreClosures()">
+                        🔄 Tải Lại Danh Sách
+                    </button>
+                </div>
+
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900">
+                    <b>Vì sao cần khai báo?</b> Khi CH đóng cửa 10-15 ngày (sửa chữa/di dời), cửa hàng
+                    hoàn toàn không có doanh thu những ngày đó. Nếu không khai, báo cáo vẫn tính %HT
+                    trên <b>full tháng</b> → đánh giá oan cửa hàng. Khai báo giúp hệ thống tính
+                    <b>%HT điều chỉnh</b> (chỉ tính trên số ngày thực tế hoạt động).
+                </div>
+
+                <!-- Form khai báo mới -->
+                <div class="border border-gray-200 rounded-xl p-4 space-y-3">
+                    <h5 class="font-bold text-brand-navy text-xs uppercase">➕ Khai Báo Mới</h5>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 uppercase">Cửa hàng</label>
+                            <select id="closure-store" class="input-field text-xs w-full">
+                                <option value="">-- Chọn cửa hàng --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 uppercase">Loại sự kiện</label>
+                            <select id="closure-type" class="input-field text-xs w-full">
+                                <option value="SỬA CHỮA">🔧 Sửa chữa</option>
+                                <option value="DI DỜI">🚚 Di dời</option>
+                                <option value="MỞ MỚI">🎉 Mở mới</option>
+                                <option value="ĐÓNG TẠM">⏸️ Đóng tạm</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 uppercase">Người khai báo</label>
+                            <input id="closure-reporter" type="text" class="input-field text-xs w-full" placeholder="Tên ASM">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 uppercase">Từ ngày (đóng)</label>
+                            <input id="closure-start" type="date" class="input-field text-xs w-full">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 uppercase">Đến ngày (mở lại)</label>
+                            <input id="closure-end" type="date" class="input-field text-xs w-full">
+                            <p class="text-[10px] text-gray-400 mt-0.5">Để trống nếu CH vẫn đang đóng</p>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 uppercase">Lý do / Nội dung</label>
+                            <input id="closure-note" type="text" class="input-field text-xs w-full" placeholder="VD: Sửa mặt tiền, dời sang mặt bằng mới...">
+                        </div>
+                    </div>
+                    <div class="flex justify-end">
+                        <button id="btn-save-closure" class="btn-primary text-xs px-5 py-2 font-bold shadow-md">
+                            💾 Lưu Khai Báo
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Danh sách khai báo hiện có -->
+                <div>
+                    <h5 class="font-bold text-brand-navy text-xs uppercase mb-2">📋 Danh Sách Đã Khai Báo</h5>
+                    <div class="overflow-x-auto">
+                        <table class="tbl w-full rounded-xl overflow-hidden text-xs">
+                            <thead>
+                                <tr>
+                                    <th>Cửa hàng</th><th>Loại</th><th>Từ ngày</th><th>Đến ngày</th>
+                                    <th>Số ngày</th><th>Trạng thái</th><th>Lý do</th><th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="closure-table-body">
+                                <tr><td colspan="8" class="text-center py-4 text-gray-400">Bấm "Tải Lại Danh Sách" để xem...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -1817,6 +1905,8 @@
         const statusTabDailyBtn = document.getElementById('status-tab-daily-btn');
         const statusTabSupportBtn = document.getElementById('status-tab-support-btn');
         const statusTabHrBtn = document.getElementById('status-tab-hr-btn');
+        const statusTabClosureBtn = document.getElementById('status-tab-closure-btn');
+        const statusTabClosureContent = document.getElementById('status-tab-closure-content');
         const statusTabWeeklyContent = document.getElementById('status-tab-weekly-content');
         const statusTabDailyContent = document.getElementById('status-tab-daily-content');
         const statusTabSupportContent = document.getElementById('status-tab-support-content');
@@ -3296,6 +3386,7 @@
             statusTabDailyContent.classList.add('hidden');
             statusTabSupportContent.classList.add('hidden');
             if (statusTabHrContent) statusTabHrContent.classList.add('hidden');
+            if (statusTabClosureContent) statusTabClosureContent.classList.add('hidden');
             statusTabPasscodesContent.classList.add('hidden');
         });
 
@@ -3305,6 +3396,7 @@
             statusTabWeeklyContent.classList.add('hidden');
             statusTabSupportContent.classList.add('hidden');
             if (statusTabHrContent) statusTabHrContent.classList.add('hidden');
+            if (statusTabClosureContent) statusTabClosureContent.classList.add('hidden');
             statusTabPasscodesContent.classList.add('hidden');
 
             await loadDailyTrafficSummary();
@@ -3316,6 +3408,7 @@
             statusTabWeeklyContent.classList.add('hidden');
             statusTabDailyContent.classList.add('hidden');
             if (statusTabHrContent) statusTabHrContent.classList.add('hidden');
+            if (statusTabClosureContent) statusTabClosureContent.classList.add('hidden');
             statusTabPasscodesContent.classList.add('hidden');
 
             await loadSupportRequests();
@@ -3328,9 +3421,24 @@
                 statusTabWeeklyContent.classList.add('hidden');
                 statusTabDailyContent.classList.add('hidden');
                 statusTabSupportContent.classList.add('hidden');
+                if (statusTabClosureContent) statusTabClosureContent.classList.add('hidden');
                 statusTabPasscodesContent.classList.add('hidden');
 
                 await loadHRAnalytics();
+            });
+        }
+
+        if (statusTabClosureBtn) {
+            statusTabClosureBtn.addEventListener('click', async () => {
+                setStatusTabActive(statusTabClosureBtn);
+                if (statusTabClosureContent) statusTabClosureContent.classList.remove('hidden');
+                statusTabWeeklyContent.classList.add('hidden');
+                statusTabDailyContent.classList.add('hidden');
+                statusTabSupportContent.classList.add('hidden');
+                if (statusTabHrContent) statusTabHrContent.classList.add('hidden');
+                statusTabPasscodesContent.classList.add('hidden');
+
+                await loadStoreClosures();
             });
         }
 
@@ -4944,6 +5052,133 @@
         let hrPositionChart = null;
         let _hrAllStoreRows = [];
         let _hrAllEmployees = [];
+
+        // ─── KHAI BÁO ĐÓNG CỬA CH (sửa chữa / di dời / mở mới) ───────────────
+        // Ngày đóng sẽ được engine qlkd_operational TRỪ khỏi %HT target.
+        function _closureCtx() {
+            const role = currentStore ? currentStore.role : '';
+            const pin  = currentStore ? currentStore.pin  : '';
+            const asm  = currentStore ? currentStore.asm  : '';
+            return { role, pin, asm, isKhoi: (typeof isASMKhôi === 'function') ? isASMKhôi() : false };
+        }
+
+        async function loadStoreClosures() {
+            const ctx = _closureCtx();
+            const tbody = document.getElementById('closure-table-body');
+            const sel = document.getElementById('closure-store');
+            if (!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-gray-400">Đang tải...</td></tr>';
+
+            // Nạp danh sách CH vào dropdown (theo cụm ASM; Khôi/admin = tất cả)
+            try {
+                const asmParam = (ctx.role === 'asm' && !ctx.isKhoi && ctx.asm) ? ctx.asm : 'ALL';
+                const rs = await fetch(`/api/stores?asm=${encodeURIComponent(asmParam)}`);
+                const sd = await rs.json();
+                const stores = (sd && sd.stores) ? sd.stores : [];
+                if (sel && stores.length) {
+                    sel.innerHTML = '<option value="">-- Chọn cửa hàng --</option>' +
+                        stores.map(s => `<option value="${s.store_code}">${s.store_code} — ${s.store_name || ''}</option>`).join('');
+                }
+            } catch (e) { /* dropdown không nạp được vẫn cho phép xem danh sách */ }
+
+            try {
+                const asmParam = (ctx.role === 'asm' && !ctx.isKhoi && ctx.asm) ? ctx.asm : '';
+                const res = await fetch(`/api/get_store_closures${asmParam ? '?asm=' + encodeURIComponent(asmParam) : ''}`);
+                const data = await res.json();
+                const rows = data.closures || [];
+                if (!rows.length) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-gray-400 italic">Chưa có khai báo nào</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = rows.map(c => {
+                    let days = '—';
+                    if (c.start_date) {
+                        const s = new Date(c.start_date);
+                        const e = c.end_date ? new Date(c.end_date) : new Date();
+                        days = Math.max(0, Math.round((e - s) / 86400000) + 1);
+                    }
+                    const badge = c.status === 'ĐANG ĐÓNG' ? 'badge-red'
+                                : c.status === 'ĐÃ MỞ LẠI' ? 'badge-green'
+                                : c.status === 'KẾ HOẠCH' ? 'badge-amber' : 'badge-blue';
+                    return `<tr>
+                        <td class="font-semibold">${c.store_name || c.store_code}</td>
+                        <td>${c.event_type || ''}</td>
+                        <td>${c.start_date || ''}</td>
+                        <td>${c.end_date || '<i class="text-gray-400">còn đóng</i>'}</td>
+                        <td class="text-center font-bold">${days}</td>
+                        <td><span class="status-badge ${badge} font-bold">${c.status || ''}</span></td>
+                        <td class="text-gray-600">${c.reason_note || ''}</td>
+                        <td>
+                            <button class="btn-outline text-[10px] px-2 py-1"
+                                onclick="closeClosureNow('${c.closure_code}')">✔ Đã mở lại</button>
+                            <button class="btn-outline text-[10px] px-2 py-1"
+                                onclick="cancelClosure('${c.closure_code}')">✖ Hủy</button>
+                        </td>
+                    </tr>`;
+                }).join('');
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-rose-600">Lỗi tải dữ liệu</td></tr>';
+            }
+        }
+
+        window.closeClosureNow = async function(code) {
+            const end = prompt('Nhập ngày mở lại (YYYY-MM-DD):', new Date().toISOString().slice(0, 10));
+            if (!end) return;
+            const ctx = _closureCtx();
+            const res = await fetch('/api/update_store_closure', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ closure_code: code, pin: ctx.pin, status: 'ĐÃ MỞ LẠI', end_date: end })
+            });
+            const d = await res.json();
+            showToast(d.ok ? '✅ Thành công' : '❌ Lỗi', d.message || d.error || '', d.ok ? '✅' : '❌');
+            if (d.ok) loadStoreClosures();
+        };
+
+        window.cancelClosure = async function(code) {
+            if (!confirm('Hủy khai báo này? (sẽ không dùng để điều chỉnh %HT nữa)')) return;
+            const ctx = _closureCtx();
+            const res = await fetch('/api/update_store_closure', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ closure_code: code, pin: ctx.pin, status: 'ĐÃ HỦY' })
+            });
+            const d = await res.json();
+            showToast(d.ok ? '✅ Thành công' : '❌ Lỗi', d.message || d.error || '', d.ok ? '✅' : '❌');
+            if (d.ok) loadStoreClosures();
+        };
+
+        const btnSaveClosure = document.getElementById('btn-save-closure');
+        if (btnSaveClosure) {
+            btnSaveClosure.addEventListener('click', async () => {
+                const ctx = _closureCtx();
+                const payload = {
+                    store_code:  document.getElementById('closure-store').value,
+                    event_type:  document.getElementById('closure-type').value,
+                    start_date:  document.getElementById('closure-start').value,
+                    end_date:    document.getElementById('closure-end').value,
+                    reason_note: document.getElementById('closure-note').value,
+                    reported_by: document.getElementById('closure-reporter').value || ctx.asm || '',
+                    pin: ctx.pin,
+                };
+                if (!payload.store_code || !payload.start_date) {
+                    showToast('⚠️ Thiếu thông tin', 'Vui lòng chọn cửa hàng và ngày bắt đầu đóng.', '⚠️');
+                    return;
+                }
+                if (payload.end_date && payload.end_date < payload.start_date) {
+                    showToast('⚠️ Ngày không hợp lệ', 'Ngày mở lại phải sau ngày bắt đầu đóng.', '⚠️');
+                    return;
+                }
+                const res = await fetch('/api/save_store_closure', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const d = await res.json();
+                showToast(d.ok ? '✅ Đã lưu' : '❌ Lỗi', d.message || d.error || '', d.ok ? '✅' : '❌');
+                if (d.ok) {
+                    document.getElementById('closure-note').value = '';
+                    loadStoreClosures();
+                }
+            });
+        }
 
         async function loadHRAnalytics() {
             const dateVal = qrDateFilter ? qrDateFilter.value : '';
