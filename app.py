@@ -2792,12 +2792,19 @@ def export_excel():
         m_ly_start = ly_rep_dt.replace(day=1).strftime('%Y-%m-%d')
         m_ly_end = ly_rep_dt.strftime('%Y-%m-%d')
         
-        # Query Period 1: Last Year (w_ly_start to max of w_ly_end and m_ly_end)
+        # Query Period 1: Last Year — PHẢI bao cả cửa sổ THÁNG cùng kỳ, không chỉ TUẦN.
+        # BUG (sửa 2026-08-04): cận dưới trước đây là w_ly_start (report_date-370,
+        # ~26/07 cho báo cáo tháng 7) → bỏ sót 01→25/07 → cột "Traffic Tháng cùng
+        # kỳ" chỉ cộng được ~6 ngày cuối tháng (AEONBD ra 150 thay vì 722, thậm chí
+        # NHỎ HƠN cả "Traffic Tuần cùng kỳ"=168 — vô lý vì tháng phải chứa tuần).
+        # Truy vấn năm-nay ngay dưới ĐÃ đúng: min(w_prev_start, m_prev_start). Phía
+        # LY quên đối xứng. Lấy min của cả 2 mốc bắt đầu (tuần LY & tháng LY).
+        ly_min_date = min(w_ly_start, m_ly_start)
         ly_max_date = max(w_ly_end, m_ly_end)
         traffic_rows_ly = query_db(f"""
             SELECT store_code, traffic_date, traffic_val FROM tb_traffic
             WHERE traffic_date >= ? AND traffic_date <= ? AND store_code IN ({placeholders})
-        """, [w_ly_start, ly_max_date] + store_codes)
+        """, [ly_min_date, ly_max_date] + store_codes)
         
         # Query Period 2: This Year (min of w_prev_start and m_prev_start to w_curr_end)
         ty_min_date = min(w_prev_start, m_prev_start)
