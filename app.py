@@ -3685,7 +3685,19 @@ def quick_report():
 
 @app.route('/map', methods=['GET'])
 def gis_map_view():
-    """Bản đồ điều hành GIS Executive Command Center (100% Render Cloud Compatible)."""
+    """Bản đồ điều hành GIS Executive Command Center (100% Render Cloud Compatible + RBAC Protection)."""
+    user_role = request.args.get('role', '').lower()
+    if user_role in ['store', 'store_manager']:
+        return """
+        <div style="background:#0f172a; color:#f8fafc; font-family:sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;">
+            <div style="background:rgba(30,41,59,0.9); padding:40px; border-radius:16px; border:1px solid #ef4444; max-width:600px; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.5);">
+                <h1 style="color:#ef4444; font-size:24px; margin-bottom:12px; font-weight:800;">⛔ QUYỀN TRUY CẬP BỊ TỪ CHỐI</h1>
+                <p style="font-size:16px; font-weight:600; margin-bottom:8px; color:#f8fafc;">Bản đồ GIS không gian chỉ dành cho Ban Quản Lý (Admin) và Quản Lý Khu Vực (ASM).</p>
+                <p style="color:#94a3b8; font-size:13px;">Tài khoản Cửa Hàng không có quyền xem vị trí, doanh thu và dữ liệu hàng hóa của các cửa hàng khác trong hệ thống.</p>
+            </div>
+        </div>
+        """, 403
+
     try:
         try:
             from modules.store_map_visualizer import generate_store_network_map, OUT_MAP_PATH
@@ -3707,7 +3719,10 @@ def gis_map_view():
 
 @app.route('/api/gis/data', methods=['GET'])
 def api_gis_data():
-    """API trả payload JSON GIS Cửa Hàng và Chặng Luân Chuyển (100% Render Cloud Compatible)."""
+    """API trả payload JSON GIS Cửa Hàng và Chặng Luân Chuyển (100% Render Cloud Compatible + RBAC Protection)."""
+    user_role = request.args.get('role', '').lower()
+    if user_role in ['store', 'store_manager']:
+        return jsonify({'ok': False, 'error': '⛔ Quyền truy cập bị từ chối: Cửa hàng không có quyền truy cập dữ liệu GIS toàn hệ thống.'}), 403
     try:
         try:
             from modules.store_map_visualizer import build_gis_payload

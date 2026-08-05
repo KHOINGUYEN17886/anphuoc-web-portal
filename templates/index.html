@@ -122,7 +122,7 @@
                 </div>
             </div>
             <div class="flex items-center gap-2">
-                <a href="/map" target="_blank" class="text-xs text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 shadow-sm">
+                <a href="/map" target="_blank" class="gis-map-nav-btn hidden text-xs text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 shadow-sm">
                     🗺️ Bản Đồ GIS
                 </a>
                 <div id="btn-quick-report" class="hidden text-xs text-brand-red border border-brand-red/30 hover:bg-brand-red/5 px-3 py-1.5 rounded-full cursor-pointer transition-all font-semibold">
@@ -196,7 +196,7 @@
                     <p id="lbl-store-meta" class="text-xs text-gray-400">...</p>
                 </div>
                 <div class="flex items-center gap-2 self-start md:self-auto">
-                    <a href="/map" target="_blank" class="btn-gold text-xs px-3 py-2 flex items-center gap-1 font-bold shadow-sm">
+                    <a href="/map" target="_blank" class="gis-map-nav-btn hidden btn-gold text-xs px-3 py-2 flex items-center gap-1 font-bold shadow-sm">
                         🗺️ Bản Đồ GIS
                     </a>
                     <button id="btn-quick-report-inline" class="btn-gold text-xs px-3 py-2">
@@ -222,7 +222,7 @@
                 <button id="tab-hr-btn" class="tab-btn">
                     👥 Quản Lý Nhân Sự & Phân Ca
                 </button>
-                <a href="/map" target="_blank" class="tab-btn text-blue-700 font-bold hover:bg-blue-50 flex items-center gap-1">
+                <a href="/map" target="_blank" class="gis-map-nav-btn hidden tab-btn text-blue-700 font-bold hover:bg-blue-50 flex items-center gap-1">
                     🗺️ Bản Đồ GIS
                 </a>
             </div>
@@ -808,7 +808,7 @@
                 <button id="status-tab-passcodes-btn" class="tab-btn hidden">
                     🔑 Quản lý PIN
                 </button>
-                <a href="/map" target="_blank" class="tab-btn text-blue-700 font-bold hover:bg-blue-50 flex items-center gap-1">
+                <a href="/map" target="_blank" class="gis-map-nav-btn hidden tab-btn text-blue-700 font-bold hover:bg-blue-50 flex items-center gap-1">
                     🗺️ Bản Đồ GIS
                 </a>
             </div>
@@ -2044,6 +2044,17 @@
         // ─── Single Page View Navigation & Browser History API ───────────
         const quickReportSec = document.getElementById('quick-report-section');
         
+        window.updateGisMapVisibility = function() {
+            const isManagement = currentStore && (currentStore.role === 'admin' || currentStore.role === 'asm');
+            document.querySelectorAll('.gis-map-nav-btn').forEach(btn => {
+                if (isManagement) {
+                    btn.classList.remove('hidden');
+                } else {
+                    btn.classList.add('hidden');
+                }
+            });
+        };
+
         window.switchView = function(viewName, pushState = true) {
             loginSec.classList.add('hidden');
             formSec.classList.add('hidden');
@@ -2059,6 +2070,8 @@
             } else {
                 loginSec.classList.remove('hidden');
             }
+
+            updateGisMapVisibility();
 
             if (pushState) {
                 try {
