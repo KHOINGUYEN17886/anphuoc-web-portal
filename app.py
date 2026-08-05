@@ -3041,7 +3041,7 @@ def export_excel():
             })
         df_contracts = pd.DataFrame(contracts_data) if contracts_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'Khu Vực', 'Tên Khách Hàng', 'Số Hợp Đồng', 'Giá Trị HĐ (Tr.đ)', 'Chủng Loại', 'Số Lượng', 'Số Tiền Đã Cọc', 'Số Tiền Đợt 2', 'Trạng Thái', 'Lý Do / Chi Tiết'])
         
-        # Sheet 4: Unsigned Contracts 3.2 — thêm Số Hợp Đồng
+        # Sheet 4: Unsigned Contracts 3.2 — Số Hợp Đồng + Tên Khách Hàng (đồng bộ với 3.1)
         unsigned_data = []
         for u in unsigned_rows:
             s = store_map.get(u['store_code'], {})
@@ -3050,6 +3050,7 @@ def export_excel():
                 'Tên Cửa Hàng': s.get('store_name', ''),
                 'Khu Vực': s.get('region', ''),
                 'Số Hợp Đồng': u.get('contract_number') or 'Đang GD',
+                'Tên Khách Hàng': u.get('customer_name') or '',          # ← Đồng bộ với 3.1
                 'Giá Trị Năm Ngoái (Tr.đ)': u['prev_year_value'],
                 'Thời Gian Dự Kiến Ký': u['expected_signing_time'],
                 'Chủng Loại': u['product_category'],
@@ -3057,7 +3058,7 @@ def export_excel():
                 'Trạng Thái': u['status'],
                 'Lý Do / Chi Tiết': u['reason']
             })
-        df_unsigned = pd.DataFrame(unsigned_data) if unsigned_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'Khu Vực', 'Số Hợp Đồng', 'Giá Trị Năm Ngoái (Tr.đ)', 'Thời Gian Dự Kiến Ký', 'Chủng Loại', 'Số Lượng', 'Trạng Thái', 'Lý Do / Chi Tiết'])
+        df_unsigned = pd.DataFrame(unsigned_data) if unsigned_data else pd.DataFrame(columns=['Mã Cửa Hàng', 'Tên Cửa Hàng', 'Khu Vực', 'Số Hợp Đồng', 'Tên Khách Hàng', 'Giá Trị Năm Ngoái (Tr.đ)', 'Thời Gian Dự Kiến Ký', 'Chủng Loại', 'Số Lượng', 'Trạng Thái', 'Lý Do / Chi Tiết'])
         
         # Sheet 5: Chi Tiết Vận Hành 4
         details_data = []
