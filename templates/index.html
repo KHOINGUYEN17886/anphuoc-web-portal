@@ -576,7 +576,18 @@
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">Quản lý kinh doanh phụ trách (ASM)</label>
                     <select id="select-region" class="input-field">
-                        <option value="">-- Đang tải danh sách ASM... --</option>
+                        <option value="">-- Chọn Quản lý (ASM) --</option>
+                        <option value="ADMIN">🔑 [ADMIN - QUẢN TRỊ VIÊN]</option>
+                        <option value="Dũng">Dũng</option>
+                        <option value="HN">HN</option>
+                        <option value="Hương">Hương</option>
+                        <option value="Khôi">Khôi</option>
+                        <option value="Linh">Linh</option>
+                        <option value="Lâm">Lâm</option>
+                        <option value="Quân">Quân</option>
+                        <option value="Thắng">Thắng</option>
+                        <option value="Tiên">Tiên</option>
+                        <option value="Tín">Tín</option>
                     </select>
                 </div>
 
@@ -2501,27 +2512,29 @@
             }
         });
 
-        // Init ASMs List
+        // Init ASMs List (With instant static fallback)
         async function loadASMs() {
             const fallbackAsms = ['Dũng', 'HN', 'Hương', 'Khôi', 'Linh', 'Lâm', 'Quân', 'Thắng', 'Tiên', 'Tín'];
             try {
                 const res = await fetch('/api/asms');
                 const data = await res.json();
                 const asms = (data && data.ok && data.asms && data.asms.length > 0) ? data.asms : fallbackAsms;
-                regSelect.innerHTML = '<option value="">-- Chọn Quản lý (ASM) --</option>';
-                regSelect.innerHTML += '<option value="ADMIN">🔑 [ADMIN - QUẢN TRỊ VIÊN]</option>';
-                asms.forEach(asm => {
-                    regSelect.innerHTML += `<option value="${asm}">${asm}</option>`;
-                });
+                if (asms && asms.length > 0) {
+                    const currentVal = regSelect.value;
+                    let opts = '<option value="">-- Chọn Quản lý (ASM) --</option>';
+                    opts += '<option value="ADMIN">🔑 [ADMIN - QUẢN TRỊ VIÊN]</option>';
+                    asms.forEach(asm => {
+                        opts += `<option value="${asm}">${asm}</option>`;
+                    });
+                    regSelect.innerHTML = opts;
+                    if (currentVal) regSelect.value = currentVal;
+                }
             } catch (err) {
-                console.error("Lỗi load ASM, dùng fallback:", err);
-                regSelect.innerHTML = '<option value="">-- Chọn Quản lý (ASM) --</option>';
-                regSelect.innerHTML += '<option value="ADMIN">🔑 [ADMIN - QUẢN TRỊ VIÊN]</option>';
-                fallbackAsms.forEach(asm => {
-                    regSelect.innerHTML += `<option value="${asm}">${asm}</option>`;
-                });
+                console.warn("Dùng danh sách ASM mặc định từ HTML:", err);
             }
         }
+        // Run loadASMs immediately on script execution
+        loadASMs();
 
         // ASM change handler
         regSelect.addEventListener('change', async () => {
