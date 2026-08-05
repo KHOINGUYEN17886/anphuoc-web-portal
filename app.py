@@ -3685,26 +3685,57 @@ def quick_report():
 
 @app.route('/map', methods=['GET'])
 def gis_map_view():
-    """Bản đồ điều hành GIS Executive Command Center."""
+    """Bản đồ điều hành GIS Executive Command Center (100% Render Cloud Compatible)."""
     try:
-        from modules.store_map_visualizer import generate_store_network_map, OUT_MAP_PATH
-        if not os.path.exists(OUT_MAP_PATH):
-            generate_store_network_map()
-        with open(OUT_MAP_PATH, 'r', encoding='utf-8') as f:
-            html_content = f.read()
+        try:
+            from modules.store_map_visualizer import generate_store_network_map, OUT_MAP_PATH
+            if os.path.exists(OUT_MAP_PATH):
+                with open(OUT_MAP_PATH, 'r', encoding='utf-8') as f:
+                    return f.read(), 200, {'Content-Type': 'text/html; charset=utf-8'}
+        except Exception:
+            pass
+
+        # Fallback to self-contained cloud GIS builder on Render
+        from gis_builder import generate_cloud_gis_map_html
+        stores_db = query_db("SELECT store_code, store_name, asm_name, region FROM tb_stores")
+        html_content = generate_cloud_gis_map_html(stores_db)
         return html_content, 200, {'Content-Type': 'text/html; charset=utf-8'}
     except Exception as e:
-        return f"Error loading map: {e}", 500
+        import traceback; traceback.print_exc()
+        return f"Error loading GIS map: {e}", 500
 
 
 @app.route('/api/gis/data', methods=['GET'])
 def api_gis_data():
-    """API trả payload JSON GIS Cửa Hàng và Chặng Luân Chuyển."""
+    """API trả payload JSON GIS Cửa Hàng và Chặng Luân Chuyển (100% Render Cloud Compatible)."""
     try:
-        from modules.store_map_visualizer import build_gis_payload
-        payload = build_gis_payload()
-        return jsonify(payload)
+        try:
+            from modules.store_map_visualizer import build_gis_payload
+            payload = build_gis_payload()
+            return jsonify(payload)
+        except Exception:
+            pass
+
+        # Fallback to self-contained database query on Render
+        from gis_builder import load_verified_coords
+        stores_db = query_db("SELECT store_code, store_name, asm_name, region FROM tb_stores")
+        coords = load_verified_coords()
+        store_list = []
+        for s in stores_db:
+            code = s.get('store_code')
+            c_info = coords.get(code, {})
+            store_list.append({
+                'code': code,
+                'name': s.get('store_name'),
+                'addr': s.get('address'),
+                'asm': s.get('asm_name'),
+                'region': s.get('region'),
+                'lat': c_info.get('lat', 10.7769),
+                'lng': c_info.get('lng', 106.7009)
+            })
+        return jsonify({'ok': True, 'stores': store_list, 'count': len(store_list)})
     except Exception as e:
+        import traceback; traceback.print_exc()
         return jsonify({'ok': False, 'error': str(e)}), 500
 
 
