@@ -3668,6 +3668,31 @@ def quick_report():
         return jsonify({'ok': False, 'error': str(e)}), 500
 
 
+@app.route('/map', methods=['GET'])
+def gis_map_view():
+    """Bản đồ điều hành GIS Executive Command Center."""
+    try:
+        from modules.store_map_visualizer import generate_store_network_map, OUT_MAP_PATH
+        if not os.path.exists(OUT_MAP_PATH):
+            generate_store_network_map()
+        with open(OUT_MAP_PATH, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+        return html_content, 200, {'Content-Type': 'text/html; charset=utf-8'}
+    except Exception as e:
+        return f"Error loading map: {e}", 500
+
+
+@app.route('/api/gis/data', methods=['GET'])
+def api_gis_data():
+    """API trả payload JSON GIS Cửa Hàng và Chặng Luân Chuyển."""
+    try:
+        from modules.store_map_visualizer import build_gis_payload
+        payload = build_gis_payload()
+        return jsonify(payload)
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     safe_migrate_db()   # chạy migration an toàn trước khi start
     # Default port 8080
