@@ -5886,10 +5886,12 @@
                 statusTabHistoryBtn.classList.add('active');
                 statusTabHistoryContent.classList.remove('hidden');
                 
-                // Populate stores dropdown if empty
+                // Populate stores dropdown filtered by current user's scope
                 if (histStoreSelect.options.length <= 1) {
                     try {
-                        const res = await fetch('/api/stores');
+                        const asmParam = (currentStore && currentStore.role === 'asm')
+                            ? `?asm=${encodeURIComponent(currentStore.asm)}` : '';
+                        const res = await fetch(`/api/stores${asmParam}`);
                         const data = await res.json();
                         if (data.ok && data.stores) {
                             histStoreSelect.innerHTML = '<option value="all">-- Tất cả cửa hàng --</option>';
@@ -5899,6 +5901,7 @@
                         }
                     } catch (e) {}
                 }
+
                 
                 // Trigger fetch
                 fetchOperationalHistory();
@@ -5937,7 +5940,11 @@
             if (tableBodyEl) tableBodyEl.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-400">Đang tải dữ liệu...</td></tr>';
             
             try {
-                const url = `/api/operational_history?store_code=${store_code}&category=${category}&start_date=${start_date}`;
+                // Pass asm_name filter so ASMs only see their own cluster's history
+                const asmHistParam = (currentStore && currentStore.role === 'asm')
+                    ? `&asm_name=${encodeURIComponent(currentStore.asm)}` : '';
+                const url = `/api/operational_history?store_code=${store_code}&category=${category}&start_date=${start_date}${asmHistParam}`;
+
                 const res = await fetch(url);
                 const data = await res.json();
                 
