@@ -2536,9 +2536,8 @@
         // Run loadASMs immediately on script execution
         loadASMs();
 
-        // ASM change handler
-        regSelect.addEventListener('change', async () => {
-            const asm = regSelect.value;
+        // Foolproof Store Dropdown Updater for selected ASM
+        async function updateStoreDropdownForAsm(asm) {
             if (!asm) {
                 storeSelect.innerHTML = '<option value="">-- Chọn ASM trước --</option>';
                 storeSelect.disabled = true;
@@ -2547,6 +2546,7 @@
             
             if (asm === 'ADMIN') {
                 storeSelect.innerHTML = '<option value="ADMIN" data-name="Quản Trị Viên (Admin)" data-brand="ADMIN" data-asm="ADMIN">🔑 [Đăng nhập quyền ADMIN]</option>';
+                storeSelect.value = 'ADMIN';
                 storeSelect.disabled = false;
                 return;
             }
@@ -2557,22 +2557,38 @@
             try {
                 const res = await fetch(`/api/stores?asm=${encodeURIComponent(asm)}`);
                 const data = await res.json();
-                if (data.ok) {
-                    storeSelect.innerHTML = `<option value="">-- Chọn Cửa Hàng --</option>
-                                             <option value="ASM_${asm}" data-name="Quản lý (ASM) ${asm}" data-brand="ASM" data-asm="${asm}">🔑 [Đăng nhập quyền ASM ${asm}]</option>`;
+                if (data.ok && data.stores) {
+                    let opts = `<option value="">-- Chọn Cửa Hàng --</option>
+                                <option value="ASM_${asm}" data-name="Quản lý (ASM) ${asm}" data-brand="ASM" data-asm="${asm}">🔑 [Đăng nhập quyền ASM ${asm}]</option>`;
                     data.stores.forEach(s => {
-                        storeSelect.innerHTML += `<option value="${s.store_code}" data-name="${s.store_name}" data-brand="${s.brand}" data-asm="${s.asm_name}">${s.store_name}</option>`;
+                        opts += `<option value="${s.store_code}" data-name="${s.store_name}" data-brand="${s.brand || 'AP'}" data-asm="${s.asm_name || asm}">${s.store_name} (${s.store_code})</option>`;
                     });
+                    storeSelect.innerHTML = opts;
                     storeSelect.disabled = false;
                 }
             } catch (err) {
                 console.error("Lỗi load cửa hàng:", err);
+                storeSelect.innerHTML = `<option value="ASM_${asm}" data-name="Quản lý (ASM) ${asm}" data-brand="ASM" data-asm="${asm}">🔑 [Đăng nhập quyền ASM ${asm}]</option>`;
+                storeSelect.disabled = false;
+            }
+        }
+
+        // ASM change & click handlers
+        regSelect.addEventListener('change', () => updateStoreDropdownForAsm(regSelect.value));
+        regSelect.addEventListener('click', () => {
+            if (regSelect.value && storeSelect.disabled) {
+                updateStoreDropdownForAsm(regSelect.value);
             }
         });
+        regSelect.addEventListener('input', () => updateStoreDropdownForAsm(regSelect.value));
 
         // Login Submit
         btnLogin.addEventListener('click', async () => {
-            const storeCode = storeSelect.value;
+            // Auto fix if ASM selected but storeSelect not populated
+            if (regSelect.value && (!storeSelect.value || storeSelect.disabled)) {
+                await updateStoreDropdownForAsm(regSelect.value);
+            }
+            let storeCode = storeSelect.value;
             const pin = pinInput.value.trim();
             
             if (!storeCode) {
