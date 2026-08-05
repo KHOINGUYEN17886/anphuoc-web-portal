@@ -939,11 +939,17 @@ def get_stores():
             row = query_db("SELECT store_code, store_name, brand, asm_name FROM tb_stores WHERE store_code = ?", (store_code,), one=True)
             return jsonify({'ok': True, 'store': row})
         
-        asm_upper = (asm or '').strip().upper()
-        if not asm or asm_upper in ('ALL', 'ADMIN'):
-            rows = query_db("SELECT store_code, store_name, brand, asm_name FROM tb_stores ORDER BY store_name")
+        raw_asm = (asm or '').strip()
+        asm_upper = raw_asm.upper()
+        
+        all_rows = query_db("SELECT store_code, store_name, brand, asm_name FROM tb_stores ORDER BY store_name")
+        
+        if not raw_asm or asm_upper in ('ALL', 'ADMIN'):
+            rows = all_rows
         else:
-            rows = query_db("SELECT store_code, store_name, brand, asm_name FROM tb_stores WHERE UPPER(asm_name) = ? ORDER BY store_name", (asm_upper,))
+            target = raw_asm.lower()
+            rows = [r for r in all_rows if r['asm_name'] and r['asm_name'].strip().lower() == target]
+            
         return jsonify({'ok': True, 'stores': rows})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
