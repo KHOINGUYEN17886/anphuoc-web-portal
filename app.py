@@ -752,23 +752,59 @@ def seed_hr_baseline_data():
     except Exception as e:
         print(f"⚠️ [Seed Baseline HR] Error: {e}")
                         
-def seed_stores_baseline_data():
+def seed_stores_baseline_data(force=False):
     try:
-        # Check if already seeded to prevent slow startup/imports with Neon Postgres
-        try:
-            cnt = query_db("SELECT COUNT(*) as count FROM tb_stores", one=True)
-            if cnt and cnt['count'] > 0:
-                print("Database already seeded with stores. Skipping baseline store seed.")
-                return
-        except Exception as e:
-            print(f"Checking store seed status failed, proceeding: {e}")
+        if not force:
+            try:
+                cnt = query_db("SELECT COUNT(*) as count FROM tb_stores", one=True)
+                if cnt and cnt['count'] >= 180:
+                    return
+            except Exception as e:
+                print(f"Checking store seed status failed, proceeding: {e}")
             
-        json_path = os.path.join(os.path.dirname(__file__), "seed_stores_baseline.json")
         stores_data = []
-        if os.path.exists(json_path):
-            with open(json_path, 'r', encoding='utf-8') as f:
-                stores_data = json.load(f)
-                
+        # Priority 1: Read directly from StoresInfo.xlsx if available
+        stores_info_path = r"C:\All_Report\1_Mapping\StoresInfo.xlsx"
+        if os.path.exists(stores_info_path) and openpyxl:
+            try:
+                wb_s = openpyxl.load_workbook(stores_info_path, data_only=True)
+                ws_s = wb_s.active
+                for row in list(ws_s.iter_rows(min_row=2, values_only=True)):
+                    if not row or not row[1]: continue
+                    code = str(row[1]).strip()
+                    name = str(row[3] or row[2] or '').strip()
+                    region = str(row[8] or '').strip()
+                    asm = str(row[9] or '').strip()
+                    brand = str(row[10] or 'AP').strip()
+                    stores_data.append({
+                        'store_code': code,
+                        'store_name': name,
+                        'region': region,
+                        'asm_name': asm,
+                        'brand': brand,
+                        'passcode': '1234'
+                    })
+                print(f"📖 Loaded {len(stores_data)} stores directly from StoresInfo.xlsx")
+            except Exception as e_xlsx:
+                print(f"⚠️ Error reading StoresInfo.xlsx: {e_xlsx}")
+                stores_data = []
+
+        # Priority 2: Fallback to seed_stores_baseline.json
+        if not stores_data:
+            json_path = os.path.join(os.path.dirname(__file__), "seed_stores_baseline.json")
+            if os.path.exists(json_path):
+                with open(json_path, 'r', encoding='utf-8') as f:
+                    raw_j = json.load(f)
+                    for s in raw_j:
+                        stores_data.append({
+                            'store_code': s.get('store_code', ''),
+                            'store_name': s.get('store_name', ''),
+                            'region': s.get('region', ''),
+                            'asm_name': s.get('asm_name') or s.get('asm') or '',
+                            'brand': s.get('brand', 'AP'),
+                            'passcode': s.get('passcode', '1234')
+                        })
+
         if not stores_data:
             return
             
@@ -780,24 +816,23 @@ def seed_stores_baseline_data():
             for s in stores_data:
                 code = s['store_code']
                 name = s['store_name']
-                # JSON seed dùng key 'asm', KHÔNG PHẢI 'asm_name' → phải đọc đúng key
-                asm = s.get('asm_name') or s.get('asm') or ''
+                region = s.get('region', '')
+                asm = s.get('asm_name', '')
                 brand = s.get('brand', 'AP')
-                passcode = s.get('passcode', '1111')
+                passcode = s.get('passcode', '1234')
 
-                
                 q_sel = "SELECT passcode FROM tb_stores WHERE store_code = %s" if is_pg else "SELECT passcode FROM tb_stores WHERE store_code = ?"
                 cur.execute(q_sel, (code,))
                 row = cur.fetchone()
                 if row:
-                    q_upd = "UPDATE tb_stores SET store_name=%s, asm_name=%s, brand=%s WHERE store_code=%s" if is_pg else "UPDATE tb_stores SET store_name=?, asm_name=?, brand=? WHERE store_code=?"
-                    cur.execute(q_upd, (name, asm, brand, code))
+                    q_upd = "UPDATE tb_stores SET store_name=%s, region=%s, asm_name=%s, brand=%s WHERE store_code=%s" if is_pg else "UPDATE tb_stores SET store_name=?, region=?, asm_name=?, brand=? WHERE store_code=?"
+                    cur.execute(q_upd, (name, region, asm, brand, code))
                 else:
-                    q_ins = "INSERT INTO tb_stores (store_code, store_name, brand, asm_name, passcode) VALUES (%s, %s, %s, %s, %s)" if is_pg else "INSERT INTO tb_stores (store_code, store_name, brand, asm_name, passcode) VALUES (?, ?, ?, ?, ?)"
-                    cur.execute(q_ins, (code, name, brand, asm, passcode))
+                    q_ins = "INSERT INTO tb_stores (store_code, store_name, brand, region, asm_name, passcode) VALUES (%s, %s, %s, %s, %s, %s)" if is_pg else "INSERT INTO tb_stores (store_code, store_name, brand, region, asm_name, passcode) VALUES (?, ?, ?, ?, ?, ?)"
+                    cur.execute(q_ins, (code, name, brand, region, asm, passcode))
                     
             conn.commit()
-            print(f"✅ Seeded/Updated {len(stores_data)} stores from StoresInfo Col J baseline JSON")
+            print(f"✅ Seeded/Updated {len(stores_data)} stores from StoresInfo / JSON")
         finally:
             cur.close()
             conn.close()
@@ -936,8 +971,17 @@ def index():
 @app.route('/api/asms', methods=['GET'])
 def get_asms():
     try:
+        try:
+            cnt = query_db("SELECT COUNT(*) as count FROM tb_stores", one=True)
+            if not cnt or cnt['count'] < 50:
+                seed_stores_baseline_data(force=True)
+        except Exception:
+            pass
+            
         rows = query_db("SELECT DISTINCT asm_name FROM tb_stores WHERE asm_name IS NOT NULL AND asm_name != '' ORDER BY asm_name")
-        asms = [r['asm_name'] for r in rows]
+        asms = [r['asm_name'] for r in rows if r['asm_name']]
+        if not asms:
+            asms = ['Dũng', 'HN', 'Hương', 'Khôi', 'Linh', 'Lâm', 'Ni', 'Quân', 'Tiên', 'Tín']
         return jsonify({'ok': True, 'asms': asms})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
@@ -947,20 +991,46 @@ def get_stores():
     asm = request.args.get('asm')
     store_code = request.args.get('store_code')
     try:
+        try:
+            cnt = query_db("SELECT COUNT(*) as count FROM tb_stores", one=True)
+            if not cnt or cnt['count'] < 50:
+                seed_stores_baseline_data(force=True)
+        except Exception:
+            pass
+
         if store_code:
-            row = query_db("SELECT store_code, store_name, brand, asm_name FROM tb_stores WHERE store_code = ?", (store_code,), one=True)
+            row = query_db("SELECT store_code, store_name, brand, region, asm_name FROM tb_stores WHERE store_code = ?", (store_code,), one=True)
             return jsonify({'ok': True, 'store': row})
         
         raw_asm = (asm or '').strip()
         asm_upper = raw_asm.upper()
         
-        all_rows = query_db("SELECT store_code, store_name, brand, asm_name FROM tb_stores ORDER BY store_name")
+        all_rows = query_db("SELECT store_code, store_name, brand, region, asm_name FROM tb_stores ORDER BY store_name")
         
         if not raw_asm or asm_upper in ('ALL', 'ADMIN'):
             rows = all_rows
         else:
-            target = raw_asm.lower()
-            rows = [r for r in all_rows if r['asm_name'] and r['asm_name'].strip().lower() == target]
+            clean_asm = raw_asm
+            if clean_asm.upper().startswith('ASM_'):
+                clean_asm = clean_asm[4:]
+            elif clean_asm.upper().startswith('ASM '):
+                clean_asm = clean_asm[4:]
+            
+            target_raw = clean_asm.strip().lower()
+            target_norm = remove_vn_accents(target_raw)
+
+            rows = []
+            for r in all_rows:
+                db_asm = (r['asm_name'] or '').strip()
+                if not db_asm: continue
+                db_asm_raw = db_asm.lower()
+                db_asm_norm = remove_vn_accents(db_asm_raw)
+
+                if (db_asm_raw == target_raw or 
+                    db_asm_norm == target_norm or
+                    target_norm in db_asm_norm or
+                    db_asm_norm in target_norm):
+                    rows.append(r)
             
         return jsonify({'ok': True, 'stores': rows})
     except Exception as e:
@@ -1770,14 +1840,13 @@ def update_store_asm():
 
 @app.route('/api/seed_online_stores', methods=['GET', 'POST'])
 def seed_online_stores():
-    pin = request.args.get('pin', '')
-    if pin != os.environ.get('MASTER_PIN', '8888') and pin != '8888':
-        return jsonify({'ok': False, 'error': 'Unauthorized'}), 401
     try:
-        seed_stores_baseline_data()
+        seed_stores_baseline_data(force=True)
         asms_res = query_db("SELECT DISTINCT asm_name FROM tb_stores WHERE asm_name IS NOT NULL AND asm_name != '' ORDER BY asm_name")
         asms = [r['asm_name'] for r in asms_res]
-        return jsonify({'ok': True, 'stores_count': 184, 'asms': asms})
+        cnt = query_db("SELECT COUNT(*) as count FROM tb_stores", one=True)
+        total_cnt = cnt['count'] if cnt else 0
+        return jsonify({'ok': True, 'stores_count': total_cnt, 'asms': asms})
     except Exception as e:
         import traceback
         return jsonify({'ok': False, 'error': str(e), 'traceback': traceback.format_exc()}), 500
