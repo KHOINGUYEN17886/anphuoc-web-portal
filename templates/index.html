@@ -150,7 +150,7 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">Quản lý kinh doanh phụ trách (ASM)</label>
-                    <select id="select-region" class="input-field" onchange="if(window.updateStoreDropdownForAsm) window.updateStoreDropdownForAsm(this.value)">
+                    <select id="select-region" class="input-field">
                         <option value="">-- Chọn Quản lý (ASM) --</option>
                         <option value="ADMIN">🔑 [ADMIN - QUẢN TRỊ VIÊN]</option>
                         <option value="Dũng">Dũng</option>
@@ -168,7 +168,7 @@
 
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">Cửa Hàng</label>
-                    <select id="select-store" class="input-field disabled:opacity-50" onfocus="if(window.updateStoreDropdownForAsm && (!this.value || this.disabled)) window.updateStoreDropdownForAsm(document.getElementById('select-region')?.value)">
+                    <select id="select-store" class="input-field disabled:opacity-50" disabled>
                         <option value="">-- Chọn ASM trước --</option>
                     </select>
                 </div>
@@ -2124,11 +2124,14 @@
         // Run loadASMs immediately on script execution
         loadASMs();
 
+        let activeLoadingAsm = null;
+
         // Foolproof Store Dropdown Updater for selected ASM
         window.updateStoreDropdownForAsm = async function(asm) {
             if (!asm) {
                 storeSelect.innerHTML = '<option value="">-- Chọn ASM trước --</option>';
                 storeSelect.disabled = true;
+                activeLoadingAsm = null;
                 return;
             }
             
@@ -2136,14 +2139,21 @@
                 storeSelect.innerHTML = '<option value="ADMIN" data-name="Quản Trị Viên (Admin)" data-brand="ADMIN" data-asm="ADMIN">🔑 [Đăng nhập quyền ADMIN]</option>';
                 storeSelect.value = 'ADMIN';
                 storeSelect.disabled = false;
+                activeLoadingAsm = 'ADMIN';
+                return;
+            }
+
+            // Skip redundant reloading if already loaded for this ASM
+            if (activeLoadingAsm === asm && storeSelect.options.length > 2 && !storeSelect.disabled) {
                 return;
             }
             
+            activeLoadingAsm = asm;
             storeSelect.innerHTML = '<option value="">-- Đang tải cửa hàng... --</option>';
             storeSelect.disabled = true;
             
-            // Helper: always show ASM login + stores (or fallback message)
             const _showStores = (stores) => {
+                if (activeLoadingAsm !== asm) return; // Prevent race conditions from stale requests
                 let opts = `<option value="">-- Chọn Cửa Hàng --</option>
                              <option value="ASM_${asm}" data-name="Quản lý (ASM) ${asm}" data-brand="ASM" data-asm="${asm}">🔑 [Đăng nhập quyền ASM ${asm}]</option>`;
                 if (stores && stores.length > 0) {
@@ -2164,26 +2174,17 @@
                 if (data.ok) {
                     _showStores(data.stores || []);
                 } else {
-                    // API trả về ok:false (vd: lỗi DB) → vẫn show ASM login
                     console.warn('API /api/stores lỗi:', data.error);
                     _showStores([]);
                 }
             } catch (err) {
-                // Network error hoặc JSON parse error → vẫn show ASM login
                 console.error('Lỗi load cửa hàng:', err.message);
                 _showStores([]);
             }
-        }
+        };
 
-
-        // ASM change & click handlers
+        // Single clean change listener for ASM selection
         regSelect.addEventListener('change', () => updateStoreDropdownForAsm(regSelect.value));
-        regSelect.addEventListener('click', () => {
-            if (regSelect.value && storeSelect.disabled) {
-                updateStoreDropdownForAsm(regSelect.value);
-            }
-        });
-        regSelect.addEventListener('input', () => updateStoreDropdownForAsm(regSelect.value));
 
         // Login Submit (Bulletproof)
         btnLogin.addEventListener('click', async () => {

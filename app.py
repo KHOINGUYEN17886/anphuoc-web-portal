@@ -390,6 +390,11 @@ def safe_migrate_db():
                 print(f"⚠️ [Migration] Không thêm được {_table}.{_col}: {_e}")
 
     migrations = [
+        "ALTER TABLE tb_stores ADD COLUMN brand TEXT DEFAULT 'AP'",
+        "ALTER TABLE tb_stores ADD COLUMN region TEXT DEFAULT ''",
+        "ALTER TABLE tb_stores ADD COLUMN asm_name TEXT DEFAULT ''",
+        "ALTER TABLE tb_stores ADD COLUMN passcode TEXT DEFAULT '1234'",
+        "ALTER TABLE tb_stores ADD COLUMN is_active INTEGER DEFAULT 1",
         "ALTER TABLE tb_contracts ADD COLUMN customer_name TEXT DEFAULT ''",
         "ALTER TABLE tb_unsigned_contracts ADD COLUMN contract_number TEXT DEFAULT 'Đang GD'",
         "ALTER TABLE tb_unsigned_contracts ADD COLUMN customer_name TEXT DEFAULT ''",
