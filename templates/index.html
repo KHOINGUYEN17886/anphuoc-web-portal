@@ -7,7 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
         // ── HISTORY TAB & OPERATIONAL AUDIT LOGIC ────────────────────────────────
         const statusTabHistoryBtn = document.getElementById('status-tab-history-btn');
         const statusTabHistoryContent = document.getElementById('status-tab-history-content');
@@ -149,7 +150,8 @@
         }
 
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
         // ── HISTORY TAB & OPERATIONAL AUDIT LOGIC ────────────────────────────────
         const statusTabHistoryBtn = document.getElementById('status-tab-history-btn');
         const statusTabHistoryContent = document.getElementById('status-tab-history-content');
@@ -575,7 +577,7 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">Quản lý kinh doanh phụ trách (ASM)</label>
-                    <select id="select-region" class="input-field">
+                    <select id="select-region" class="input-field" onchange="if(window.updateStoreDropdownForAsm) window.updateStoreDropdownForAsm(this.value)">
                         <option value="">-- Chọn Quản lý (ASM) --</option>
                         <option value="ADMIN">🔑 [ADMIN - QUẢN TRỊ VIÊN]</option>
                         <option value="Dũng">Dũng</option>
@@ -593,7 +595,7 @@
 
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">Cửa Hàng</label>
-                    <select id="select-store" class="input-field disabled:opacity-50" disabled>
+                    <select id="select-store" class="input-field disabled:opacity-50" onfocus="if(window.updateStoreDropdownForAsm && (!this.value || this.disabled)) window.updateStoreDropdownForAsm(document.getElementById('select-region')?.value)">
                         <option value="">-- Chọn ASM trước --</option>
                     </select>
                 </div>
@@ -2537,7 +2539,7 @@
         loadASMs();
 
         // Foolproof Store Dropdown Updater for selected ASM
-        async function updateStoreDropdownForAsm(asm) {
+        window.updateStoreDropdownForAsm = async function(asm) {
             if (!asm) {
                 storeSelect.innerHTML = '<option value="">-- Chọn ASM trước --</option>';
                 storeSelect.disabled = true;
