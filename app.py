@@ -170,6 +170,16 @@ def safe_migrate_db():
     
     table_sqls = [
         f"""
+        CREATE TABLE IF NOT EXISTS tb_stores (
+            store_code  VARCHAR(50) PRIMARY KEY,
+            store_name  VARCHAR(200) NOT NULL DEFAULT '',
+            brand       VARCHAR(50) DEFAULT 'AP',
+            region      VARCHAR(100) DEFAULT '',
+            asm_name    VARCHAR(100) DEFAULT '',
+            passcode    VARCHAR(20) DEFAULT '1234'
+        )
+        """,
+        f"""
         CREATE TABLE IF NOT EXISTS tb_store_employees (
             id {pk_auto},
             employee_code VARCHAR(50) UNIQUE NOT NULL,

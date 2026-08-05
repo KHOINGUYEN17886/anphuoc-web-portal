@@ -2142,24 +2142,39 @@
             storeSelect.innerHTML = '<option value="">-- Đang tải cửa hàng... --</option>';
             storeSelect.disabled = true;
             
-            try {
-                const res = await fetch(`/api/stores?asm=${encodeURIComponent(asm)}`);
-                const data = await res.json();
-                if (data.ok && data.stores) {
-                    let opts = `<option value="">-- Chọn Cửa Hàng --</option>
-                                <option value="ASM_${asm}" data-name="Quản lý (ASM) ${asm}" data-brand="ASM" data-asm="${asm}">🔑 [Đăng nhập quyền ASM ${asm}]</option>`;
-                    data.stores.forEach(s => {
+            // Helper: always show ASM login + stores (or fallback message)
+            const _showStores = (stores) => {
+                let opts = `<option value="">-- Chọn Cửa Hàng --</option>
+                             <option value="ASM_${asm}" data-name="Quản lý (ASM) ${asm}" data-brand="ASM" data-asm="${asm}">🔑 [Đăng nhập quyền ASM ${asm}]</option>`;
+                if (stores && stores.length > 0) {
+                    stores.forEach(s => {
                         opts += `<option value="${s.store_code}" data-name="${s.store_name}" data-brand="${s.brand || 'AP'}" data-asm="${s.asm_name || asm}">${s.store_name} (${s.store_code})</option>`;
                     });
-                    storeSelect.innerHTML = opts;
-                    storeSelect.disabled = false;
+                } else {
+                    opts += `<option value="" disabled>-- Chưa có cửa hàng cho ASM ${asm} --</option>`;
+                }
+                storeSelect.innerHTML = opts;
+                storeSelect.disabled = false;
+            };
+            
+            try {
+                const res = await fetch(`/api/stores?asm=${encodeURIComponent(asm)}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                if (data.ok) {
+                    _showStores(data.stores || []);
+                } else {
+                    // API trả về ok:false (vd: lỗi DB) → vẫn show ASM login
+                    console.warn('API /api/stores lỗi:', data.error);
+                    _showStores([]);
                 }
             } catch (err) {
-                console.error("Lỗi load cửa hàng:", err);
-                storeSelect.innerHTML = `<option value="ASM_${asm}" data-name="Quản lý (ASM) ${asm}" data-brand="ASM" data-asm="${asm}">🔑 [Đăng nhập quyền ASM ${asm}]</option>`;
-                storeSelect.disabled = false;
+                // Network error hoặc JSON parse error → vẫn show ASM login
+                console.error('Lỗi load cửa hàng:', err.message);
+                _showStores([]);
             }
         }
+
 
         // ASM change & click handlers
         regSelect.addEventListener('change', () => updateStoreDropdownForAsm(regSelect.value));
