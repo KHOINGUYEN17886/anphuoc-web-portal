@@ -382,6 +382,7 @@ def safe_migrate_db():
     migrations = [
         "ALTER TABLE tb_contracts ADD COLUMN customer_name TEXT DEFAULT ''",
         "ALTER TABLE tb_unsigned_contracts ADD COLUMN contract_number TEXT DEFAULT 'Đang GD'",
+        "ALTER TABLE tb_unsigned_contracts ADD COLUMN customer_name TEXT DEFAULT ''",
         "ALTER TABLE tb_support_requests ADD COLUMN ticket_code TEXT DEFAULT ''",
         "ALTER TABLE tb_support_requests ADD COLUMN status TEXT DEFAULT 'Đang xử lý'",
         "ALTER TABLE tb_support_requests ADD COLUMN store_progress_note TEXT DEFAULT ''",
@@ -1116,7 +1117,7 @@ def get_operational_report():
         contracts = query_db("SELECT contract_number, customer_name, contract_value, product_category, quantity, deposit_paid, installment_2, status, reason FROM tb_contracts WHERE store_code = ? AND report_date = ?", (store_code, report_date))
         
         # Query unsigned contracts (Section 3.2) — includes contract_number
-        unsigned = query_db("SELECT contract_number, prev_year_value, expected_signing_time, product_category, quantity, status, reason FROM tb_unsigned_contracts WHERE store_code = ? AND report_date = ?", (store_code, report_date))
+        unsigned = query_db("SELECT contract_number, customer_name, prev_year_value, expected_signing_time, product_category, quantity, status, reason FROM tb_unsigned_contracts WHERE store_code = ? AND report_date = ?", (store_code, report_date))
         
         # Query operational details (Section 4.1 - 4.4)
         details = query_db("SELECT * FROM tb_operational_details WHERE store_code = ? AND report_date = ?", (store_code, report_date), one=True)
@@ -1234,12 +1235,13 @@ def submit_data():
             status = str(uc.get('status', '')).strip()
             reason = str(uc.get('reason', '')).strip()
             
-            if val > 0:
+            customer_name = str(uc.get('customer_name', '')).strip()
+            if val > 0 or uc_contract_num or customer_name:
                 execute_db("""
                 INSERT INTO tb_unsigned_contracts 
-                (store_code, report_date, contract_number, prev_year_value, expected_signing_time, product_category, quantity, status, reason)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (store_code, report_date, uc_contract_num, val, time_str, cat, qty, status, reason))
+                (store_code, report_date, contract_number, customer_name, prev_year_value, expected_signing_time, product_category, quantity, status, reason)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (store_code, report_date, uc_contract_num, customer_name, val, time_str, cat, qty, status, reason))
                 
         # 5. Save Operational Details (Section 4.1 - 4.4)
         execute_db("DELETE FROM tb_operational_details WHERE store_code = ? AND report_date = ?", (store_code, report_date))
@@ -1342,7 +1344,7 @@ def export_data():
         """, (month_start.strftime('%Y-%m-%d'), report_date))
         
         contracts = query_db("SELECT store_code, contract_number, contract_value, product_category, quantity, deposit_paid, installment_2, status, reason FROM tb_contracts WHERE report_date = ?", (report_date,))
-        unsigned = query_db("SELECT store_code, prev_year_value, expected_signing_time, product_category, quantity, status, reason FROM tb_unsigned_contracts WHERE report_date = ?", (report_date,))
+        unsigned = query_db("SELECT store_code, contract_number, customer_name, prev_year_value, expected_signing_time, product_category, quantity, status, reason FROM tb_unsigned_contracts WHERE report_date = ?", (report_date,))
         details = query_db("SELECT * FROM tb_operational_details WHERE report_date = ?", (report_date,))
         support = query_db("SELECT store_code, category, priority, issue_item, deadline, person_in_charge FROM tb_support_requests WHERE report_date = ?", (report_date,))
         
@@ -2833,7 +2835,7 @@ def export_excel():
         
         # Load Unsigned (Section 3.2) with contract_number
         unsigned_rows = query_db(f"""
-            SELECT store_code, contract_number, prev_year_value, expected_signing_time, product_category, quantity, status, reason 
+            SELECT store_code, contract_number, customer_name, prev_year_value, expected_signing_time, product_category, quantity, status, reason 
             FROM tb_unsigned_contracts 
             WHERE report_date = ? AND store_code IN ({placeholders})
         """, [report_date] + store_codes)
@@ -3585,7 +3587,7 @@ def quick_report():
 
         # ── Unsigned 3.2 ──────────────────────────────────────────────────────
         unsigned_rows = query_db(f"""
-            SELECT u.store_code, s.store_name, s.region, u.contract_number,
+            SELECT u.store_code, s.store_name, s.region, u.contract_number, u.customer_name,
                    u.prev_year_value, u.expected_signing_time, u.product_category,
                    u.quantity, u.status, u.reason
             FROM tb_unsigned_contracts u JOIN tb_stores s ON u.store_code = s.store_code
@@ -3693,8 +3695,208 @@ def api_gis_data():
         return jsonify({'ok': False, 'error': str(e)}), 500
 
 
+
+# ── OPERATIONAL HISTORY & STORE AUDIT ENDPOINTS ─────────────────────────────
+@app.route('/api/operational_history', methods=['GET'])
+def get_operational_history():
+    """
+    Trả về lịch sử nhập liệu chi tiết theo khoảng thời gian, hỗ trợ lọc theo cửa hàng & phân loại.
+    """
+    store_code = request.args.get('store_code', 'all')
+    category = request.args.get('category', 'all')
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+    asm_name = request.args.get('asm_name', '')
+    
+    # Filter stores based on scope or ASM
+    stores = query_db("SELECT store_code, store_name, asm_name, region FROM tb_stores WHERE is_active = 1")
+    store_dict = {s['store_code']: s for s in stores}
+    
+    valid_store_codes = list(store_dict.keys())
+    if asm_name:
+        valid_store_codes = [sc for sc, s in store_dict.items() if s['asm_name'] == asm_name]
+    if store_code != 'all':
+        valid_store_codes = [sc for sc in valid_store_codes if sc == store_code]
+        
+    if not valid_store_codes:
+        return jsonify({'ok': True, 'history': [], 'count': 0})
+        
+    placeholders = ','.join(['?'] * len(valid_store_codes))
+    
+    # Date conditions
+    date_where_contracts = ""
+    date_where_unsigned = ""
+    date_where_details = ""
+    date_where_support = ""
+    date_where_traffic = ""
+    params_date = []
+    
+    if start_date and end_date:
+        date_where_contracts = " AND report_date >= ? AND report_date <= ?"
+        date_where_unsigned = " AND report_date >= ? AND report_date <= ?"
+        date_where_details = " AND report_date >= ? AND report_date <= ?"
+        date_where_support = " AND report_date >= ? AND report_date <= ?"
+        date_where_traffic = " AND traffic_date >= ? AND traffic_date <= ?"
+        params_date = [start_date, end_date]
+
+    history = []
+    
+    # 1. Section 3.1 Contracts
+    if category in ['all', 'contracts', '3.1']:
+        sql = f"SELECT * FROM tb_contracts WHERE store_code IN ({placeholders})" + date_where_contracts + " ORDER BY report_date DESC"
+        p = valid_store_codes + params_date
+        rows = query_db(sql, p)
+        for r in rows:
+            st = store_dict.get(r['store_code'], {})
+            history.append({
+                'type': '3.1_contract',
+                'category_label': 'HĐ Đang Đàm Phán (3.1)',
+                'store_code': r['store_code'],
+                'store_name': st.get('store_name', r['store_code']),
+                'asm_name': st.get('asm_name', ''),
+                'report_date': r['report_date'],
+                'title': f"HĐ {r.get('contract_number', 'N/A')} - {r.get('customer_name', 'Khách hàng')}",
+                'value': r.get('contract_value', 0),
+                'details': {
+                    'Số HĐ': r.get('contract_number', ''),
+                    'Tên Khách Hàng': r.get('customer_name', ''),
+                    'Giá trị': f"{r.get('contract_value', 0):,.0f} VNĐ",
+                    'Chủng loại': r.get('product_category', ''),
+                    'Số lượng': r.get('quantity', 0),
+                    'Đã cọc': f"{r.get('deposit_paid', 0):,.0f} VNĐ",
+                    'Thanh toán Đ2': f"{r.get('installment_2', 0):,.0f} VNĐ",
+                    'Tình trạng': r.get('status', ''),
+                    'Lý do/Ghi chú': r.get('reason', '')
+                }
+            })
+
+    # 2. Section 3.2 Unsigned
+    if category in ['all', 'contracts', 'unsigned', '3.2']:
+        sql = f"SELECT * FROM tb_unsigned_contracts WHERE store_code IN ({placeholders})" + date_where_unsigned + " ORDER BY report_date DESC"
+        p = valid_store_codes + params_date
+        rows = query_db(sql, p)
+        for r in rows:
+            st = store_dict.get(r['store_code'], {})
+            history.append({
+                'type': '3.2_unsigned',
+                'category_label': 'HĐ Cùng Kỳ Chưa Ký (3.2)',
+                'store_code': r['store_code'],
+                'store_name': st.get('store_name', r['store_code']),
+                'asm_name': st.get('asm_name', ''),
+                'report_date': r['report_date'],
+                'title': f"HĐ trễ hạn {r.get('contract_number', 'N/A')} - {r.get('customer_name', 'Khách hàng')}",
+                'value': r.get('prev_year_value', 0),
+                'details': {
+                    'Số HĐ': r.get('contract_number', ''),
+                    'Tên Khách Hàng': r.get('customer_name', ''),
+                    'GTHĐ Năm trước': f"{r.get('prev_year_value', 0):,.0f} VNĐ",
+                    'Dự kiến ký': r.get('expected_signing_time', ''),
+                    'Chủng loại': r.get('product_category', ''),
+                    'Số lượng': r.get('quantity', 0),
+                    'Tình trạng': r.get('status', ''),
+                    'Lý do/Ghi chú': r.get('reason', '')
+                }
+            })
+
+    # 3. Section 4.1-4.4 Operational Details
+    if category in ['all', 'operational', '4.x']:
+        sql = f"SELECT * FROM tb_operational_details WHERE store_code IN ({placeholders})" + date_where_details + " ORDER BY report_date DESC"
+        p = valid_store_codes + params_date
+        rows = query_db(sql, p)
+        for r in rows:
+            st = store_dict.get(r['store_code'], {})
+            history.append({
+                'type': '4.x_operational',
+                'category_label': 'Vận Hành & Hàng Hóa (4.1-4.4)',
+                'store_code': r['store_code'],
+                'store_name': st.get('store_name', r['store_code']),
+                'asm_name': st.get('asm_name', ''),
+                'report_date': r['report_date'],
+                'title': f"Báo cáo Vận hành CH ngày {r['report_date']}",
+                'value': None,
+                'details': {
+                    'Mở/Đóng CH': f"{r.get('op_open_close_status', '')} ({r.get('op_open_close_note', '')})",
+                    'Đồng phục': f"{r.get('op_uniform_status', '')} ({r.get('op_uniform_note', '')})",
+                    'Tác phong chào': f"{r.get('op_greet_status', '')} ({r.get('op_greet_note', '')})",
+                    'Tồn kho': f"{r.get('inv_stock_status', '')} ({r.get('inv_info_goods', '')})",
+                    'Đề xuất hàng': r.get('inv_proposal', ''),
+                    'Thị trường & ĐT': r.get('market_competitors', '')
+                }
+            })
+
+    # 4. Section 4.5 Support Tickets
+    if category in ['all', 'support', '4.5']:
+        sql = f"SELECT * FROM tb_support_requests WHERE store_code IN ({placeholders})" + date_where_support + " ORDER BY report_date DESC"
+        p = valid_store_codes + params_date
+        rows = query_db(sql, p)
+        for r in rows:
+            st = store_dict.get(r['store_code'], {})
+            history.append({
+                'type': '4.5_support',
+                'category_label': 'Tồn Đọng & Hỗ Trợ (4.5)',
+                'store_code': r['store_code'],
+                'store_name': st.get('store_name', r['store_code']),
+                'asm_name': st.get('asm_name', ''),
+                'report_date': r['report_date'],
+                'title': f"Ticket {r.get('ticket_code', 'N/A')}: {r.get('issue_item', '')}",
+                'value': None,
+                'details': {
+                    'Mã Ticket': r.get('ticket_code', ''),
+                    'Hạng mục': r.get('category', ''),
+                    'Mức ưu tiên': r.get('priority', ''),
+                    'Nội dung y/c': r.get('issue_item', ''),
+                    'Hạn xử lý': r.get('deadline', ''),
+                    'Người phụ trách': r.get('person_in_charge', ''),
+                    'Trạng thái': r.get('status', 'Đang xử lý'),
+                    'CH ghi chú': r.get('store_progress_note', ''),
+                    'ASM/HQ ghi chú': r.get('asm_hq_note', '')
+                }
+            })
+
+    # Sort history descending by report_date
+    history.sort(key=lambda x: str(x['report_date']), reverse=True)
+    return jsonify({'ok': True, 'history': history, 'count': len(history)})
+
+
+@app.route('/api/store_operational_detail', methods=['GET'])
+def get_store_operational_detail():
+    """
+    Trả về hồ sơ vận hành 360 độ chi tiết của 1 cửa hàng cụ thể.
+    """
+    store_code = request.args.get('store_code', '')
+    report_date = request.args.get('report_date', '')
+    
+    if not store_code:
+        return jsonify({'ok': False, 'error': 'Vui lòng cung cấp store_code'})
+        
+    store = query_db("SELECT * FROM tb_stores WHERE store_code = ?", (store_code,), one=True)
+    if not store:
+        return jsonify({'ok': False, 'error': 'Không tìm thấy cửa hàng'})
+        
+    if not report_date:
+        latest = query_db("SELECT MAX(report_date) as max_d FROM tb_operational_reports WHERE store_code = ?", (store_code,), one=True)
+        report_date = latest['max_d'] if latest and latest['max_d'] else ''
+        
+    contracts = query_db("SELECT * FROM tb_contracts WHERE store_code = ? ORDER BY report_date DESC LIMIT 20", (store_code,))
+    unsigned = query_db("SELECT * FROM tb_unsigned_contracts WHERE store_code = ? ORDER BY report_date DESC LIMIT 20", (store_code,))
+    details = query_db("SELECT * FROM tb_operational_details WHERE store_code = ? ORDER BY report_date DESC LIMIT 10", (store_code,))
+    support = query_db("SELECT * FROM tb_support_requests WHERE store_code = ? ORDER BY report_date DESC LIMIT 20", (store_code,))
+    traffic = query_db("SELECT * FROM tb_traffic WHERE store_code = ? ORDER BY traffic_date DESC LIMIT 30", (store_code,))
+    
+    return jsonify({
+        'ok': True,
+        'store': store,
+        'report_date': report_date,
+        'contracts': contracts,
+        'unsigned_contracts': unsigned,
+        'operational_details': details,
+        'support_requests': support,
+        'traffic': traffic
+    })
+
+
 if __name__ == '__main__':
     safe_migrate_db()   # chạy migration an toàn trước khi start
     # Default port 8080
     port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)

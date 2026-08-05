@@ -7,8 +7,290 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.tailwindcss.com">
+        // ── HISTORY TAB & OPERATIONAL AUDIT LOGIC ────────────────────────────────
+        const statusTabHistoryBtn = document.getElementById('status-tab-history-btn');
+        const statusTabHistoryContent = document.getElementById('status-tab-history-content');
+        const btnHistoryViewTimeline = document.getElementById('btn-history-view-timeline');
+        const btnHistoryViewTable = document.getElementById('btn-history-view-table');
+        const histTimelineView = document.getElementById('hist-timeline-view');
+        const histTableView = document.getElementById('hist-table-view');
+        const btnFetchHistory = document.getElementById('btn-fetch-history');
+        const histStoreSelect = document.getElementById('hist-store-select');
+        const histCategorySelect = document.getElementById('hist-category-select');
+        const histFromDate = document.getElementById('hist-from-date');
+
+        if (statusTabHistoryBtn) {
+            statusTabHistoryBtn.addEventListener('click', async () => {
+                // Deactivate all status subtabs
+                [statusTabWeeklyBtn, statusTabDailyBtn, statusTabSupportBtn, statusTabHrBtn, statusTabClosureBtn, statusTabPasscodesBtn, statusTabHistoryBtn].forEach(btn => {
+                    if (btn) btn.classList.remove('active');
+                });
+                [statusTabWeeklyContent, statusTabDailyContent, statusTabSupportContent, statusTabHrContent, statusTabClosureContent, statusTabPasscodesContent, statusTabHistoryContent].forEach(c => {
+                    if (c) c.classList.add('hidden');
+                });
+                statusTabHistoryBtn.classList.add('active');
+                statusTabHistoryContent.classList.remove('hidden');
+                
+                // Populate stores dropdown if empty
+                if (histStoreSelect.options.length <= 1) {
+                    try {
+                        const res = await fetch('/api/stores');
+                        const data = await res.json();
+                        if (data.ok && data.stores) {
+                            histStoreSelect.innerHTML = '<option value="all">-- Tất cả cửa hàng --</option>';
+                            data.stores.forEach(s => {
+                                histStoreSelect.innerHTML += `<option value="${s.store_code}">${s.store_code} - ${s.store_name} (${s.asm_name || 'ASM'})</option>`;
+                            });
+                        }
+                    } catch (e) {}
+                }
+                
+                // Trigger fetch
+                fetchOperationalHistory();
+            });
+        }
+
+        if (btnHistoryViewTimeline && btnHistoryViewTable) {
+            btnHistoryViewTimeline.addEventListener('click', () => {
+                btnHistoryViewTimeline.className = "py-2 px-4 rounded-xl text-xs font-bold bg-brand-navy text-white shadow-sm";
+                btnHistoryViewTable.className = "py-2 px-4 rounded-xl text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200";
+                histTimelineView.classList.remove('hidden');
+                histTableView.classList.add('hidden');
+            });
+            
+            btnHistoryViewTable.addEventListener('click', () => {
+                btnHistoryViewTable.className = "py-2 px-4 rounded-xl text-xs font-bold bg-brand-navy text-white shadow-sm";
+                btnHistoryViewTimeline.className = "py-2 px-4 rounded-xl text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200";
+                histTableView.classList.remove('hidden');
+                histTimelineView.classList.add('hidden');
+            });
+        }
+
+        if (btnFetchHistory) {
+            btnFetchHistory.addEventListener('click', fetchOperationalHistory);
+        }
+
+        async function fetchOperationalHistory() {
+            const store_code = histStoreSelect ? histStoreSelect.value : 'all';
+            const category = histCategorySelect ? histCategorySelect.value : 'all';
+            const start_date = histFromDate ? histFromDate.value : '';
+            
+            const listEl = document.getElementById('hist-timeline-list');
+            const tableBodyEl = document.getElementById('hist-table-body');
+            
+            if (listEl) listEl.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs italic">Đang tải lịch sử nhập liệu...</div>';
+            if (tableBodyEl) tableBodyEl.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-400">Đang tải dữ liệu...</td></tr>';
+            
+            try {
+                const url = `/api/operational_history?store_code=${store_code}&category=${category}&start_date=${start_date}`;
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                if (!data.ok || !data.history || data.history.length === 0) {
+                    if (listEl) listEl.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs italic">Không tìm thấy lịch sử nhập liệu nào khớp với bộ lọc.</div>';
+                    if (tableBodyEl) tableBodyEl.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-400">Không có dữ liệu</td></tr>';
+                    return;
+                }
+                
+                // Render Timeline View
+                if (listEl) {
+                    listEl.innerHTML = data.history.map(item => {
+                        const detailRows = Object.entries(item.details || {}).map(([k, v]) => `
+                            <div class="flex justify-between py-1 border-b border-gray-100 text-xs">
+                                <span class="text-gray-500 font-medium">${k}:</span>
+                                <span class="font-semibold text-gray-800">${v || '-'}</span>
+                            </div>
+                        `).join('');
+                        
+                        const badgeColor = item.type.includes('contract') ? 'bg-amber-100 text-amber-800 border-amber-200'
+                            : item.type.includes('unsigned') ? 'bg-rose-100 text-rose-800 border-rose-200'
+                            : item.type.includes('support') ? 'bg-purple-100 text-purple-800 border-purple-200'
+                            : 'bg-blue-100 text-blue-800 border-blue-200';
+
+                        return `
+                            <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm hover:shadow-md transition-shadow relative">
+                                <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-3">
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-xs font-bold px-2.5 py-1 rounded-full border ${badgeColor}">
+                                            ${item.category_label}
+                                        </span>
+                                        <h4 class="font-bold text-gray-900 text-sm">${item.store_name} (${item.store_code})</h4>
+                                        <span class="text-xs text-gray-400">| ASM: ${item.asm_name || '-'}</span>
+                                    </div>
+                                    <span class="text-xs font-bold text-gray-500">📅 Ngày báo cáo: ${item.report_date}</span>
+                                </div>
+                                <div class="font-bold text-sm text-brand-navy mb-2">${item.title}</div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                    ${detailRows}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+                
+                // Render Table View
+                if (tableBodyEl) {
+                    tableBodyEl.innerHTML = data.history.map(item => `
+                        <tr class="hover:bg-gray-50">
+                            <td class="font-bold text-gray-700">${item.report_date}</td>
+                            <td class="font-semibold text-brand-navy">${item.store_code}</td>
+                            <td>${item.store_name}</td>
+                            <td><span class="text-xs font-semibold px-2 py-0.5 rounded bg-gray-100">${item.category_label}</span></td>
+                            <td class="text-xs text-gray-700">${item.title}</td>
+                            <td class="text-right font-bold text-amber-700">${item.value ? item.value.toLocaleString() : '-'}</td>
+                        </tr>
+                    `).join('');
+                }
+                
+            } catch (err) {
+                if (listEl) listEl.innerHTML = '<div class="text-center py-10 text-red-400 text-xs italic">Lỗi kết nối khi tải lịch sử.</div>';
+            }
+        }
+
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
+        // ── HISTORY TAB & OPERATIONAL AUDIT LOGIC ────────────────────────────────
+        const statusTabHistoryBtn = document.getElementById('status-tab-history-btn');
+        const statusTabHistoryContent = document.getElementById('status-tab-history-content');
+        const btnHistoryViewTimeline = document.getElementById('btn-history-view-timeline');
+        const btnHistoryViewTable = document.getElementById('btn-history-view-table');
+        const histTimelineView = document.getElementById('hist-timeline-view');
+        const histTableView = document.getElementById('hist-table-view');
+        const btnFetchHistory = document.getElementById('btn-fetch-history');
+        const histStoreSelect = document.getElementById('hist-store-select');
+        const histCategorySelect = document.getElementById('hist-category-select');
+        const histFromDate = document.getElementById('hist-from-date');
+
+        if (statusTabHistoryBtn) {
+            statusTabHistoryBtn.addEventListener('click', async () => {
+                // Deactivate all status subtabs
+                [statusTabWeeklyBtn, statusTabDailyBtn, statusTabSupportBtn, statusTabHrBtn, statusTabClosureBtn, statusTabPasscodesBtn, statusTabHistoryBtn].forEach(btn => {
+                    if (btn) btn.classList.remove('active');
+                });
+                [statusTabWeeklyContent, statusTabDailyContent, statusTabSupportContent, statusTabHrContent, statusTabClosureContent, statusTabPasscodesContent, statusTabHistoryContent].forEach(c => {
+                    if (c) c.classList.add('hidden');
+                });
+                statusTabHistoryBtn.classList.add('active');
+                statusTabHistoryContent.classList.remove('hidden');
+                
+                // Populate stores dropdown if empty
+                if (histStoreSelect.options.length <= 1) {
+                    try {
+                        const res = await fetch('/api/stores');
+                        const data = await res.json();
+                        if (data.ok && data.stores) {
+                            histStoreSelect.innerHTML = '<option value="all">-- Tất cả cửa hàng --</option>';
+                            data.stores.forEach(s => {
+                                histStoreSelect.innerHTML += `<option value="${s.store_code}">${s.store_code} - ${s.store_name} (${s.asm_name || 'ASM'})</option>`;
+                            });
+                        }
+                    } catch (e) {}
+                }
+                
+                // Trigger fetch
+                fetchOperationalHistory();
+            });
+        }
+
+        if (btnHistoryViewTimeline && btnHistoryViewTable) {
+            btnHistoryViewTimeline.addEventListener('click', () => {
+                btnHistoryViewTimeline.className = "py-2 px-4 rounded-xl text-xs font-bold bg-brand-navy text-white shadow-sm";
+                btnHistoryViewTable.className = "py-2 px-4 rounded-xl text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200";
+                histTimelineView.classList.remove('hidden');
+                histTableView.classList.add('hidden');
+            });
+            
+            btnHistoryViewTable.addEventListener('click', () => {
+                btnHistoryViewTable.className = "py-2 px-4 rounded-xl text-xs font-bold bg-brand-navy text-white shadow-sm";
+                btnHistoryViewTimeline.className = "py-2 px-4 rounded-xl text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200";
+                histTableView.classList.remove('hidden');
+                histTimelineView.classList.add('hidden');
+            });
+        }
+
+        if (btnFetchHistory) {
+            btnFetchHistory.addEventListener('click', fetchOperationalHistory);
+        }
+
+        async function fetchOperationalHistory() {
+            const store_code = histStoreSelect ? histStoreSelect.value : 'all';
+            const category = histCategorySelect ? histCategorySelect.value : 'all';
+            const start_date = histFromDate ? histFromDate.value : '';
+            
+            const listEl = document.getElementById('hist-timeline-list');
+            const tableBodyEl = document.getElementById('hist-table-body');
+            
+            if (listEl) listEl.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs italic">Đang tải lịch sử nhập liệu...</div>';
+            if (tableBodyEl) tableBodyEl.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-400">Đang tải dữ liệu...</td></tr>';
+            
+            try {
+                const url = `/api/operational_history?store_code=${store_code}&category=${category}&start_date=${start_date}`;
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                if (!data.ok || !data.history || data.history.length === 0) {
+                    if (listEl) listEl.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs italic">Không tìm thấy lịch sử nhập liệu nào khớp với bộ lọc.</div>';
+                    if (tableBodyEl) tableBodyEl.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-400">Không có dữ liệu</td></tr>';
+                    return;
+                }
+                
+                // Render Timeline View
+                if (listEl) {
+                    listEl.innerHTML = data.history.map(item => {
+                        const detailRows = Object.entries(item.details || {}).map(([k, v]) => `
+                            <div class="flex justify-between py-1 border-b border-gray-100 text-xs">
+                                <span class="text-gray-500 font-medium">${k}:</span>
+                                <span class="font-semibold text-gray-800">${v || '-'}</span>
+                            </div>
+                        `).join('');
+                        
+                        const badgeColor = item.type.includes('contract') ? 'bg-amber-100 text-amber-800 border-amber-200'
+                            : item.type.includes('unsigned') ? 'bg-rose-100 text-rose-800 border-rose-200'
+                            : item.type.includes('support') ? 'bg-purple-100 text-purple-800 border-purple-200'
+                            : 'bg-blue-100 text-blue-800 border-blue-200';
+
+                        return `
+                            <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm hover:shadow-md transition-shadow relative">
+                                <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-3">
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-xs font-bold px-2.5 py-1 rounded-full border ${badgeColor}">
+                                            ${item.category_label}
+                                        </span>
+                                        <h4 class="font-bold text-gray-900 text-sm">${item.store_name} (${item.store_code})</h4>
+                                        <span class="text-xs text-gray-400">| ASM: ${item.asm_name || '-'}</span>
+                                    </div>
+                                    <span class="text-xs font-bold text-gray-500">📅 Ngày báo cáo: ${item.report_date}</span>
+                                </div>
+                                <div class="font-bold text-sm text-brand-navy mb-2">${item.title}</div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                    ${detailRows}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+                
+                // Render Table View
+                if (tableBodyEl) {
+                    tableBodyEl.innerHTML = data.history.map(item => `
+                        <tr class="hover:bg-gray-50">
+                            <td class="font-bold text-gray-700">${item.report_date}</td>
+                            <td class="font-semibold text-brand-navy">${item.store_code}</td>
+                            <td>${item.store_name}</td>
+                            <td><span class="text-xs font-semibold px-2 py-0.5 rounded bg-gray-100">${item.category_label}</span></td>
+                            <td class="text-xs text-gray-700">${item.title}</td>
+                            <td class="text-right font-bold text-amber-700">${item.value ? item.value.toLocaleString() : '-'}</td>
+                        </tr>
+                    `).join('');
+                }
+                
+            } catch (err) {
+                if (listEl) listEl.innerHTML = '<div class="text-center py-10 text-red-400 text-xs italic">Lỗi kết nối khi tải lịch sử.</div>';
+            }
+        }
+
+    </script>
     <script>
         tailwind.config = {
             theme: {
@@ -29,6 +311,147 @@
                 }
             }
         }
+    
+        // ── HISTORY TAB & OPERATIONAL AUDIT LOGIC ────────────────────────────────
+        const statusTabHistoryBtn = document.getElementById('status-tab-history-btn');
+        const statusTabHistoryContent = document.getElementById('status-tab-history-content');
+        const btnHistoryViewTimeline = document.getElementById('btn-history-view-timeline');
+        const btnHistoryViewTable = document.getElementById('btn-history-view-table');
+        const histTimelineView = document.getElementById('hist-timeline-view');
+        const histTableView = document.getElementById('hist-table-view');
+        const btnFetchHistory = document.getElementById('btn-fetch-history');
+        const histStoreSelect = document.getElementById('hist-store-select');
+        const histCategorySelect = document.getElementById('hist-category-select');
+        const histFromDate = document.getElementById('hist-from-date');
+
+        if (statusTabHistoryBtn) {
+            statusTabHistoryBtn.addEventListener('click', async () => {
+                // Deactivate all status subtabs
+                [statusTabWeeklyBtn, statusTabDailyBtn, statusTabSupportBtn, statusTabHrBtn, statusTabClosureBtn, statusTabPasscodesBtn, statusTabHistoryBtn].forEach(btn => {
+                    if (btn) btn.classList.remove('active');
+                });
+                [statusTabWeeklyContent, statusTabDailyContent, statusTabSupportContent, statusTabHrContent, statusTabClosureContent, statusTabPasscodesContent, statusTabHistoryContent].forEach(c => {
+                    if (c) c.classList.add('hidden');
+                });
+                statusTabHistoryBtn.classList.add('active');
+                statusTabHistoryContent.classList.remove('hidden');
+                
+                // Populate stores dropdown if empty
+                if (histStoreSelect.options.length <= 1) {
+                    try {
+                        const res = await fetch('/api/stores');
+                        const data = await res.json();
+                        if (data.ok && data.stores) {
+                            histStoreSelect.innerHTML = '<option value="all">-- Tất cả cửa hàng --</option>';
+                            data.stores.forEach(s => {
+                                histStoreSelect.innerHTML += `<option value="${s.store_code}">${s.store_code} - ${s.store_name} (${s.asm_name || 'ASM'})</option>`;
+                            });
+                        }
+                    } catch (e) {}
+                }
+                
+                // Trigger fetch
+                fetchOperationalHistory();
+            });
+        }
+
+        if (btnHistoryViewTimeline && btnHistoryViewTable) {
+            btnHistoryViewTimeline.addEventListener('click', () => {
+                btnHistoryViewTimeline.className = "py-2 px-4 rounded-xl text-xs font-bold bg-brand-navy text-white shadow-sm";
+                btnHistoryViewTable.className = "py-2 px-4 rounded-xl text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200";
+                histTimelineView.classList.remove('hidden');
+                histTableView.classList.add('hidden');
+            });
+            
+            btnHistoryViewTable.addEventListener('click', () => {
+                btnHistoryViewTable.className = "py-2 px-4 rounded-xl text-xs font-bold bg-brand-navy text-white shadow-sm";
+                btnHistoryViewTimeline.className = "py-2 px-4 rounded-xl text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200";
+                histTableView.classList.remove('hidden');
+                histTimelineView.classList.add('hidden');
+            });
+        }
+
+        if (btnFetchHistory) {
+            btnFetchHistory.addEventListener('click', fetchOperationalHistory);
+        }
+
+        async function fetchOperationalHistory() {
+            const store_code = histStoreSelect ? histStoreSelect.value : 'all';
+            const category = histCategorySelect ? histCategorySelect.value : 'all';
+            const start_date = histFromDate ? histFromDate.value : '';
+            
+            const listEl = document.getElementById('hist-timeline-list');
+            const tableBodyEl = document.getElementById('hist-table-body');
+            
+            if (listEl) listEl.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs italic">Đang tải lịch sử nhập liệu...</div>';
+            if (tableBodyEl) tableBodyEl.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-400">Đang tải dữ liệu...</td></tr>';
+            
+            try {
+                const url = `/api/operational_history?store_code=${store_code}&category=${category}&start_date=${start_date}`;
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                if (!data.ok || !data.history || data.history.length === 0) {
+                    if (listEl) listEl.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs italic">Không tìm thấy lịch sử nhập liệu nào khớp với bộ lọc.</div>';
+                    if (tableBodyEl) tableBodyEl.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-400">Không có dữ liệu</td></tr>';
+                    return;
+                }
+                
+                // Render Timeline View
+                if (listEl) {
+                    listEl.innerHTML = data.history.map(item => {
+                        const detailRows = Object.entries(item.details || {}).map(([k, v]) => `
+                            <div class="flex justify-between py-1 border-b border-gray-100 text-xs">
+                                <span class="text-gray-500 font-medium">${k}:</span>
+                                <span class="font-semibold text-gray-800">${v || '-'}</span>
+                            </div>
+                        `).join('');
+                        
+                        const badgeColor = item.type.includes('contract') ? 'bg-amber-100 text-amber-800 border-amber-200'
+                            : item.type.includes('unsigned') ? 'bg-rose-100 text-rose-800 border-rose-200'
+                            : item.type.includes('support') ? 'bg-purple-100 text-purple-800 border-purple-200'
+                            : 'bg-blue-100 text-blue-800 border-blue-200';
+
+                        return `
+                            <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm hover:shadow-md transition-shadow relative">
+                                <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-3">
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-xs font-bold px-2.5 py-1 rounded-full border ${badgeColor}">
+                                            ${item.category_label}
+                                        </span>
+                                        <h4 class="font-bold text-gray-900 text-sm">${item.store_name} (${item.store_code})</h4>
+                                        <span class="text-xs text-gray-400">| ASM: ${item.asm_name || '-'}</span>
+                                    </div>
+                                    <span class="text-xs font-bold text-gray-500">📅 Ngày báo cáo: ${item.report_date}</span>
+                                </div>
+                                <div class="font-bold text-sm text-brand-navy mb-2">${item.title}</div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                    ${detailRows}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+                
+                // Render Table View
+                if (tableBodyEl) {
+                    tableBodyEl.innerHTML = data.history.map(item => `
+                        <tr class="hover:bg-gray-50">
+                            <td class="font-bold text-gray-700">${item.report_date}</td>
+                            <td class="font-semibold text-brand-navy">${item.store_code}</td>
+                            <td>${item.store_name}</td>
+                            <td><span class="text-xs font-semibold px-2 py-0.5 rounded bg-gray-100">${item.category_label}</span></td>
+                            <td class="text-xs text-gray-700">${item.title}</td>
+                            <td class="text-right font-bold text-amber-700">${item.value ? item.value.toLocaleString() : '-'}</td>
+                        </tr>
+                    `).join('');
+                }
+                
+            } catch (err) {
+                if (listEl) listEl.innerHTML = '<div class="text-center py-10 text-red-400 text-xs italic">Lỗi kết nối khi tải lịch sử.</div>';
+            }
+        }
+
     </script>
     <style>
         body {
@@ -793,6 +1216,9 @@
                 <button id="status-tab-closure-btn" class="tab-btn">
                     🏗️ Đóng Cửa CH (Sửa/Dời/Mở mới)
                 </button>
+                <button id="status-tab-history-btn" class="tab-btn">
+                    📜 Lịch Sử & Audit Cửa Hàng
+                </button>
                 <button id="status-tab-passcodes-btn" class="tab-btn hidden">
                     🔑 Quản lý PIN
                 </button>
@@ -969,6 +1395,86 @@
             </div>
 
             <!-- ASM Tab 6: Khai Báo Đóng Cửa CH (sửa chữa / di dời / mở mới) -->
+            
+            <!-- TAB CONTENT: OPERATIONAL HISTORY & STORE AUDIT -->
+            <div id="status-tab-history-content" class="hidden space-y-6">
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                    <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 border-b border-gray-100 pb-5 mb-6">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                <span>📜</span> Lịch Sử Nhập Liệu & Bức Tranh Vận Hành Cửa Hàng
+                            </h3>
+                            <p class="text-xs text-gray-500 mt-1">
+                                Cho phép ASM và CEO tra cứu dòng thời gian nhập liệu qua các kỳ, theo dõi biến động Hợp đồng, Vận hành và Tồn đọng.
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button id="btn-history-view-timeline" class="py-2 px-4 rounded-xl text-xs font-bold bg-brand-navy text-white shadow-sm">
+                                📅 Timeline Theo Tuần
+                            </button>
+                            <button id="btn-history-view-table" class="py-2 px-4 rounded-xl text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200">
+                                📊 Bảng Lọc Cửa Hàng
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- FILTER TOOLBAR -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Cửa hàng</label>
+                            <select id="hist-store-select" class="w-full bg-white border border-gray-300 rounded-lg p-2 text-xs font-medium focus:ring-2 focus:ring-brand-gold">
+                                <option value="all">-- Tất cả cửa hàng --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Phân loại dữ liệu</label>
+                            <select id="hist-category-select" class="w-full bg-white border border-gray-300 rounded-lg p-2 text-xs font-medium focus:ring-2 focus:ring-brand-gold">
+                                <option value="all">-- Tất cả hạng mục --</option>
+                                <option value="contracts">Hợp đồng (3.1 & 3.2)</option>
+                                <option value="operational">Vận hành & Hàng hóa (4.1-4.4)</option>
+                                <option value="support">Tồn đọng & Hỗ trợ (4.5)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Từ ngày</label>
+                            <input type="date" id="hist-from-date" class="w-full bg-white border border-gray-300 rounded-lg p-2 text-xs font-medium">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Thực thi lọc</label>
+                            <button id="btn-fetch-history" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg text-xs transition-colors shadow-sm">
+                                🔍 Tra Cứu Lịch Sử
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- VIEW MODE 1: TIMELINE CONTAINER -->
+                    <div id="hist-timeline-view" class="space-y-4">
+                        <div id="hist-timeline-list" class="space-y-4">
+                            <div class="text-center py-10 text-gray-400 text-xs italic">Vui lòng bấm "Tra Cứu Lịch Sử" để tải dữ liệu.</div>
+                        </div>
+                    </div>
+
+                    <!-- VIEW MODE 2: TABLE FILTER CONTAINER -->
+                    <div id="hist-table-view" class="hidden overflow-x-auto">
+                        <table class="tbl w-full text-xs">
+                            <thead>
+                                <tr class="bg-gray-100 text-gray-700">
+                                    <th class="py-2.5 px-3 text-left">Ngày báo cáo</th>
+                                    <th class="py-2.5 px-3 text-left">Mã CH</th>
+                                    <th class="py-2.5 px-3 text-left">Tên Cửa Hàng</th>
+                                    <th class="py-2.5 px-3 text-left">Hạng Mục</th>
+                                    <th class="py-2.5 px-3 text-left">Nội Dung Chi Tiết</th>
+                                    <th class="py-2.5 px-3 text-right">Giá Trị (VNĐ)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hist-table-body" class="divide-y divide-gray-100">
+                                <tr><td colspan="6" class="text-center py-8 text-gray-400">Vui lòng bấm "Tra Cứu Lịch Sử"</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <div id="status-tab-closure-content" class="hidden card rounded-b-2xl p-5 border-t-0 space-y-5">
                 <div class="flex flex-wrap items-center justify-between border-b border-gray-100 pb-3 gap-2">
                     <div class="flex items-center gap-2">
@@ -1213,11 +1719,15 @@
 
     <!-- Template for Unsigned Contract Card (3.2) — includes contract_number -->
     <template id="tmpl-unsigned-card">
-        <div class="unsigned-card card card-hover rounded-xl p-4 relative space-y-3">
+        <div class="unsigned-card card card-hover rounded-xl p-4 relative space-y-3 border-amber-200 bg-amber-50/20">
             <button class="btn-remove-row absolute top-2 right-2 text-gray-300 hover:text-brand-red text-sm font-bold w-6 h-6 rounded-full flex items-center justify-center border border-gray-200 hover:border-brand-red/30 bg-gray-50 transition-all">
                 &times;
             </button>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Tên Khách Hàng</label>
+                    <input type="text" class="val-unsigned-customer-name input-field" placeholder="Họ tên công ty / cá nhân">
+                </div>
                 <div>
                     <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Số HĐ (nếu biết)</label>
                     <input type="text" class="val-unsigned-contract-number input-field" placeholder="Đang GD" value="Đang GD">
@@ -1226,6 +1736,8 @@
                     <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Giá trị HĐ năm ngoái (VNĐ)</label>
                     <input type="number" class="val-prev-value input-field" placeholder="Giá trị cũ">
                 </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                     <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Thời gian dự kiến ký</label>
                     <input type="text" class="val-expected-time input-field" placeholder="Ví dụ: Cuối tháng 7">
@@ -1234,8 +1746,6 @@
                     <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Chủng loại</label>
                     <input type="text" class="val-unsigned-category input-field" placeholder="Loại hàng">
                 </div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                     <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Số lượng (SP)</label>
                     <input type="number" class="val-unsigned-qty input-field" placeholder="Số lượng">
@@ -2702,7 +3212,8 @@
             const tmpl = document.getElementById('tmpl-unsigned-card');
             const clone = tmpl.content.cloneNode(true);
             
-            if (data.prev_year_value || data.contract_number) {
+            if (data.prev_year_value || data.contract_number || data.customer_name) {
+                if (clone.querySelector('.val-unsigned-customer-name')) clone.querySelector('.val-unsigned-customer-name').value = data.customer_name || '';
                 if (clone.querySelector('.val-unsigned-contract-number')) clone.querySelector('.val-unsigned-contract-number').value = data.contract_number !== undefined ? data.contract_number : 'Đang GD';
                 clone.querySelector('.val-prev-value').value = data.prev_year_value || '';
                 clone.querySelector('.val-expected-time').value = data.expected_signing_time || '';
@@ -2879,6 +3390,7 @@
             const ucCards = unsignedContainer.querySelectorAll('.unsigned-card');
             for (let card of ucCards) {
                 const contract_number = card.querySelector('.val-unsigned-contract-number')?.value.trim() || 'Đang GD';
+                const customer_name = card.querySelector('.val-unsigned-customer-name')?.value.trim() || '';
                 const prev_year_value = card.querySelector('.val-prev-value').value.trim();
                 const expected_signing_time = card.querySelector('.val-expected-time').value.trim();
                 const product_category = card.querySelector('.val-unsigned-category').value.trim();
@@ -2890,7 +3402,7 @@
                     showToast("⚠️ Lỗi Nhập Liệu", "Hợp đồng cũ chưa ký cần có giá trị.", "⚠️");
                     return;
                 }
-                unsigned_contracts.push({ contract_number, prev_year_value, expected_signing_time, product_category, quantity, status, reason });
+                unsigned_contracts.push({ contract_number, customer_name, prev_year_value, expected_signing_time, product_category, quantity, status, reason });
             }
 
             // Gather Part 4 Details (4.1 - 4.4)
@@ -3687,7 +4199,7 @@
                 const ucnt = document.getElementById('qr-unsigned-count');
                 if(ucnt) ucnt.textContent = unsigned.length;
                 if(uBody) uBody.innerHTML = !unsigned.length ? '<tr><td colspan="7" class="text-center py-6 text-gray-400 italic">Không có</td></tr>'
-                    : unsigned.map(u=>`<tr><td class="font-semibold">${u.store_code}</td><td><span class="status-badge badge-gray">${u.contract_number||'Đang GD'}</span></td><td>${u.product_category||'-'}</td><td>${u.prev_year_value?(u.prev_year_value/1e6).toFixed(2):'-'}</td><td>${u.expected_signing_time||'-'}</td><td><span class="status-badge ${u.status==='Đã hủy bỏ'?'badge-red':'badge-amber'}">${u.status||'-'}</span></td><td class="text-xs text-gray-500">${u.reason||''}</td></tr>`).join('');
+                    : unsigned.map(u=>`<tr><td class="font-semibold">${u.store_code}</td><td><span class="status-badge badge-gray">${u.contract_number||'Đang GD'}</span></td><td class="font-medium text-gray-800">${u.customer_name||'-'}</td><td>${u.product_category||'-'}</td><td>${u.prev_year_value?(u.prev_year_value/1e6).toFixed(2):'-'}</td><td>${u.expected_signing_time||'-'}</td><td><span class="status-badge ${u.status==='Đã hủy bỏ'?'badge-red':'badge-amber'}">${u.status||'-'}</span></td><td class="text-xs text-gray-500">${u.reason||''}</td></tr>`).join('');
 
                 // Ops
                 const oBody = document.getElementById('qr-ops-body');
@@ -5724,6 +6236,147 @@
         } else {
             initApp();
         }
+    
+        // ── HISTORY TAB & OPERATIONAL AUDIT LOGIC ────────────────────────────────
+        const statusTabHistoryBtn = document.getElementById('status-tab-history-btn');
+        const statusTabHistoryContent = document.getElementById('status-tab-history-content');
+        const btnHistoryViewTimeline = document.getElementById('btn-history-view-timeline');
+        const btnHistoryViewTable = document.getElementById('btn-history-view-table');
+        const histTimelineView = document.getElementById('hist-timeline-view');
+        const histTableView = document.getElementById('hist-table-view');
+        const btnFetchHistory = document.getElementById('btn-fetch-history');
+        const histStoreSelect = document.getElementById('hist-store-select');
+        const histCategorySelect = document.getElementById('hist-category-select');
+        const histFromDate = document.getElementById('hist-from-date');
+
+        if (statusTabHistoryBtn) {
+            statusTabHistoryBtn.addEventListener('click', async () => {
+                // Deactivate all status subtabs
+                [statusTabWeeklyBtn, statusTabDailyBtn, statusTabSupportBtn, statusTabHrBtn, statusTabClosureBtn, statusTabPasscodesBtn, statusTabHistoryBtn].forEach(btn => {
+                    if (btn) btn.classList.remove('active');
+                });
+                [statusTabWeeklyContent, statusTabDailyContent, statusTabSupportContent, statusTabHrContent, statusTabClosureContent, statusTabPasscodesContent, statusTabHistoryContent].forEach(c => {
+                    if (c) c.classList.add('hidden');
+                });
+                statusTabHistoryBtn.classList.add('active');
+                statusTabHistoryContent.classList.remove('hidden');
+                
+                // Populate stores dropdown if empty
+                if (histStoreSelect.options.length <= 1) {
+                    try {
+                        const res = await fetch('/api/stores');
+                        const data = await res.json();
+                        if (data.ok && data.stores) {
+                            histStoreSelect.innerHTML = '<option value="all">-- Tất cả cửa hàng --</option>';
+                            data.stores.forEach(s => {
+                                histStoreSelect.innerHTML += `<option value="${s.store_code}">${s.store_code} - ${s.store_name} (${s.asm_name || 'ASM'})</option>`;
+                            });
+                        }
+                    } catch (e) {}
+                }
+                
+                // Trigger fetch
+                fetchOperationalHistory();
+            });
+        }
+
+        if (btnHistoryViewTimeline && btnHistoryViewTable) {
+            btnHistoryViewTimeline.addEventListener('click', () => {
+                btnHistoryViewTimeline.className = "py-2 px-4 rounded-xl text-xs font-bold bg-brand-navy text-white shadow-sm";
+                btnHistoryViewTable.className = "py-2 px-4 rounded-xl text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200";
+                histTimelineView.classList.remove('hidden');
+                histTableView.classList.add('hidden');
+            });
+            
+            btnHistoryViewTable.addEventListener('click', () => {
+                btnHistoryViewTable.className = "py-2 px-4 rounded-xl text-xs font-bold bg-brand-navy text-white shadow-sm";
+                btnHistoryViewTimeline.className = "py-2 px-4 rounded-xl text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200";
+                histTableView.classList.remove('hidden');
+                histTimelineView.classList.add('hidden');
+            });
+        }
+
+        if (btnFetchHistory) {
+            btnFetchHistory.addEventListener('click', fetchOperationalHistory);
+        }
+
+        async function fetchOperationalHistory() {
+            const store_code = histStoreSelect ? histStoreSelect.value : 'all';
+            const category = histCategorySelect ? histCategorySelect.value : 'all';
+            const start_date = histFromDate ? histFromDate.value : '';
+            
+            const listEl = document.getElementById('hist-timeline-list');
+            const tableBodyEl = document.getElementById('hist-table-body');
+            
+            if (listEl) listEl.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs italic">Đang tải lịch sử nhập liệu...</div>';
+            if (tableBodyEl) tableBodyEl.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-400">Đang tải dữ liệu...</td></tr>';
+            
+            try {
+                const url = `/api/operational_history?store_code=${store_code}&category=${category}&start_date=${start_date}`;
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                if (!data.ok || !data.history || data.history.length === 0) {
+                    if (listEl) listEl.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs italic">Không tìm thấy lịch sử nhập liệu nào khớp với bộ lọc.</div>';
+                    if (tableBodyEl) tableBodyEl.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-400">Không có dữ liệu</td></tr>';
+                    return;
+                }
+                
+                // Render Timeline View
+                if (listEl) {
+                    listEl.innerHTML = data.history.map(item => {
+                        const detailRows = Object.entries(item.details || {}).map(([k, v]) => `
+                            <div class="flex justify-between py-1 border-b border-gray-100 text-xs">
+                                <span class="text-gray-500 font-medium">${k}:</span>
+                                <span class="font-semibold text-gray-800">${v || '-'}</span>
+                            </div>
+                        `).join('');
+                        
+                        const badgeColor = item.type.includes('contract') ? 'bg-amber-100 text-amber-800 border-amber-200'
+                            : item.type.includes('unsigned') ? 'bg-rose-100 text-rose-800 border-rose-200'
+                            : item.type.includes('support') ? 'bg-purple-100 text-purple-800 border-purple-200'
+                            : 'bg-blue-100 text-blue-800 border-blue-200';
+
+                        return `
+                            <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm hover:shadow-md transition-shadow relative">
+                                <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-3">
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-xs font-bold px-2.5 py-1 rounded-full border ${badgeColor}">
+                                            ${item.category_label}
+                                        </span>
+                                        <h4 class="font-bold text-gray-900 text-sm">${item.store_name} (${item.store_code})</h4>
+                                        <span class="text-xs text-gray-400">| ASM: ${item.asm_name || '-'}</span>
+                                    </div>
+                                    <span class="text-xs font-bold text-gray-500">📅 Ngày báo cáo: ${item.report_date}</span>
+                                </div>
+                                <div class="font-bold text-sm text-brand-navy mb-2">${item.title}</div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                    ${detailRows}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+                
+                // Render Table View
+                if (tableBodyEl) {
+                    tableBodyEl.innerHTML = data.history.map(item => `
+                        <tr class="hover:bg-gray-50">
+                            <td class="font-bold text-gray-700">${item.report_date}</td>
+                            <td class="font-semibold text-brand-navy">${item.store_code}</td>
+                            <td>${item.store_name}</td>
+                            <td><span class="text-xs font-semibold px-2 py-0.5 rounded bg-gray-100">${item.category_label}</span></td>
+                            <td class="text-xs text-gray-700">${item.title}</td>
+                            <td class="text-right font-bold text-amber-700">${item.value ? item.value.toLocaleString() : '-'}</td>
+                        </tr>
+                    `).join('');
+                }
+                
+            } catch (err) {
+                if (listEl) listEl.innerHTML = '<div class="text-center py-10 text-red-400 text-xs italic">Lỗi kết nối khi tải lịch sử.</div>';
+            }
+        }
+
     </script>
     <!-- MODAL THÊM NHÂN VIÊN MỚI CHUẨN HÓA (Standardized Add Employee Modal) -->
     <div id="modal-add-employee" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
