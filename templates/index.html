@@ -2514,7 +2514,7 @@
 
         // Init ASMs List (With instant static fallback)
         async function loadASMs() {
-            const fallbackAsms = ['Dũng', 'HN', 'Hương', 'Khôi', 'Linh', 'Lâm', 'Quân', 'Thắng', 'Tiên', 'Tín'];
+            const fallbackAsms = ['Dũng', 'HN', 'Hương', 'Khôi', 'Linh', 'Lâm', 'Ni', 'Quân', 'Tiên', 'Tín'];
             try {
                 const res = await fetch('/api/asms');
                 const data = await res.json();
@@ -2624,7 +2624,7 @@
                         brand: brand,
                         asm: asm,
                         pin: pin,
-                        role: data.role || (storeCode === 'ADMIN' ? 'admin' : (storeCode.startswith('ASM_') ? 'asm' : 'store'))
+                        role: data.role || (storeCode === 'ADMIN' ? 'admin' : (storeCode.startsWith('ASM_') ? 'asm' : 'store'))
                     };
                     
                     // Save to localStorage
