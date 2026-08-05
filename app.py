@@ -770,9 +770,11 @@ def seed_stores_baseline_data():
             for s in stores_data:
                 code = s['store_code']
                 name = s['store_name']
-                asm = s['asm_name']
+                # JSON seed dùng key 'asm', KHÔNG PHẢI 'asm_name' → phải đọc đúng key
+                asm = s.get('asm_name') or s.get('asm') or ''
                 brand = s.get('brand', 'AP')
                 passcode = s.get('passcode', '1111')
+
                 
                 q_sel = "SELECT passcode FROM tb_stores WHERE store_code = %s" if is_pg else "SELECT passcode FROM tb_stores WHERE store_code = ?"
                 cur.execute(q_sel, (code,))
