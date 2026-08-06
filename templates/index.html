@@ -242,6 +242,9 @@
                 <button id="tab-hr-btn" class="tab-btn">
                     👥 Quản Lý Nhân Sự & Phân Ca
                 </button>
+                <button id="tab-compliance-btn" class="tab-btn">
+                    📋 Sự Vụ Tuân Thủ & P.QLQT
+                </button>
                 <a href="/map" target="_blank" class="gis-map-nav-btn hidden tab-btn text-blue-700 font-bold hover:bg-blue-50 flex items-center gap-1">
                     🗺️ Bản Đồ GIS
                 </a>
@@ -2497,18 +2500,44 @@
         });
 
         // TAB SWITCHERS
+        const tabComplianceBtn = document.getElementById('tab-compliance-btn');
+
+        if (tabComplianceBtn) {
+            tabComplianceBtn.addEventListener('click', async () => {
+                [tabWeeklyBtn, tabDailyBtn, tabComplianceBtn].forEach(b => {
+                    if (b) {
+                        b.classList.remove('active');
+                        b.className = "tab-btn";
+                    }
+                });
+                tabComplianceBtn.classList.add('active');
+                
+                tabWeeklyContent.classList.add('hidden');
+                tabDailyContent.classList.add('hidden');
+                if (statusTabComplianceContent) statusTabComplianceContent.classList.remove('hidden');
+                
+                await loadComplianceAudits();
+            });
+        }
+
         tabWeeklyBtn.addEventListener('click', () => {
-            tabWeeklyBtn.className = "py-2.5 px-6 font-bold text-sm border-b-2 border-gold text-gold focus:outline-none transition-all";
-            tabDailyBtn.className = "py-2.5 px-6 font-bold text-sm text-slate-400 hover:text-white focus:outline-none transition-all";
+            [tabWeeklyBtn, tabDailyBtn, tabComplianceBtn].forEach(b => {
+                if (b) b.classList.remove('active');
+            });
+            tabWeeklyBtn.classList.add('active');
             tabWeeklyContent.classList.remove('hidden');
             tabDailyContent.classList.add('hidden');
+            if (statusTabComplianceContent) statusTabComplianceContent.classList.add('hidden');
         });
 
         tabDailyBtn.addEventListener('click', async () => {
-            tabDailyBtn.className = "py-2.5 px-6 font-bold text-sm border-b-2 border-gold text-gold focus:outline-none transition-all";
-            tabWeeklyBtn.className = "py-2.5 px-6 font-bold text-sm text-slate-400 hover:text-white focus:outline-none transition-all";
+            [tabWeeklyBtn, tabDailyBtn, tabComplianceBtn].forEach(b => {
+                if (b) b.classList.remove('active');
+            });
+            tabDailyBtn.classList.add('active');
             tabDailyContent.classList.remove('hidden');
             tabWeeklyContent.classList.add('hidden');
+            if (statusTabComplianceContent) statusTabComplianceContent.classList.add('hidden');
             
             // Set default month/year selector to current
             const now = new Date();
@@ -2517,6 +2546,19 @@
             
             await generateDailyTrafficInputs();
         });
+
+        window.switchTab = function(tabName) {
+            if (tabName === 'pqlqt') {
+                const isStore = currentStore && currentStore.role === 'store';
+                if (isStore) {
+                    const btn = document.getElementById('tab-compliance-btn');
+                    if (btn) btn.click();
+                } else {
+                    const btn = document.getElementById('status-tab-compliance-btn');
+                    if (btn) btn.click();
+                }
+            }
+        };
 
         function updateWeekRangeDisplay() {
             const dateVal = inputReportDate.value;
