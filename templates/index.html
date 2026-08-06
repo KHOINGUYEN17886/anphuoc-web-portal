@@ -1042,20 +1042,20 @@
                 </div>
 
                 <!-- Main Data Table -->
-                <div class="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+                <div class="overflow-x-auto rounded-2xl border border-slate-200 shadow-md">
                     <table class="w-full text-xs text-left text-gray-700">
-                        <thead class="bg-gray-100 font-bold uppercase text-gray-600 border-b border-gray-200">
+                        <thead class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 font-extrabold uppercase text-slate-100 border-b border-slate-700 tracking-wider text-[10px]">
                             <tr>
-                                <th class="p-2.5">Mã Vé / CH</th>
-                                <th class="p-2.5">ASM / Nhóm Lỗi</th>
-                                <th class="p-2.5">Nội Dung Kiểm Tra / Vi Phạm</th>
-                                <th class="p-2.5 text-center">Tái Phạm</th>
-                                <th class="p-2.5 text-center">Bằng Chứng Camera</th>
-                                <th class="p-2.5 text-center">SLA Hạn Phản Hồi</th>
-                                <th class="p-2.5">Giải Trình CH & Ảnh</th>
-                                <th class="p-2.5">Đánh Giá ASM & Phạt</th>
-                                <th class="p-2.5 text-center">Trạng Thái</th>
-                                <th class="p-2.5 text-center">Thao Tác</th>
+                                <th class="p-3">Mã Vé / Cửa Hàng</th>
+                                <th class="p-3">ASM / Nhóm Lỗi</th>
+                                <th class="p-3">Nội Dung Kiểm Tra / Vi Phạm</th>
+                                <th class="p-3 text-center">Mốc Tái Phạm</th>
+                                <th class="p-3 text-center">Bằng Chứng CAM</th>
+                                <th class="p-3 text-center">SLA Hạn Phản Hồi</th>
+                                <th class="p-3">Giải Trình Cửa Hàng & Đính Kèm</th>
+                                <th class="p-3">Đánh Giá ASM, Khấu Trừ & Nhân Sự</th>
+                                <th class="p-3 text-center">Trạng Thái</th>
+                                <th class="p-3 text-center min-w-[130px]">Thao Tác Xử Lý</th>
                             </tr>
                         </thead>
                         <tbody id="comp-table-body" class="divide-y divide-gray-100 bg-white font-normal">
@@ -6641,40 +6641,55 @@
                 }
 
                 const attachHtml = item.attachment_url ? 
-                    `<a href="${escapeHtml(item.attachment_url)}" target="_blank" class="text-blue-600 hover:underline font-bold flex items-center gap-1">📎 Xem ảnh/tờ trình</a>` : 
-                    `<span class="text-gray-400 italic">Chưa đính kèm</span>`;
+                    `<a href="${escapeHtml(item.attachment_url)}" target="_blank" class="text-blue-600 hover:text-blue-800 font-bold inline-flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 mt-1 shadow-2xs">📎 Xem Tờ Trình/Ảnh</a>` : 
+                    `<span class="text-gray-400 italic text-[10px]">Chưa đính kèm</span>`;
+
+                const staffPosTag = item.violating_staff_position ? 
+                    `<span class="px-1.5 py-0.5 bg-slate-100 text-slate-700 font-extrabold text-[9px] rounded border border-slate-200">${escapeHtml(item.violating_staff_position)}</span>` : '';
+
+                const penaltyBadge = item.penalty_percent && item.penalty_percent !== '0%' ?
+                    `<div class="mt-1 p-1.5 bg-rose-50 border border-rose-200 rounded-md text-[10px] text-rose-900 shadow-2xs">
+                        <div class="font-extrabold text-rose-700 flex items-center gap-1">
+                            <span>🔻 Trừ:</span> <strong class="bg-rose-600 text-white px-1.5 py-0.2 rounded font-black">${escapeHtml(item.penalty_percent)}</strong> thưởng Doanh Thu
+                        </div>
+                        ${item.penalty_month_range ? `<div class="text-[9px] text-rose-600 font-semibold mt-0.5">📅 ${escapeHtml(item.penalty_month_range)}</div>` : ''}
+                     </div>` : '';
 
                 return `
-                    <tr class="hover:bg-slate-50 transition-colors border-b border-gray-100 text-xs">
-                        <td class="p-2.5 font-bold text-brand-navy">
-                            <div>${safeTicket}</div>
-                            <div class="text-[11px] text-blue-700 font-extrabold">${safeStoreName} (${safeStoreCode})</div>
+                    <tr class="hover:bg-slate-50/80 transition-colors border-b border-gray-100 text-xs">
+                        <td class="p-3 font-bold text-brand-navy">
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-mono text-[11px] font-extrabold text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">${safeTicket}</span>
+                            </div>
+                            <div class="text-xs text-brand-navy font-extrabold mt-1">${safeStoreName}</div>
+                            <div class="text-[10px] text-brand-red font-bold">CH: ${safeStoreCode}</div>
                         </td>
-                        <td class="p-2.5 font-semibold text-gray-700">
-                            <div class="font-bold text-indigo-900">${safeAsmName}</div>
-                            <div class="text-[11px] text-gray-500">${safeGroup}</div>
+                        <td class="p-3 font-semibold text-gray-700">
+                            <div class="font-extrabold text-indigo-950">${safeAsmName}</div>
+                            <div class="mt-1"><span class="px-1.5 py-0.5 bg-indigo-50 text-indigo-700 font-extrabold text-[9px] rounded uppercase border border-indigo-100">${safeGroup}</span></div>
                         </td>
-                        <td class="p-2.5 max-w-xs">
-                            <div class="font-bold text-gray-800 truncate" title="${safeCheckItem}">${safeCheckItem}</div>
-                            <div class="text-[11px] text-gray-500 line-clamp-2" title="${safeDesc}">${safeDesc}</div>
+                        <td class="p-3 max-w-xs">
+                            <div class="font-extrabold text-gray-800 text-xs" title="${safeCheckItem}">${safeCheckItem}</div>
+                            <div class="text-[11px] text-gray-500 line-clamp-2 mt-0.5" title="${safeDesc}">${safeDesc}</div>
                         </td>
-                        <td class="p-2.5 text-center">${isRepeatBadge}</td>
-                        <td class="p-2.5 text-center text-gray-600 font-mono text-[11px]">${safeCamTime}</td>
-                        <td class="p-2.5 text-center">${slaBadge}</td>
-                        <td class="p-2.5 max-w-xs text-[11px]">
-                            <div class="font-medium text-gray-800 line-clamp-2" title="${safeStoreExp}">${safeStoreExp || '<em>(Chưa có giải trình)</em>'}</div>
-                            <div class="mt-0.5">${attachHtml}</div>
+                        <td class="p-3 text-center">${isRepeatBadge}</td>
+                        <td class="p-3 text-center text-gray-600 font-mono text-[11px]">${safeCamTime}</td>
+                        <td class="p-3 text-center">${slaBadge}</td>
+                        <td class="p-3 max-w-xs text-[11px]">
+                            <div class="font-medium text-gray-800 line-clamp-3" title="${safeStoreExp}">${safeStoreExp || '<em class="text-gray-400">(Chưa có giải trình)</em>'}</div>
+                            <div class="mt-1">${attachHtml}</div>
                         </td>
-                        <td class="p-2.5 max-w-xs text-[11px]">
-                            <div class="font-bold text-indigo-800">${safeAsmAssessment || '<em>(Chưa đánh giá)</em>'}</div>
-                            ${safeStaffInfo ? `<div class="text-gray-600">NV: ${safeStaffInfo}</div>` : ''}
+                        <td class="p-3 max-w-xs text-[11px]">
+                            <div class="font-bold text-indigo-900">${safeAsmAssessment || '<em class="text-gray-400 font-normal">(Chưa đánh giá)</em>'}</div>
+                            ${safeStaffInfo ? `<div class="mt-1 font-semibold text-slate-700 flex items-center gap-1">👤 ${safeStaffInfo} ${staffPosTag}</div>` : ''}
+                            ${penaltyBadge}
                         </td>
-                        <td class="p-2.5 text-center">${statusBadge}</td>
-                        <td class="p-2.5 text-center space-y-1">
-                            <button onclick="openModalStoreExplain('${safeTicket}')" class="w-full px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded font-bold text-[10px] flex items-center justify-center gap-1">
+                        <td class="p-3 text-center">${statusBadge}</td>
+                        <td class="p-3 text-center space-y-1.5">
+                            <button onclick="openModalStoreExplain('${safeTicket}')" class="w-full px-2.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-lg font-bold text-[11px] shadow-xs flex items-center justify-center gap-1 transition-all">
                                 <span>📝</span> CH Giải Trình
                             </button>
-                            <button onclick="openModalAsmApprove('${safeTicket}')" class="w-full px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-300 rounded font-bold text-[10px] flex items-center justify-center gap-1">
+                            <button onclick="openModalAsmApprove('${safeTicket}')" class="w-full px-2.5 py-1.5 bg-gradient-to-r from-indigo-600 to-blue-700 hover:from-indigo-700 hover:to-blue-800 text-white rounded-lg font-bold text-[11px] shadow-xs flex items-center justify-center gap-1 transition-all">
                                 <span>⚖️</span> ASM Đánh Giá
                             </button>
                         </td>
@@ -6891,6 +6906,48 @@
             }
         }
 
+        function calcPenaltyMonthRange() {
+            const periodVal = document.getElementById('comp-penalty-period')?.value || '';
+            const monthsCount = parseInt(document.getElementById('comp-penalty-months')?.value) || 1;
+            const outRange = document.getElementById('comp-penalty-month-range');
+            
+            if (!periodVal) {
+                if (outRange) outRange.value = '';
+                return;
+            }
+            
+            const parts = periodVal.split('-');
+            const year = parseInt(parts[0]);
+            const month = parseInt(parts[1]);
+            
+            const startStr = `Tháng ${String(month).padStart(2, '0')}/${year}`;
+            
+            if (monthsCount <= 1) {
+                if (outRange) outRange.value = `Khấu trừ trong: ${startStr}`;
+                return;
+            }
+            
+            let endMonth = month + (monthsCount - 1);
+            let endYear = year;
+            while (endMonth > 12) {
+                endMonth -= 12;
+                endYear += 1;
+            }
+            
+            const endStr = `Tháng ${String(endMonth).padStart(2, '0')}/${endYear}`;
+            if (outRange) outRange.value = `Từ ${startStr} đến ${endStr} (${monthsCount} tháng)`;
+        }
+
+        function onPositionChangeForFine() {
+            const pos = document.getElementById('comp-violating-staff-position')?.value;
+            const fineSelect = document.getElementById('comp-fine-deduction');
+            if ((pos === 'Cửa hàng trưởng' || pos === 'Cửa hàng phó') && fineSelect) {
+                if (fineSelect.value === '0%' || !fineSelect.value) {
+                    fineSelect.value = '30%';
+                }
+            }
+        }
+
         function openModalAsmApprove(ticketCode) {
             const item = currentComplianceData.find(i => i.ticket_code === ticketCode);
             if (!item) return;
@@ -6900,6 +6957,22 @@
             document.getElementById('comp-asm-modal-attach').innerHTML = item.attachment_url ? `<a href="${item.attachment_url}" target="_blank" class="text-blue-600 font-bold underline">📎 Xem Tờ Trình / Ảnh Đính Kèm</a>` : '';
             document.getElementById('comp-asm-assessment').value = item.asm_assessment || '';
             document.getElementById('comp-violating-staff').value = item.violating_staff_info || '';
+            
+            if (document.getElementById('comp-violating-staff-position')) {
+                document.getElementById('comp-violating-staff-position').value = item.violating_staff_position || 'Nhân viên bán hàng';
+            }
+            if (document.getElementById('comp-fine-deduction')) {
+                document.getElementById('comp-fine-deduction').value = item.penalty_percent || '20%';
+            }
+            if (document.getElementById('comp-penalty-period')) {
+                const nowStr = new Date().toISOString().slice(0, 7);
+                document.getElementById('comp-penalty-period').value = item.penalty_revenue_period || nowStr;
+            }
+            if (document.getElementById('comp-penalty-months')) {
+                document.getElementById('comp-penalty-months').value = item.penalty_month_count || 1;
+            }
+            calcPenaltyMonthRange();
+
             document.getElementById('modal-asm-compliance-approve').classList.remove('hidden');
         }
         function closeModalAsmApprove() {
@@ -6910,7 +6983,11 @@
             const ticketCode = document.getElementById('comp-asm-ticket-code').value;
             const assessment = document.getElementById('comp-asm-assessment').value.trim();
             const staffInfo = document.getElementById('comp-violating-staff').value.trim();
-            const fine = document.getElementById('comp-fine-deduction').value;
+            const staffPos = document.getElementById('comp-violating-staff-position')?.value || '';
+            const fine = document.getElementById('comp-fine-deduction')?.value || '0%';
+            const revPeriod = document.getElementById('comp-penalty-period')?.value || '';
+            const monthCount = parseInt(document.getElementById('comp-penalty-months')?.value) || 1;
+            const monthRange = document.getElementById('comp-penalty-month-range')?.value || '';
             const status = document.getElementById('comp-asm-status').value;
 
             if (!assessment) {
@@ -6928,14 +7005,19 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         ticket_code: ticketCode,
-                        asm_assessment: `${assessment} (Phạt: ${fine})`,
+                        asm_assessment: assessment,
                         violating_staff_info: staffInfo,
+                        violating_staff_position: staffPos,
+                        penalty_percent: fine,
+                        penalty_revenue_period: revPeriod,
+                        penalty_month_count: monthCount,
+                        penalty_month_range: monthRange,
                         status: status
                     })
                 });
                 const data = await res.json();
                 if (data.ok) {
-                    showToast("✅ Đã Lưu Đánh Giá ASM", "Hồ sơ sự vụ tuân thủ đã được cập nhật", "✅");
+                    showToast("✅ Đã Lưu Đánh Giá ASM", "Hồ sơ sự vụ tuân thủ đã được cập nhật thành công!", "✅");
                     closeModalAsmApprove();
                     await loadComplianceAudits();
                 } else {
@@ -7406,17 +7488,48 @@
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Thông Tin Nhân Sự Vi Phạm</label>
+                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Họ Tên Nhân Sự Vi Phạm</label>
                         <input type="text" id="comp-violating-staff" class="input-field font-semibold" placeholder="Họ tên nhân sự vi phạm">
                     </div>
                     <div>
-                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Mức Độ Phạt / Khấu Trừ Chế Thưởng</label>
+                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Chức Danh Nhân Sự</label>
+                        <select id="comp-violating-staff-position" onchange="onPositionChangeForFine()" class="input-field font-bold text-gray-800">
+                            <option value="Cửa hàng trưởng">Cửa hàng trưởng (CHT)</option>
+                            <option value="Cửa hàng phó">Cửa hàng phó (CHP)</option>
+                            <option value="Nhân viên bán hàng" selected>Nhân viên bán hàng (NVBH)</option>
+                            <option value="Nhân viên giao nhận">Nhân viên giao nhận (NVGN)</option>
+                            <option value="Nhân viên bảo vệ">Nhân viên bảo vệ (NVBV)</option>
+                            <option value="Nhân viên thử việc">Nhân viên thử việc (NVTV)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-red-700 uppercase mb-1">Khấu Trừ % Thưởng Doanh Thu</label>
                         <select id="comp-fine-deduction" class="input-field font-bold text-red-600">
                             <option value="0%">0% (Nhắc nhở / Không trừ)</option>
-                            <option value="20%">20% Chế Thưởng</option>
-                            <option value="50%">50% Chế Thưởng</option>
-                            <option value="100%">100% Khấu Trừ Chế Thưởng (Chế tài nặng)</option>
+                            <option value="10%">10% Khấu Trừ Thưởng Doanh Thu</option>
+                            <option value="20%">20% Khấu Trừ Thưởng Doanh Thu</option>
+                            <option value="30%">30% Khấu Trừ Thưởng Doanh Thu (CHT/CHP / Lỗi Nặng)</option>
+                            <option value="50%">50% Khấu Trừ Thưởng Doanh Thu</option>
+                            <option value="100%">100% Khấu Trừ Thưởng Doanh Thu (Tối Đa)</option>
                         </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Tháng Doanh Thu Áp Dụng</label>
+                        <input type="month" id="comp-penalty-period" onchange="calcPenaltyMonthRange()" class="input-field font-bold text-gray-900">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Số Tháng Khấu Trừ</label>
+                        <input type="number" min="1" max="12" id="comp-penalty-months" value="1" oninput="calcPenaltyMonthRange()" class="input-field font-bold text-center">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-indigo-700 uppercase mb-1">Khoảng Thời Gian Trừ</label>
+                        <input type="text" id="comp-penalty-month-range" readonly class="input-field font-bold text-indigo-700 bg-indigo-50/60" placeholder="Tự động tính từ tháng...">
                     </div>
                 </div>
 

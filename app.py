@@ -2227,6 +2227,12 @@ def update_compliance_audit():
         status = data.get('status')
         custom_deadline = data.get('response_deadline')
 
+        violating_staff_position = data.get('violating_staff_position')
+        penalty_percent = data.get('penalty_percent')
+        penalty_revenue_period = data.get('penalty_revenue_period')
+        penalty_month_count = data.get('penalty_month_count')
+        penalty_month_range = data.get('penalty_month_range')
+
         if not ticket_code:
             return jsonify({'ok': False, 'error': 'Mã ticket không hợp lệ'})
 
@@ -2266,6 +2272,26 @@ def update_compliance_audit():
         if violating_staff_info is not None:
             updates.append("violating_staff_info = ?")
             args.append(violating_staff_info)
+
+        if violating_staff_position is not None:
+            updates.append("violating_staff_position = ?")
+            args.append(violating_staff_position)
+
+        if penalty_percent is not None:
+            updates.append("penalty_percent = ?")
+            args.append(penalty_percent)
+
+        if penalty_revenue_period is not None:
+            updates.append("penalty_revenue_period = ?")
+            args.append(penalty_revenue_period)
+
+        if penalty_month_count is not None:
+            updates.append("penalty_month_count = ?")
+            args.append(penalty_month_count)
+
+        if penalty_month_range is not None:
+            updates.append("penalty_month_range = ?")
+            args.append(penalty_month_range)
 
         if attachment_url is not None:
             updates.append("attachment_url = ?")
@@ -2387,6 +2413,7 @@ def export_compliance_excel():
         
         import openpyxl
         from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+        from openpyxl.utils import get_column_letter
         
         wb = openpyxl.Workbook()
         ws = wb.active
@@ -2395,11 +2422,11 @@ def export_compliance_excel():
         headers = [
             "STT", "Chuyên Đề", "Hạng Mục Kiểm Tra", "Tiêu Chuẩn Yêu Cầu", "Mã CH", "Tên CH",
             "QLKD Phụ Trách", "Thời Gian CAM", "Nhóm Lỗi Vi Phạm", "Mô Tả Vi Phạm (P.QLQT)",
-            "Đánh Giá", "SLA Hạn Phản Hồi", "Trạng Thái", "Tái Phạm?",
+            "Đánh Giá P.QLQT", "SLA Hạn Phản Hồi", "Trạng Thái", "Tái Phạm?",
             "Tường Trình Cửa Hàng (CH)", "Nhận Định QLKD (ASM) & % Trừ Thưởng", "Nhân Sự Vi Phạm", "Link Tờ Trình Đính Kèm"
         ]
         
-        header_font = Font(name="Arial", size=10, bold=True, color="FFFFFF")
+        header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
         header_fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
         center_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
         left_align = Alignment(horizontal="left", vertical="center", wrap_text=True)
@@ -2411,6 +2438,7 @@ def export_compliance_excel():
             bottom=Side(style='thin', color='CBD5E1')
         )
         
+        ws.row_dimensions[1].height = 28
         ws.append(headers)
         for col_idx in range(1, len(headers) + 1):
             cell = ws.cell(1, col_idx)
@@ -2418,8 +2446,30 @@ def export_compliance_excel():
             cell.fill = header_fill
             cell.alignment = center_align
             
+        alt_fill = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
+        white_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
+
         for idx, a in enumerate(audits, 1):
-            is_rep = "⚠️ TÁI PHẠM" if a.get('is_repeat_offense') else "Lần 1"
+            is_rep = f"⚠️ TÁI PHẠM ({a.get('repeat_count', 1)})" if a.get('is_repeat_offense') else "Lần 1"
+            
+            # Format ASM Assessment with fine details
+            asm_assess_parts = []
+            if a.get('asm_assessment'):
+                asm_assess_parts.append(a.get('asm_assessment'))
+            if a.get('penalty_percent') and a.get('penalty_percent') != '0%':
+                asm_assess_parts.append(f"• Trừ: {a.get('penalty_percent')} thưởng DT")
+            if a.get('penalty_month_range'):
+                asm_assess_parts.append(f"• Thời gian: {a.get('penalty_month_range')}")
+            asm_assess_full = "\n".join(asm_assess_parts)
+
+            # Format Staff Info with position
+            staff_info_parts = []
+            if a.get('violating_staff_info'):
+                staff_info_parts.append(a.get('violating_staff_info'))
+            if a.get('violating_staff_position'):
+                staff_info_parts.append(f"({a.get('violating_staff_position')})")
+            staff_full = " ".join(staff_info_parts)
+
             row = [
                 idx,
                 a.get('topic', ''),
@@ -2436,17 +2486,28 @@ def export_compliance_excel():
                 a.get('status', ''),
                 is_rep,
                 a.get('store_explanation', ''),
-                a.get('asm_assessment', ''),
-                a.get('violating_staff_info', ''),
+                asm_assess_full,
+                staff_full,
                 a.get('attachment_url', '')
             ]
             ws.append(row)
             r_idx = idx + 1
+            ws.row_dimensions[r_idx].height = 36
+            row_fill = alt_fill if idx % 2 == 0 else white_fill
+
             for c_idx in range(1, len(row) + 1):
                 c = ws.cell(r_idx, c_idx)
+                c.font = Font(name="Calibri", size=10)
+                c.fill = row_fill
                 c.border = thin_border
-                c.alignment = center_align if c_idx in (1, 5, 7, 11, 12, 13, 14) else left_align
-                
+                c.alignment = center_align if c_idx in (1, 5, 7, 8, 12, 13, 14) else left_align
+
+        # Auto-adjust column widths cleanly
+        for col in ws.columns:
+            max_len = max(len(str(cell.value or '')) for cell in col)
+            col_letter = get_column_letter(col[0].column)
+            ws.column_dimensions[col_letter].width = min(max(max_len + 4, 12), 50)
+            
         from io import BytesIO
         output = BytesIO()
         wb.save(output)
