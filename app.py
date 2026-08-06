@@ -2058,11 +2058,14 @@ def import_compliance_excel():
 def get_compliance_audits():
     """API lấy danh sách các sự vụ kiểm soát nội bộ P.QLQT"""
     try:
-        role = request.args.get('role', 'store')
-        pin = request.args.get('pin', '')
-        asm = request.args.get('asm', '')
-        store_code = request.args.get('store_code', '')
-        status_filter = request.args.get('status', '')
+        role = request.args.get('role', '').strip()
+        pin = request.args.get('pin', '').strip()
+        asm = request.args.get('asm', '').strip()
+        store_code = request.args.get('store_code', '').strip()
+        status_filter = request.args.get('status', '').strip()
+
+        if not role:
+            role = 'admin' if (pin == MASTER_PIN or not pin) else 'store'
         
         # Support both param naming conventions from JS and API spec
         days_param = request.args.get('days_window') or request.args.get('days') or '365'

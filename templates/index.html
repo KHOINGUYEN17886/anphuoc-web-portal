@@ -989,8 +989,14 @@
                         </div>
                         <div class="flex items-center gap-1.5">
                             <label class="text-xs font-bold text-gray-500">ASM:</label>
-                            <select id="comp-filter-asm" onchange="loadComplianceAudits()" class="text-xs border rounded-lg px-2 py-1 bg-white font-medium">
+                            <select id="comp-filter-asm" onchange="onComplianceAsmChange()" class="text-xs border rounded-lg px-2 py-1 bg-white font-medium">
                                 <option value="">Tất cả ASM</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <label class="text-xs font-bold text-gray-500">Cửa Hàng:</label>
+                            <select id="comp-filter-store" onchange="loadComplianceAudits()" class="text-xs border rounded-lg px-2 py-1 bg-white font-medium max-w-[180px]">
+                                <option value="">Tất cả cửa hàng</option>
                             </select>
                         </div>
                         <div class="flex items-center gap-1.5">
@@ -6407,19 +6413,77 @@
                 .replace(/'/g, '&#39;');
         }
 
+        async function onComplianceAsmChange() {
+            await updateComplianceStoreDropdown();
+            await loadComplianceAudits();
+        }
+
+        async function updateComplianceStoreDropdown() {
+            const asmSelect = document.getElementById('comp-filter-asm');
+            const storeSelect = document.getElementById('comp-filter-store');
+            if (!storeSelect) return;
+
+            const selectedAsm = asmSelect ? asmSelect.value : '';
+            const currentStoreVal = storeSelect.value;
+
+            try {
+                // Query stores from window.allStoresData or fetch API
+                let storeList = [];
+                if (window.allStoresData && window.allStoresData.length > 0) {
+                    storeList = window.allStoresData;
+                } else {
+                    const res = await fetch('/api/stores');
+                    const data = await res.json();
+                    if (data.ok && data.stores) {
+                        storeList = data.stores;
+                        window.allStoresData = storeList;
+                    }
+                }
+
+                storeSelect.innerHTML = '<option value="">Tất cả Cửa Hàng</option>';
+                const filteredStores = selectedAsm ? storeList.filter(s => s.asm === selectedAsm) : storeList;
+
+                filteredStores.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.code || s.store_code;
+                    opt.textContent = `${s.name || s.store_name} (${s.code || s.store_code})`;
+                    if ((s.code || s.store_code) === currentStoreVal) opt.selected = true;
+                    storeSelect.appendChild(opt);
+                });
+            } catch (err) {
+                console.error('Error populating store dropdown:', err);
+            }
+        }
+
         async function loadComplianceAudits() {
             const tableBody = document.getElementById('comp-table-body');
             if (!tableBody) return;
 
             tableBody.innerHTML = '<tr><td colspan="10" class="text-center py-6 text-gray-400">⏳ Đang nạp dữ liệu kiểm soát tuân thủ P.QLQT...</td></tr>';
 
+            const role = (typeof currentStore !== 'undefined' && currentStore && currentStore.role) ? currentStore.role : 'admin';
+            const pin = (typeof currentStore !== 'undefined' && currentStore && currentStore.pin) ? currentStore.pin : '8888';
+
             const asm = document.getElementById('comp-filter-asm')?.value || '';
+            const storeCode = document.getElementById('comp-filter-store')?.value || '';
             const status = document.getElementById('comp-filter-status')?.value || '';
             const days = document.getElementById('comp-filter-days')?.value || '365';
             const isRepeat = document.getElementById('comp-filter-repeat')?.value || '';
 
             try {
-                const res = await fetch(`/api/get_compliance_audits?asm=${encodeURIComponent(asm)}&status=${encodeURIComponent(status)}&days=${days}&days_window=${days}&is_repeat=${isRepeat}&repeat_only=${isRepeat}`);
+                const queryParams = new URLSearchParams({
+                    role: role,
+                    pin: pin,
+                    asm: asm,
+                    store_code: storeCode,
+                    status: status,
+                    days: days,
+                    days_window: days,
+                    is_repeat: isRepeat,
+                    repeat_only: isRepeat
+                });
+
+                const res = await fetch(`/api/get_compliance_audits?${queryParams.toString()}`);
                 const data = await res.json();
 
                 if (!data.ok) {
@@ -6436,7 +6500,7 @@
                 }
 
                 const asmSelect = document.getElementById('comp-filter-asm');
-                if (asmSelect && data.asms) {
+                if (asmSelect && data.asms && asmSelect.options.length <= 1) {
                     const currentVal = asmSelect.value;
                     asmSelect.innerHTML = '<option value="">Tất cả ASM</option>';
                     data.asms.forEach(a => {
