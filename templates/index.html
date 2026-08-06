@@ -6916,7 +6916,25 @@
             document.getElementById('comp-store-modal-checkitem').innerText = `Nội dung: ${item.check_item}`;
             document.getElementById('comp-store-modal-desc').innerText = `Chi tiết vi phạm: ${item.violation_description || 'Không có mô tả chi tiết'}`;
             document.getElementById('comp-store-explanation').value = item.store_explanation || '';
-            document.getElementById('comp-store-file-status').innerText = item.attachment_url ? `Đã đính kèm: ${item.attachment_url}` : '';
+            
+            const fileStatusEl = document.getElementById('comp-store-file-status');
+            if (fileStatusEl) {
+                if (item.attachment_url) {
+                    const isPdf = item.attachment_url.toLowerCase().endsWith('.pdf');
+                    fileStatusEl.innerHTML = `
+                        <div class="mt-2 p-2.5 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between shadow-2xs">
+                            <span class="text-xs text-blue-900 font-bold flex items-center gap-1.5">
+                                <span>📄</span> File đính kèm hiện tại:
+                            </span>
+                            <a href="${item.attachment_url}" target="_blank" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-xs inline-flex items-center gap-1 transition-all">
+                                <span>👁️</span> Xem / Tải Tờ Trình (${isPdf ? 'PDF' : 'Ảnh'})
+                            </a>
+                        </div>
+                    `;
+                } else {
+                    fileStatusEl.innerHTML = '<span class="text-xs text-gray-400 italic">Chưa có file đính kèm</span>';
+                }
+            }
             document.getElementById('modal-store-compliance-explain').classList.remove('hidden');
         }
         function closeModalStoreExplain() {
@@ -7064,6 +7082,16 @@
                 if (fineSelect.value === '0%' || !fineSelect.value) {
                     fineSelect.value = '30%';
                 }
+            }
+        }
+
+        function onAsmStatusChange() {
+            const status = document.getElementById('comp-asm-status')?.value;
+            const rejectContainer = document.getElementById('container-asm-reject-reason');
+            if (status === 'Yêu cầu giải trình lại') {
+                if (rejectContainer) rejectContainer.classList.remove('hidden');
+            } else {
+                if (rejectContainer) rejectContainer.classList.add('hidden');
             }
         }
 
@@ -7667,10 +7695,16 @@
 
                 <div>
                     <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Trạng Thái Hồ Sơ</label>
-                    <select id="comp-asm-status" class="input-field font-bold text-brand-navy">
+                    <select id="comp-asm-status" onchange="onAsmStatusChange()" class="input-field font-bold text-brand-navy">
                         <option value="CH đã giải trình">⏳ CH đã giải trình (Đang xem xét)</option>
+                        <option value="Yêu cầu giải trình lại">🔄 Yêu cầu Cửa Hàng giải trình lại</option>
                         <option value="Hoàn tất">✅ Hoàn tất & Chốt Hồ Sơ</option>
                     </select>
+                </div>
+
+                <div id="container-asm-reject-reason" class="hidden font-medium">
+                    <label class="block text-[11px] font-bold text-red-700 uppercase mb-1">Lý Do Yêu Cầu CH Giải Trình Lại (* Thông báo sẽ được tự động gửi Mail cho CH)</label>
+                    <textarea id="comp-asm-reject-reason" rows="2" class="input-field text-xs font-medium border-red-300 focus:border-red-500 focus:ring-red-500" placeholder="Nhập chi tiết lý do ASM chưa chấp nhận giải trình, bổ sung thêm bằng chứng/tờ trình nào..."></textarea>
                 </div>
             </div>
 

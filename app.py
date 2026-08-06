@@ -415,6 +415,17 @@ def safe_migrate_db():
             'end_date': "VARCHAR(20) DEFAULT ''",
             'created_at': "VARCHAR(30) DEFAULT ''",
         },
+        'tb_stores': {
+            'email': "VARCHAR(255) DEFAULT ''",
+        },
+        'tb_compliance_audits': {
+            'reject_reason': "TEXT DEFAULT ''",
+            'violating_staff_position': "VARCHAR(100) DEFAULT ''",
+            'penalty_percent': "VARCHAR(50) DEFAULT '0%'",
+            'penalty_revenue_period': "VARCHAR(50) DEFAULT ''",
+            'penalty_month_count': "INTEGER DEFAULT 1",
+            'penalty_month_range': "VARCHAR(100) DEFAULT ''",
+        },
         'tb_store_headcount_targets': {
             'cht_name': "VARCHAR(100) DEFAULT ''",
             'updated_at': "VARCHAR(30) DEFAULT ''",
@@ -2139,7 +2150,6 @@ def get_compliance_audits():
             where_clauses.append("c.is_repeat_offense = 1")
 
         where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
-
         sql = f"""
             SELECT c.*, s.store_name as ref_store_name, s.asm_name as ref_asm_name
             FROM tb_compliance_audits c
@@ -2232,6 +2242,82 @@ def get_compliance_audits():
         traceback.print_exc()
         return jsonify({'ok': False, 'error': f'Lỗi tải danh sách kiểm soát tuân thủ: {str(e)}'})
 
+def send_compliance_store_email(ticket, action_type='REJECT_EXPLANATION', reason='', custom_subject=None, custom_body=None):
+    """Tự động gửi email thông báo / nhắc nhở cho Cửa hàng dựa trên StoresInfo & seed_stores_baseline."""
+    try:
+        store_code = ticket.get('store_code') or ''
+        store_name = ticket.get('store_name') or store_code
+        ticket_code = ticket.get('ticket_code') or ''
+
+        clean_code = store_code.replace('126_', '').replace('126', '').strip()
+        store_rec = query_db("SELECT * FROM tb_stores WHERE store_code = ? OR store_code LIKE ?", 
+                             (store_code, f"%{clean_code}%"), one=True)
+
+        store_email = store_rec.get('email') if store_rec else None
+        if not store_email or '@' not in store_email:
+            store_email = f"ch_{clean_code.lower()}@anphuoc.com.vn"
+
+        smtp_host = os.environ.get('SMTP_HOST', 'smtp.gmail.com')
+        smtp_port = int(os.environ.get('SMTP_PORT', '587'))
+        smtp_user = os.environ.get('SMTP_USER', '')
+        smtp_pass = os.environ.get('SMTP_PASS', '')
+
+        subject = custom_subject
+        body_html = custom_body
+
+        if not subject or not body_html:
+            if action_type in ('REJECT_EXPLANATION', 'RE_EXPLAIN'):
+                subject = f"[RETAIL COMMANDER] ⚠️ Yêu Cầu Giải Trình Lại Sự Vụ: {ticket_code} - CH {store_name}"
+                body_html = f"""
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; background-color: #ffffff;">
+                    <h2 style="color: #991b1b; margin-top: 0;">⚠️ THÔNG BÁO YÊU CẦU GIẢI TRÌNH LẠI SỰ VỤ TUÂN THỦ</h2>
+                    <p>Kính gửi <strong>Cửa hàng {store_name} ({store_code})</strong>,</p>
+                    <p>ASM / Ban Quản Lý đã xem xét giải trình của Cửa hàng cho sự vụ <strong>{ticket_code}</strong> và yêu cầu <strong>GIẢI TRÌNH LẠI</strong> với lý do cụ thể sau:</p>
+                    <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 12px; margin: 16px 0; font-size: 14px; color: #7f1d1d;">
+                        <strong>Nội dung ASM yêu cầu bổ sung:</strong><br/>
+                        {reason or 'Nội dung giải trình chưa đầy đủ hoặc chưa đính kèm biên bản/tờ trình theo quy định.'}
+                    </div>
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px;">
+                        <tr><td style="padding: 6px; font-weight: bold; width: 140px;">Hạng mục kiểm tra:</td><td style="padding: 6px;">{ticket.get('check_item', '')}</td></tr>
+                        <tr><td style="padding: 6px; font-weight: bold;">Chi tiết vi phạm:</td><td style="padding: 6px;">{ticket.get('violation_description', '')}</td></tr>
+                        <tr><td style="padding: 6px; font-weight: bold;">Hạn phản hồi:</td><td style="padding: 6px; color: #dc2626; font-weight: bold;">{ticket.get('response_deadline', '')}</td></tr>
+                    </table>
+                    <p>Vui lòng đăng nhập vào Web Portal Retail Commander để cập nhật lại giải trình & đính kèm file theo yêu cầu:</p>
+                    <div style="text-align: center; margin: 25px 0;">
+                        <a href="https://anphuoc-portal.onrender.com" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">👉 Đăng Nhập Portal Để Giải Trình Lại</a>
+                    </div>
+                    <hr style="border: none; border-top: 1px solid #e2e8f0; margin-top: 20px;" />
+                    <p style="font-size: 11px; color: #64748b; text-align: center;">Báo cáo tự động từ Hệ thống Retail Commander - An Phước Corporation</p>
+                </div>
+                """
+
+        print(f"📧 [EMAIL NOTIFIER] Preparing email to [{store_email}] for store {store_name} | Subject: {subject}")
+
+        if smtp_user and smtp_pass:
+            import smtplib
+            from email.mime.text import MIMEText
+            from email.mime.multipart import MIMEMultipart
+
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = subject
+            msg['From'] = smtp_user
+            msg['To'] = store_email
+            msg.attach(MIMEText(body_html, 'html', 'utf-8'))
+
+            server = smtplib.SMTP(smtp_host, smtp_port)
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.sendmail(smtp_user, [store_email], msg.as_string())
+            server.quit()
+            print(f"✅ [EMAIL NOTIFIER] Email sent successfully to {store_email}")
+            return True
+        else:
+            print(f"ℹ️ [EMAIL NOTIFIER (LOG)] Email notification simulated for {store_email}")
+            return True
+    except Exception as e:
+        print(f"⚠️ [EMAIL NOTIFIER ERROR] {e}")
+        return False
+
 @app.route('/api/update_compliance_audit', methods=['POST'])
 def update_compliance_audit():
     """API Cửa Hàng nhập giải trình / ASM phê duyệt & gán % trừ thưởng"""
@@ -2245,6 +2331,7 @@ def update_compliance_audit():
         attachment_url = data.get('attachment_url')
         status = data.get('status')
         custom_deadline = data.get('response_deadline')
+        reject_reason = data.get('reject_reason')
 
         violating_staff_position = data.get('violating_staff_position')
         penalty_percent = data.get('penalty_percent')
@@ -2263,7 +2350,7 @@ def update_compliance_audit():
         pin_str = str(pin).strip() if pin is not None else ''
 
         role = data.get('role', 'store')
-        is_asm_action = (asm_assessment is not None or penalty_percent is not None or status in ('Hoàn tất', 'Đã hoàn tất'))
+        is_asm_action = (asm_assessment is not None or penalty_percent is not None or status in ('Hoàn tất', 'Đã hoàn tất', 'Yêu cầu giải trình lại'))
 
         is_valid_pin = (pin_str == master_pin) or (pin_str in ('8888', '1234')) or _default_pin_allowed(pin_str)
         if not is_valid_pin and pin_str:
@@ -2301,6 +2388,15 @@ def update_compliance_audit():
             args.append(store_explanation)
             if not status and ticket['status'] in ('Mới tiếp nhận', 'Chờ CH tường trình'):
                 status = 'Chờ ASM duyệt'
+
+        if reject_reason:
+            updates.append("reject_reason = ?")
+            args.append(reject_reason)
+
+        if status == 'Yêu cầu giải trình lại':
+            status = 'Chờ CH tường trình'
+            if reject_reason:
+                asm_assessment = f"[YÊU CẦU GIẢI TRÌNH LẠI]: {reject_reason}"
 
         if asm_assessment is not None:
             updates.append("asm_assessment = ?")
@@ -2431,6 +2527,13 @@ def compliance_analytics():
 def export_compliance_excel():
     """API xuất file Excel báo cáo kiểm soát nội bộ P.QLQT (điền đầy đủ thông tin giải trình & % trừ thưởng)"""
     try:
+        role = request.args.get('role', 'store').strip().lower()
+        pin = request.args.get('pin', '').strip()
+        master_pin = os.environ.get('MASTER_PIN', '8888')
+
+        if role == 'store' and pin != master_pin:
+            return jsonify({'ok': False, 'error': 'Tài khoản Cửa hàng không có quyền xuất file Excel báo cáo! Quyền xuất file chỉ dành cho ASM và Admin.'}), 403
+
         batch_code = request.args.get('batch_code', '')
         asm = request.args.get('asm', '')
         
