@@ -2,8 +2,9 @@
 """
 gis_builder.py — Self-Contained GIS Command Center Map Builder for Render Cloud Deployment
 ==========================================================================================
-Generates 100% cloud-compatible interactive GIS map HTML with rich store details,
-Leaflet popups, interactive side drawers, and live API fetch integration.
+Generates 100% cloud-compatible interactive GIS map HTML with rich REAL operational metrics
+(Traffic, Bills POS, CR %, B2B Contracts, Staff Headcount), Leaflet popups, interactive drawer,
+and live API integration without heavy mock inventory data.
 """
 
 import os
@@ -46,7 +47,7 @@ def load_verified_coords() -> dict:
 
 
 def generate_cloud_gis_map_html(db_stores_list: list = None) -> str:
-    """Generates 100% self-contained GIS Executive Map HTML for Render Cloud Deployment."""
+    """Generates 100% self-contained GIS Executive Map HTML with real operational data."""
     coords_map = load_verified_coords()
 
     # Load baseline stores if db_stores_list is empty
@@ -80,6 +81,13 @@ def generate_cloud_gis_map_html(db_stores_list: list = None) -> str:
         mgr  = str(item.get('cht_name') or item.get('manager') or item.get('mgr') or c_info.get('mgr') or 'Đang cập nhật').strip()
         phone= str(item.get('phone') or c_info.get('phone') or 'N/A').strip()
 
+        # Real Operational Metrics from DB
+        emp_cnt    = int(item.get('emp_cnt') or 0)
+        traffic_7d = int(item.get('traffic_7d') or 0)
+        bills_7d   = int(item.get('bills_7d') or 0)
+        b2b_val    = float(item.get('b2b_val') or 0.0)
+        cr_pct     = round((bills_7d / traffic_7d * 100), 1) if traffic_7d > 0 else 0.0
+
         asms_set.add(asm)
         regions_set.add(reg)
 
@@ -87,26 +95,26 @@ def generate_cloud_gis_map_html(db_stores_list: list = None) -> str:
         lng = c_info.get('lng', 106.7009)
         color = ASM_COLORS.get(asm, '#64748b')
 
-        total_qty = c_info.get('total_qty', 1500)
-        total_val_m = c_info.get('total_val_m', 2500.0)
-        sku_count = c_info.get('sku_count', 4500)
-
         store_list.append({
             'code': code, 'name': name, 'addr': addr,
             'asm': asm, 'region': reg, 'tier': tier,
             'mgr': mgr, 'phone': phone,
             'lat': lat, 'lng': lng, 'color': color,
-            'total_qty': total_qty,
-            'total_val_m': total_val_m,
-            'sku_count': sku_count
+            'emp_cnt': emp_cnt,
+            'traffic_7d': traffic_7d,
+            'bills_7d': bills_7d,
+            'b2b_val': b2b_val,
+            'cr_pct': cr_pct
         })
 
     stores_json = json.dumps(store_list, ensure_ascii=False)
     asms_json   = json.dumps(sorted(list(asms_set)), ensure_ascii=False)
     regions_json= json.dumps(sorted(list(regions_set)), ensure_ascii=False)
 
-    total_qty_sum = sum(s['total_qty'] for s in store_list)
-    total_val_sum = round(sum(s['total_val_m'] for s in store_list) / 1000.0, 1)
+    total_traffic_sum = sum(s['traffic_7d'] for s in store_list)
+    total_bills_sum   = sum(s['bills_7d'] for s in store_list)
+    total_b2b_sum     = round(sum(s['b2b_val'] for s in store_list) / 1000000000.0, 2)
+    total_staff_sum   = sum(s['emp_cnt'] for s in store_list)
 
     html_content = f"""<!DOCTYPE html>
 <html lang="vi">
@@ -128,25 +136,25 @@ def generate_cloud_gis_map_html(db_stores_list: list = None) -> str:
         
         #topbar {{
             height: 70px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(16px);
-            display: flex; align-items: center; justify-content: space-between; padding: 0 28px;
+            display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1); z-index: 1000; position: relative;
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
         }}
-        .brand-title {{ font-size: 20px; font-weight: 800; letter-spacing: -0.5px; background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: flex; align-items: center; gap: 12px; }}
-        .badge-executive {{ background: linear-gradient(135deg, #0284c7 0%, #4f46e5 100%); color: #ffffff; padding: 5px 14px; border-radius: 30px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 0 15px rgba(56, 189, 248, 0.4); }}
+        .brand-title {{ font-size: 19px; font-weight: 800; letter-spacing: -0.5px; background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: flex; align-items: center; gap: 10px; }}
+        .badge-executive {{ background: linear-gradient(135deg, #0284c7 0%, #4f46e5 100%); color: #ffffff; padding: 4px 12px; border-radius: 30px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 0 15px rgba(56, 189, 248, 0.4); }}
         
-        .filter-container {{ display: flex; align-items: center; gap: 12px; }}
+        .filter-container {{ display: flex; align-items: center; gap: 10px; }}
         .input-glass {{
             background: rgba(30, 41, 59, 0.8); color: #f8fafc; border: 1px solid rgba(255, 255, 255, 0.15);
-            padding: 10px 16px; border-radius: 12px; font-size: 13px; outline: none; font-family: inherit;
+            padding: 8px 14px; border-radius: 12px; font-size: 13px; outline: none; font-family: inherit;
             transition: all 0.25s ease; backdrop-filter: blur(8px);
         }}
         .input-glass:hover, .input-glass:focus {{ border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25); background: rgba(30, 41, 59, 0.95); }}
 
-        .kpi-wrapper {{ display: flex; gap: 20px; }}
-        .kpi-box {{ background: rgba(30, 41, 59, 0.6); padding: 8px 18px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08); display: flex; flex-direction: column; justify-content: center; }}
-        .kpi-lbl {{ font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }}
-        .kpi-num {{ font-size: 16px; font-weight: 800; color: #f8fafc; margin-top: 2px; }}
+        .kpi-wrapper {{ display: flex; gap: 14px; }}
+        .kpi-box {{ background: rgba(30, 41, 59, 0.6); padding: 6px 14px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08); display: flex; flex-direction: column; justify-content: center; min-width: 100px; }}
+        .kpi-lbl {{ font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }}
+        .kpi-num {{ font-size: 15px; font-weight: 800; color: #f8fafc; margin-top: 1px; }}
 
         #main {{ display: flex; height: calc(100vh - 70px); position: relative; }}
         #map {{ flex: 1; height: 100%; width: 100%; background: #090d16; }}
@@ -210,7 +218,7 @@ def generate_cloud_gis_map_html(db_stores_list: list = None) -> str:
         </div>
 
         <div class="filter-container">
-            <input type="text" id="searchInput" class="input-glass" style="width: 240px;" placeholder="🔍 Tìm Tên / Mã / Địa Chỉ..." oninput="filterMap()" />
+            <input type="text" id="searchInput" class="input-glass" style="width: 210px;" placeholder="🔍 Tìm Tên / Mã / Địa Chỉ..." oninput="filterMap()" />
             
             <select id="asmSelect" class="input-glass" onchange="filterMap()">
                 <option value="ALL">-- Tất Cả ASM ({len(asms_set)} ASM) --</option>
@@ -227,12 +235,20 @@ def generate_cloud_gis_map_html(db_stores_list: list = None) -> str:
                 <div id="kpiStores" class="kpi-num">{len(store_list)}</div>
             </div>
             <div class="kpi-box">
-                <div class="kpi-lbl">Tổng Tồn Kho</div>
-                <div id="kpiQty" class="kpi-num">{total_qty_sum:,} pcs</div>
+                <div class="kpi-lbl">Tổng Traffic</div>
+                <div id="kpiTraffic" class="kpi-num" style="color: #38bdf8;">{total_traffic_sum:,}</div>
             </div>
             <div class="kpi-box">
-                <div class="kpi-lbl">Giá Trị Tồn Kho</div>
-                <div id="kpiVal" class="kpi-num" style="color: #38bdf8;">{total_val_sum:,.1f} Tỷ</div>
+                <div class="kpi-lbl">Hóa Đơn POS</div>
+                <div id="kpiBills" class="kpi-num">{total_bills_sum:,}</div>
+            </div>
+            <div class="kpi-box">
+                <div class="kpi-lbl">Hợp Đồng B2B</div>
+                <div id="kpiB2B" class="kpi-num" style="color: #eab308;">{total_b2b_sum:,.2f} Tỷ</div>
+            </div>
+            <div class="kpi-box">
+                <div class="kpi-lbl">Nhân Sự CH</div>
+                <div id="kpiStaff" class="kpi-num" style="color: #10b981;">{total_staff_sum:,} NV</div>
             </div>
         </div>
     </div>
@@ -258,9 +274,9 @@ def generate_cloud_gis_map_html(db_stores_list: list = None) -> str:
             <div style="font-size: 13px; color: #94a3b8; line-height:1.5; background:rgba(255,255,255,0.03); padding:10px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);" id="drawerAddr">---</div>
 
             <div class="hero-card">
-                <div style="font-size: 12px; color: #94a3b8; font-weight: 600;">Ước Tính Tồn Kho Hệ Thống</div>
-                <div class="hero-val" id="drawerQty">0 pcs</div>
-                <div style="font-size: 13px; color: #94a3b8; margin-top: 6px;">Tổng Giá Trị: <strong style="color:#38bdf8;" id="drawerVal">0 Tr VNĐ</strong></div>
+                <div style="font-size: 12px; color: #94a3b8; font-weight: 600;">Tổng Lượt Khách Ghé CH (Traffic)</div>
+                <div class="hero-val" id="drawerTrafficVal">0 lượt</div>
+                <div style="font-size: 13px; color: #94a3b8; margin-top: 6px;">Tổng Hóa Đơn POS: <strong style="color:#f8fafc;" id="drawerBillsVal">0 bill</strong></div>
             </div>
 
             <div class="info-grid">
@@ -268,9 +284,9 @@ def generate_cloud_gis_map_html(db_stores_list: list = None) -> str:
                 <div class="info-row"><span class="info-lbl">Vùng Địa Lý:</span><span class="info-val" id="drawerRegion">---</span></div>
                 <div class="info-row"><span class="info-lbl">Cửa Hàng Trưởng (CHT):</span><span class="info-val" style="color:#38bdf8;" id="drawerMgr">Đang nạp...</span></div>
                 <div class="info-row"><span class="info-lbl">Số Điện Thoại CH:</span><span class="info-val" id="drawerPhone">N/A</span></div>
+                <div class="info-row"><span class="info-lbl">Tỷ Lệ Chuyển Đổi (CR %):</span><span class="info-val" style="color:#10b981;" id="drawerCR">0.0%</span></div>
+                <div class="info-row"><span class="info-lbl">Hợp Đồng B2B Phát Sinh:</span><span class="info-val" style="color:#eab308;" id="drawerB2B">0 VNĐ</span></div>
                 <div class="info-row"><span class="info-lbl">Định Biên & Nhân Sự:</span><span class="info-val" id="drawerHeadcount">Đang nạp...</span></div>
-                <div class="info-row"><span class="info-lbl">Lượt Khách 7 Ngày (Traffic):</span><span class="info-val" id="drawerTraffic">Đang nạp...</span></div>
-                <div class="info-row"><span class="info-lbl">Tỷ Lệ Chuyển Đổi (CR %):</span><span class="info-val" style="color:#10b981;" id="drawerCR">Đang nạp...</span></div>
                 <div class="info-row"><span class="info-lbl">Yêu Cầu Hỗ Trợ Đang Xử Lý:</span><span class="info-val" id="drawerTickets">0 sự cố</span></div>
                 <div class="info-row"><span class="info-lbl">Phân Loại Mạng Lưới:</span><span class="info-val" id="drawerTier">Standard</span></div>
             </div>
@@ -373,7 +389,7 @@ def generate_cloud_gis_map_html(db_stores_list: list = None) -> str:
 
             clusterGroup.clearLayers();
             let visibleCodes = [];
-            let sumQty = 0, sumVal = 0;
+            let sumTraffic = 0, sumBills = 0, sumB2B = 0, sumStaff = 0;
 
             stores.forEach(s => {{
                 const matchQuery = !query || s.code.toLowerCase().includes(query) || s.name.toLowerCase().includes(query) || s.addr.toLowerCase().includes(query);
@@ -383,31 +399,35 @@ def generate_cloud_gis_map_html(db_stores_list: list = None) -> str:
                 if (matchQuery && matchASM && matchReg) {{
                     clusterGroup.addLayer(markerStoreMap[s.code].marker);
                     visibleCodes.push(s.code);
-                    sumQty += s.total_qty;
-                    sumVal += s.total_val_m;
+                    sumTraffic += s.traffic_7d;
+                    sumBills   += s.bills_7d;
+                    sumB2B     += s.b2b_val;
+                    sumStaff   += s.emp_cnt;
                 }}
             }});
 
-            document.getElementById('kpiStores').innerText = visibleCodes.length;
-            document.getElementById('kpiQty').innerText    = sumQty.toLocaleString() + ' pcs';
-            document.getElementById('kpiVal').innerText    = (sumVal / 1000.0).toFixed(1) + ' Tỷ';
+            document.getElementById('kpiStores').innerText  = visibleCodes.length;
+            document.getElementById('kpiTraffic').innerText = sumTraffic.toLocaleString();
+            document.getElementById('kpiBills').innerText   = sumBills.toLocaleString();
+            document.getElementById('kpiB2B').innerText     = (sumB2B / 1000000000.0).toFixed(2) + ' Tỷ';
+            document.getElementById('kpiStaff').innerText   = sumStaff.toLocaleString() + ' NV';
         }}
 
         function openDrawer(s) {{
-            document.getElementById('drawerName').innerText  = s.name;
-            document.getElementById('drawerCode').innerText  = 'Mã Cửa Hàng: ' + s.code;
-            document.getElementById('drawerAddr').innerText  = '📍 ' + (s.addr || 'Địa chỉ đang cập nhật');
-            document.getElementById('drawerQty').innerText   = s.total_qty.toLocaleString() + ' pcs';
-            document.getElementById('drawerVal').innerText   = s.total_val_m.toLocaleString() + ' Tr VNĐ';
-            document.getElementById('drawerASM').innerText   = s.asm;
-            document.getElementById('drawerRegion').innerText= s.region;
-            document.getElementById('drawerTier').innerText  = s.tier;
-            document.getElementById('drawerMgr').innerText   = s.mgr || 'Đang nạp...';
-            document.getElementById('drawerPhone').innerText = s.phone || 'N/A';
-            document.getElementById('drawerHeadcount').innerText = 'Đang tải...';
-            document.getElementById('drawerTraffic').innerText   = 'Đang tải...';
-            document.getElementById('drawerCR').innerText        = 'Đang tải...';
-            document.getElementById('drawerTickets').innerText    = 'Đang tải...';
+            document.getElementById('drawerName').innerText       = s.name;
+            document.getElementById('drawerCode').innerText       = 'Mã Cửa Hàng: ' + s.code;
+            document.getElementById('drawerAddr').innerText       = '📍 ' + (s.addr || 'Địa chỉ đang cập nhật');
+            document.getElementById('drawerTrafficVal').innerText = s.traffic_7d.toLocaleString() + ' lượt';
+            document.getElementById('drawerBillsVal').innerText   = s.bills_7d.toLocaleString() + ' bill';
+            document.getElementById('drawerASM').innerText        = s.asm;
+            document.getElementById('drawerRegion').innerText     = s.region;
+            document.getElementById('drawerTier').innerText       = s.tier;
+            document.getElementById('drawerMgr').innerText        = s.mgr || 'Đang nạp...';
+            document.getElementById('drawerPhone').innerText      = s.phone || 'N/A';
+            document.getElementById('drawerCR').innerText         = s.cr_pct + '%';
+            document.getElementById('drawerB2B').innerText        = s.b2b_val > 0 ? (s.b2b_val / 1000000.0).toLocaleString() + ' Tr VNĐ' : '0 VNĐ';
+            document.getElementById('drawerHeadcount').innerText  = s.emp_cnt > 0 ? s.emp_cnt + ' NV' : 'Đang nạp...';
+            document.getElementById('drawerTickets').innerText    = 'Đang nạp...';
 
             document.getElementById('drawer').style.display = 'flex';
 
@@ -419,7 +439,8 @@ def generate_cloud_gis_map_html(db_stores_list: list = None) -> str:
                         if (data.mgr) document.getElementById('drawerMgr').innerText = data.mgr;
                         if (data.phone && data.phone !== 'N/A') document.getElementById('drawerPhone').innerText = data.phone;
                         if (data.headcount_str) document.getElementById('drawerHeadcount').innerText = data.headcount_str;
-                        if (data.total_traffic_7d !== undefined) document.getElementById('drawerTraffic').innerText = data.total_traffic_7d.toLocaleString() + ' lượt';
+                        if (data.total_traffic_7d !== undefined) document.getElementById('drawerTrafficVal').innerText = data.total_traffic_7d.toLocaleString() + ' lượt';
+                        if (data.total_bills_7d !== undefined) document.getElementById('drawerBillsVal').innerText = data.total_bills_7d.toLocaleString() + ' bill';
                         if (data.cr_pct) document.getElementById('drawerCR').innerText = data.cr_pct;
                         if (data.pending_tickets !== undefined) document.getElementById('drawerTickets').innerText = data.pending_tickets + ' sự cố';
                     }}

@@ -3808,7 +3808,31 @@ def gis_map_view():
 
     try:
         from gis_builder import generate_cloud_gis_map_html
-        stores_db = query_db("SELECT store_code, store_name, asm_name, region FROM tb_stores")
+        stores_db = query_db("""
+            SELECT 
+                s.store_code, s.store_name, s.asm_name, s.region,
+                COALESCE(e.emp_cnt, 0) as emp_cnt,
+                COALESCE(t.traffic_7d, 0) as traffic_7d,
+                COALESCE(t.bills_7d, 0) as bills_7d,
+                COALESCE(c.b2b_val, 0) as b2b_val
+            FROM tb_stores s
+            LEFT JOIN (
+                SELECT store_code, COUNT(*) as emp_cnt 
+                FROM tb_store_employees WHERE status = 'ACTIVE' 
+                GROUP BY store_code
+            ) e ON s.store_code = e.store_code
+            LEFT JOIN (
+                SELECT store_code, SUM(traffic_val) as traffic_7d, SUM(bills_val) as bills_7d
+                FROM tb_traffic 
+                GROUP BY store_code
+            ) t ON s.store_code = t.store_code
+            LEFT JOIN (
+                SELECT store_code, SUM(contract_value) as b2b_val
+                FROM tb_contracts
+                GROUP BY store_code
+            ) c ON s.store_code = c.store_code
+            WHERE s.is_active = 1
+        """)
         html_content = generate_cloud_gis_map_html(stores_db)
         return html_content, 200, {'Content-Type': 'text/html; charset=utf-8'}
     except Exception as e:
@@ -3824,7 +3848,31 @@ def api_gis_data():
         return jsonify({'ok': False, 'error': '⛔ Quyền truy cập bị từ chối: Cửa hàng không có quyền truy cập dữ liệu GIS toàn hệ thống.'}), 403
     try:
         from gis_builder import load_verified_coords
-        stores_db = query_db("SELECT store_code, store_name, asm_name, region FROM tb_stores")
+        stores_db = query_db("""
+            SELECT 
+                s.store_code, s.store_name, s.asm_name, s.region,
+                COALESCE(e.emp_cnt, 0) as emp_cnt,
+                COALESCE(t.traffic_7d, 0) as traffic_7d,
+                COALESCE(t.bills_7d, 0) as bills_7d,
+                COALESCE(c.b2b_val, 0) as b2b_val
+            FROM tb_stores s
+            LEFT JOIN (
+                SELECT store_code, COUNT(*) as emp_cnt 
+                FROM tb_store_employees WHERE status = 'ACTIVE' 
+                GROUP BY store_code
+            ) e ON s.store_code = e.store_code
+            LEFT JOIN (
+                SELECT store_code, SUM(traffic_val) as traffic_7d, SUM(bills_val) as bills_7d
+                FROM tb_traffic 
+                GROUP BY store_code
+            ) t ON s.store_code = t.store_code
+            LEFT JOIN (
+                SELECT store_code, SUM(contract_value) as b2b_val
+                FROM tb_contracts
+                GROUP BY store_code
+            ) c ON s.store_code = c.store_code
+            WHERE s.is_active = 1
+        """)
         coords = load_verified_coords()
         store_list = []
         for s in stores_db:
@@ -3839,6 +3887,10 @@ def api_gis_data():
                 'mgr': c_info.get('mgr', 'Đang cập nhật'),
                 'phone': c_info.get('phone', 'N/A'),
                 'tier': c_info.get('tier', 'Standard'),
+                'emp_cnt': s.get('emp_cnt', 0),
+                'traffic_7d': s.get('traffic_7d', 0),
+                'bills_7d': s.get('bills_7d', 0),
+                'b2b_val': s.get('b2b_val', 0.0),
                 'lat': c_info.get('lat', 10.7769),
                 'lng': c_info.get('lng', 106.7009)
             })
