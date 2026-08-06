@@ -796,6 +796,9 @@
                 <button id="status-tab-support-btn" class="tab-btn">
                     Yêu cầu hỗ trợ (4.5)
                 </button>
+                <button id="status-tab-compliance-btn" class="tab-btn">
+                    📋 Kiểm Soát Tuân Thủ (P.QLQT)
+                </button>
                 <button id="status-tab-hr-btn" class="tab-btn">
                     👥 Định Biên & Báo Cáo Nhân Sự Cụm
                 </button>
@@ -920,6 +923,117 @@
                         </thead>
                         <tbody id="status-support-table-body" class="divide-y divide-gray-100">
                             <tr><td colspan="8" class="text-center py-6 text-gray-400">Đang tải yêu cầu hỗ trợ...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ASM Tab 4.6: P.QLQT Compliance & Internal Audit Control -->
+            <div id="status-tab-compliance-content" class="hidden card rounded-b-2xl p-5 border-t-0 space-y-4">
+                <!-- Top Actions & Header -->
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
+                    <div>
+                        <h4 class="font-extrabold text-brand-navy uppercase text-sm flex items-center gap-2">
+                            <span>📋</span> Kiểm Soát Tuân Thủ & Quy Trình Cửa Hàng (P.QLQT)
+                        </h4>
+                        <p class="text-xs text-gray-500">Theo dõi thời gian thực kết quả kiểm tra camera, xử lý giải trình CH, đánh giá ASM và cảnh báo tái phạm</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="openModalImportCompliance()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm flex items-center gap-1">
+                            <span>📥</span> Nạp Checklist P.QLQT
+                        </button>
+                        <button onclick="openModalComplianceAnalytics()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm flex items-center gap-1">
+                            <span>📊</span> Báo Cáo Tái Phạm
+                        </button>
+                        <button onclick="exportComplianceExcel()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm flex items-center gap-1">
+                            <span>📤</span> Xuất Excel Mẫu P.QLQT
+                        </button>
+                    </div>
+                </div>
+
+                <!-- KPI Summary Cards -->
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center">
+                        <div class="text-xs text-gray-500 font-semibold uppercase">Tổng Sự Vụ</div>
+                        <div id="comp-kpi-total" class="text-xl font-black text-gray-800 mt-1">0</div>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
+                        <div class="text-xs text-amber-700 font-semibold uppercase">Chờ CH Giải Trình</div>
+                        <div id="comp-kpi-pending-store" class="text-xl font-black text-amber-600 mt-1">0</div>
+                    </div>
+                    <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-center">
+                        <div class="text-xs text-blue-700 font-semibold uppercase">Chờ ASM Đánh Giá</div>
+                        <div id="comp-kpi-pending-asm" class="text-xl font-black text-blue-600 mt-1">0</div>
+                    </div>
+                    <div class="bg-rose-50 border border-rose-200 rounded-xl p-3 text-center">
+                        <div class="text-xs text-rose-700 font-semibold uppercase">Tái Phạm (⚠️)</div>
+                        <div id="comp-kpi-repeat" class="text-xl font-black text-rose-600 mt-1">0</div>
+                    </div>
+                    <div class="bg-red-50 border border-red-200 rounded-xl p-3 text-center col-span-2 md:col-span-1">
+                        <div class="text-xs text-red-700 font-semibold uppercase">Quá Hạn SLA (🔴)</div>
+                        <div id="comp-kpi-overdue" class="text-xl font-black text-red-600 mt-1">0</div>
+                    </div>
+                </div>
+
+                <!-- Filter Controls -->
+                <div class="flex flex-wrap items-center justify-between gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="flex items-center gap-1.5">
+                            <label class="text-xs font-bold text-gray-500">Mốc Tái Phạm:</label>
+                            <select id="comp-filter-days" onchange="loadComplianceAudits()" class="text-xs border rounded-lg px-2 py-1 bg-white font-medium">
+                                <option value="365">1 Năm (365 Ngày)</option>
+                                <option value="180">6 Tháng (180 Ngày)</option>
+                                <option value="90">90 Ngày</option>
+                                <option value="30">30 Ngày</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <label class="text-xs font-bold text-gray-500">ASM:</label>
+                            <select id="comp-filter-asm" onchange="loadComplianceAudits()" class="text-xs border rounded-lg px-2 py-1 bg-white font-medium">
+                                <option value="">Tất cả ASM</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <label class="text-xs font-bold text-gray-500">Trạng Thái:</label>
+                            <select id="comp-filter-status" onchange="loadComplianceAudits()" class="text-xs border rounded-lg px-2 py-1 bg-white font-medium">
+                                <option value="">Tất cả trạng thái</option>
+                                <option value="Mới tiếp nhận">Mới tiếp nhận (Chờ CH)</option>
+                                <option value="CH đã giải trình">CH đã giải trình (Chờ ASM)</option>
+                                <option value="Hoàn tất">Hoàn tất</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <label class="text-xs font-bold text-gray-500">Lọc Tái Phạm:</label>
+                            <select id="comp-filter-repeat" onchange="loadComplianceAudits()" class="text-xs border rounded-lg px-2 py-1 bg-white font-medium">
+                                <option value="">Tất cả sự vụ</option>
+                                <option value="1">⚠️ Bị tái phạm (≥ 2 lần)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <input type="text" id="comp-search-text" onkeyup="filterComplianceTableLocal()" placeholder="🔍 Tìm Mã CH, Tên CH, Nội dung..." class="text-xs border border-gray-300 rounded-lg px-3 py-1 bg-white w-56 focus:ring-1 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <!-- Main Data Table -->
+                <div class="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+                    <table class="w-full text-xs text-left text-gray-700">
+                        <thead class="bg-gray-100 font-bold uppercase text-gray-600 border-b border-gray-200">
+                            <tr>
+                                <th class="p-2.5">Mã Vé / CH</th>
+                                <th class="p-2.5">ASM / Nhóm Lỗi</th>
+                                <th class="p-2.5">Nội Dung Kiểm Tra / Vi Phạm</th>
+                                <th class="p-2.5 text-center">Tái Phạm</th>
+                                <th class="p-2.5 text-center">Bằng Chứng Camera</th>
+                                <th class="p-2.5 text-center">SLA Hạn Phản Hồi</th>
+                                <th class="p-2.5">Giải Trình CH & Ảnh</th>
+                                <th class="p-2.5">Đánh Giá ASM & Phạt</th>
+                                <th class="p-2.5 text-center">Trạng Thái</th>
+                                <th class="p-2.5 text-center">Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="comp-table-body" class="divide-y divide-gray-100 bg-white font-normal">
+                            <tr><td colspan="10" class="text-center py-8 text-gray-400">Đang nạp danh sách hồ sơ tuân thủ P.QLQT...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -2012,12 +2126,14 @@
         const statusTabWeeklyBtn = document.getElementById('status-tab-weekly-btn');
         const statusTabDailyBtn = document.getElementById('status-tab-daily-btn');
         const statusTabSupportBtn = document.getElementById('status-tab-support-btn');
+        const statusTabComplianceBtn = document.getElementById('status-tab-compliance-btn');
         const statusTabHrBtn = document.getElementById('status-tab-hr-btn');
         const statusTabClosureBtn = document.getElementById('status-tab-closure-btn');
         const statusTabClosureContent = document.getElementById('status-tab-closure-content');
         const statusTabWeeklyContent = document.getElementById('status-tab-weekly-content');
         const statusTabDailyContent = document.getElementById('status-tab-daily-content');
         const statusTabSupportContent = document.getElementById('status-tab-support-content');
+        const statusTabComplianceContent = document.getElementById('status-tab-compliance-content');
         const statusTabHrContent = document.getElementById('status-tab-hr-content');
         
         const statusReportDate = document.getElementById('status-report-date');
@@ -3545,7 +3661,7 @@
         }
 
         function setStatusTabActive(activeBtn) {
-            [statusTabWeeklyBtn, statusTabDailyBtn, statusTabSupportBtn, statusTabHrBtn, statusTabPasscodesBtn].forEach(b => {
+            [statusTabWeeklyBtn, statusTabDailyBtn, statusTabSupportBtn, statusTabComplianceBtn, statusTabHrBtn, statusTabPasscodesBtn].forEach(b => {
                 if (b) b.classList.remove('active');
             });
             if (activeBtn) activeBtn.classList.add('active');
@@ -3556,6 +3672,7 @@
             statusTabWeeklyContent.classList.remove('hidden');
             statusTabDailyContent.classList.add('hidden');
             statusTabSupportContent.classList.add('hidden');
+            if (statusTabComplianceContent) statusTabComplianceContent.classList.add('hidden');
             if (statusTabHrContent) statusTabHrContent.classList.add('hidden');
             if (statusTabClosureContent) statusTabClosureContent.classList.add('hidden');
             statusTabPasscodesContent.classList.add('hidden');
@@ -3566,6 +3683,7 @@
             statusTabDailyContent.classList.remove('hidden');
             statusTabWeeklyContent.classList.add('hidden');
             statusTabSupportContent.classList.add('hidden');
+            if (statusTabComplianceContent) statusTabComplianceContent.classList.add('hidden');
             if (statusTabHrContent) statusTabHrContent.classList.add('hidden');
             if (statusTabClosureContent) statusTabClosureContent.classList.add('hidden');
             statusTabPasscodesContent.classList.add('hidden');
@@ -3578,12 +3696,28 @@
             statusTabSupportContent.classList.remove('hidden');
             statusTabWeeklyContent.classList.add('hidden');
             statusTabDailyContent.classList.add('hidden');
+            if (statusTabComplianceContent) statusTabComplianceContent.classList.add('hidden');
             if (statusTabHrContent) statusTabHrContent.classList.add('hidden');
             if (statusTabClosureContent) statusTabClosureContent.classList.add('hidden');
             statusTabPasscodesContent.classList.add('hidden');
 
             await loadSupportRequests();
         });
+
+        if (statusTabComplianceBtn) {
+            statusTabComplianceBtn.addEventListener('click', async () => {
+                setStatusTabActive(statusTabComplianceBtn);
+                if (statusTabComplianceContent) statusTabComplianceContent.classList.remove('hidden');
+                statusTabWeeklyContent.classList.add('hidden');
+                statusTabDailyContent.classList.add('hidden');
+                statusTabSupportContent.classList.add('hidden');
+                if (statusTabHrContent) statusTabHrContent.classList.add('hidden');
+                if (statusTabClosureContent) statusTabClosureContent.classList.add('hidden');
+                statusTabPasscodesContent.classList.add('hidden');
+
+                await loadComplianceAudits();
+            });
+        }
 
         if (statusTabHrBtn) {
             statusTabHrBtn.addEventListener('click', async () => {
@@ -3592,6 +3726,7 @@
                 statusTabWeeklyContent.classList.add('hidden');
                 statusTabDailyContent.classList.add('hidden');
                 statusTabSupportContent.classList.add('hidden');
+                if (statusTabComplianceContent) statusTabComplianceContent.classList.add('hidden');
                 if (statusTabClosureContent) statusTabClosureContent.classList.add('hidden');
                 statusTabPasscodesContent.classList.add('hidden');
 
@@ -3606,6 +3741,7 @@
                 statusTabWeeklyContent.classList.add('hidden');
                 statusTabDailyContent.classList.add('hidden');
                 statusTabSupportContent.classList.add('hidden');
+                if (statusTabComplianceContent) statusTabComplianceContent.classList.add('hidden');
                 if (statusTabHrContent) statusTabHrContent.classList.add('hidden');
                 statusTabPasscodesContent.classList.add('hidden');
 
@@ -5996,11 +6132,11 @@
         if (statusTabHistoryBtn) {
             statusTabHistoryBtn.addEventListener('click', async () => {
                 // Deactivate all status subtabs
-                [statusTabWeeklyBtn, statusTabDailyBtn, statusTabSupportBtn, statusTabHrBtn, statusTabClosureBtn, statusTabPasscodesBtn, statusTabHistoryBtn].forEach(btn => {
+                [statusTabWeeklyBtn, statusTabDailyBtn, statusTabSupportBtn, statusTabComplianceBtn, statusTabHrBtn, statusTabClosureBtn, statusTabPasscodesBtn, statusTabHistoryBtn].forEach(btn => {
                     if (btn) btn.classList.remove('active');
                 });
-                [statusTabWeeklyContent, statusTabDailyContent, statusTabSupportContent, statusTabHrContent, statusTabClosureContent, statusTabPasscodesContent, statusTabHistoryContent].forEach(c => {
-                    if (c) c.classList.add('hidden');
+                [statusTabWeeklyContent, statusTabDailyContent, statusTabSupportContent, statusTabComplianceContent, statusTabHrContent, statusTabClosureContent, statusTabPasscodesContent, statusTabHistoryContent].forEach(c => {
+                    if (c) if (c) c.classList.add('hidden');
                 });
                 statusTabHistoryBtn.classList.add('active');
                 statusTabHistoryContent.classList.remove('hidden');
@@ -6123,9 +6259,414 @@
                     `).join('');
                 }
                 
+        // ── COMPLIANCE AUDIT ENGINE & P.QLQT CONTROL LOGIC ───────────────────
+        let currentComplianceData = [];
+
+        async function loadComplianceAudits() {
+            const tableBody = document.getElementById('comp-table-body');
+            if (!tableBody) return;
+
+            tableBody.innerHTML = '<tr><td colspan="10" class="text-center py-6 text-gray-400">⏳ Đang nạp dữ liệu kiểm soát tuân thủ P.QLQT...</td></tr>';
+
+            const asm = document.getElementById('comp-filter-asm')?.value || '';
+            const status = document.getElementById('comp-filter-status')?.value || '';
+            const days = document.getElementById('comp-filter-days')?.value || '365';
+            const isRepeat = document.getElementById('comp-filter-repeat')?.value || '';
+
+            try {
+                const res = await fetch(`/api/get_compliance_audits?asm=${encodeURIComponent(asm)}&status=${encodeURIComponent(status)}&days=${days}&is_repeat=${isRepeat}`);
+                const data = await res.json();
+
+                if (!data.ok) {
+                    tableBody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-red-500 font-bold">Lỗi: ${data.error}</td></tr>`;
+                    return;
+                }
+
+                if (data.kpis) {
+                    document.getElementById('comp-kpi-total').innerText = data.kpis.total || 0;
+                    document.getElementById('comp-kpi-pending-store').innerText = data.kpis.pending_store || 0;
+                    document.getElementById('comp-kpi-pending-asm').innerText = data.kpis.pending_asm || 0;
+                    document.getElementById('comp-kpi-repeat').innerText = data.kpis.repeat || 0;
+                    document.getElementById('comp-kpi-overdue').innerText = data.kpis.overdue || 0;
+                }
+
+                const asmSelect = document.getElementById('comp-filter-asm');
+                if (asmSelect && asmSelect.options.length <= 1 && data.asms) {
+                    data.asms.forEach(a => {
+                        const opt = document.createElement('option');
+                        opt.value = a;
+                        opt.textContent = a;
+                        asmSelect.appendChild(opt);
+                    });
+                }
+
+                currentComplianceData = data.audits || [];
+                renderComplianceTable(currentComplianceData);
             } catch (err) {
-                if (listEl) listEl.innerHTML = '<div class="text-center py-10 text-red-400 text-xs italic">Lỗi kết nối khi tải lịch sử.</div>';
+                console.error('Error loading compliance audits:', err);
+                tableBody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-red-500 font-bold">Không thể kết nối máy chủ server</td></tr>';
             }
+        }
+
+        function renderComplianceTable(audits) {
+            const tableBody = document.getElementById('comp-table-body');
+            if (!tableBody) return;
+
+            if (!audits || audits.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="10" class="text-center py-6 text-gray-400 font-medium">Không tìm thấy vụ việc vi phạm nào phù hợp với bộ lọc</td></tr>';
+                return;
+            }
+
+            tableBody.innerHTML = audits.map(item => {
+                const isRepeatBadge = item.is_repeat_offense ? 
+                    `<span class="px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-extrabold text-[10px] animate-pulse">⚠️ TÁI PHẠM LẦN ${item.repeat_count}</span>` : 
+                    `<span class="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full font-medium text-[10px]">Lần đầu</span>`;
+
+                let statusBadge = '';
+                if (item.status === 'Hoàn tất') {
+                    statusBadge = `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold text-[10px]">✅ Hoàn tất</span>`;
+                } else if (item.status === 'CH đã giải trình') {
+                    statusBadge = `<span class="px-2 py-0.5 bg-blue-100 text-blue-800 rounded font-bold text-[10px]">⏳ Chờ ASM đánh giá</span>`;
+                } else {
+                    statusBadge = `<span class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded font-bold text-[10px]">⏳ Chờ CH giải trình</span>`;
+                }
+
+                let slaBadge = `<span class="text-[10px] font-semibold text-emerald-700">${item.sla_badge || '🟢 Trong hạn'} (${item.response_deadline || ''})</span>`;
+                if (item.sla_status === 'overdue') {
+                    slaBadge = `<span class="text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">🔴 Quá hạn ${item.overdue_days} ngày</span>`;
+                }
+
+                const attachHtml = item.attachment_url ? 
+                    `<a href="${item.attachment_url}" target="_blank" class="text-blue-600 hover:underline font-bold flex items-center gap-1">📎 Xem ảnh/tờ trình</a>` : 
+                    `<span class="text-gray-400 italic">Chưa đính kèm</span>`;
+
+                return `
+                    <tr class="hover:bg-slate-50 transition-colors border-b border-gray-100 text-xs">
+                        <td class="p-2.5 font-bold text-brand-navy">
+                            <div>${item.ticket_code}</div>
+                            <div class="text-[11px] text-blue-700 font-extrabold">${item.store_name} (${item.store_code})</div>
+                        </td>
+                        <td class="p-2.5 font-semibold text-gray-700">
+                            <div class="font-bold text-indigo-900">${item.asm_name || 'N/A'}</div>
+                            <div class="text-[11px] text-gray-500">${item.violation_group || item.topic || 'N/A'}</div>
+                        </td>
+                        <td class="p-2.5 max-w-xs">
+                            <div class="font-bold text-gray-800 truncate" title="${item.check_item}">${item.check_item}</div>
+                            <div class="text-[11px] text-gray-500 line-clamp-2" title="${item.violation_description}">${item.violation_description}</div>
+                        </td>
+                        <td class="p-2.5 text-center">${isRepeatBadge}</td>
+                        <td class="p-2.5 text-center text-gray-600 font-mono text-[11px]">${item.camera_evidence_time || 'N/A'}</td>
+                        <td class="p-2.5 text-center">${slaBadge}</td>
+                        <td class="p-2.5 max-w-xs text-[11px]">
+                            <div class="font-medium text-gray-800 line-clamp-2" title="${item.store_explanation || 'Chưa giải trình'}">${item.store_explanation || '<em>(Chưa có giải trình)</em>'}</div>
+                            <div class="mt-0.5">${attachHtml}</div>
+                        </td>
+                        <td class="p-2.5 max-w-xs text-[11px]">
+                            <div class="font-bold text-indigo-800">${item.asm_assessment || '<em>(Chưa đánh giá)</em>'}</div>
+                            ${item.violating_staff_info ? `<div class="text-gray-600">NV: ${item.violating_staff_info}</div>` : ''}
+                        </td>
+                        <td class="p-2.5 text-center">${statusBadge}</td>
+                        <td class="p-2.5 text-center space-y-1">
+                            <button onclick="openModalStoreExplain('${item.ticket_code}')" class="w-full px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded font-bold text-[10px] flex items-center justify-center gap-1">
+                                <span>📝</span> CH Giải Trình
+                            </button>
+                            <button onclick="openModalAsmApprove('${item.ticket_code}')" class="w-full px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-300 rounded font-bold text-[10px] flex items-center justify-center gap-1">
+                                <span>⚖️</span> ASM Đánh Giá
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterComplianceTableLocal() {
+            const q = (document.getElementById('comp-search-text')?.value || '').toLowerCase().trim();
+            if (!q) {
+                renderComplianceTable(currentComplianceData);
+                return;
+            }
+            const filtered = currentComplianceData.filter(i => 
+                (i.ticket_code || '').toLowerCase().includes(q) ||
+                (i.store_name || '').toLowerCase().includes(q) ||
+                (i.store_code || '').toLowerCase().includes(q) ||
+                (i.asm_name || '').toLowerCase().includes(q) ||
+                (i.check_item || '').toLowerCase().includes(q) ||
+                (i.violation_description || '').toLowerCase().includes(q)
+            );
+            renderComplianceTable(filtered);
+        }
+
+        function openModalImportCompliance() {
+            document.getElementById('modal-import-compliance-excel').classList.remove('hidden');
+        }
+        function closeModalImportCompliance() {
+            document.getElementById('modal-import-compliance-excel').classList.add('hidden');
+        }
+
+        async function submitImportCompliance() {
+            const fileInput = document.getElementById('comp-import-file');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert('Vui lòng chọn file Excel Checklist camera của P.QLQT!');
+                return;
+            }
+            const btn = document.getElementById('btn-submit-import-comp');
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Đang xử lý & quét dữ liệu...';
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('pin', currentStore ? currentStore.pin : '8888');
+            formData.append('month_period', document.getElementById('comp-import-month').value || '');
+            formData.append('response_deadline', document.getElementById('comp-import-deadline').value || '');
+
+            try {
+                const res = await fetch('/api/admin/import_compliance_excel', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    showToast("✅ Nạp Thành Công", data.message, "✅");
+                    closeModalImportCompliance();
+                    await loadComplianceAudits();
+                } else {
+                    alert('Lỗi nạp file: ' + data.error);
+                }
+            } catch (err) {
+                alert('Lỗi kết nối máy chủ!');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>🚀</span> Nạp File & Khởi Tạo Sự Vụ';
+            }
+        }
+
+        function openModalStoreExplain(ticketCode) {
+            const item = currentComplianceData.find(i => i.ticket_code === ticketCode);
+            if (!item) return;
+            document.getElementById('comp-store-ticket-code').value = ticketCode;
+            document.getElementById('comp-store-modal-subtitle').innerText = `Mã Vé: ${ticketCode} | CH: ${item.store_name} (${item.store_code})`;
+            document.getElementById('comp-store-modal-checkitem').innerText = `Nội dung: ${item.check_item}`;
+            document.getElementById('comp-store-modal-desc').innerText = `Chi tiết vi phạm: ${item.violation_description || 'Không có mô tả chi tiết'}`;
+            document.getElementById('comp-store-explanation').value = item.store_explanation || '';
+            document.getElementById('comp-store-file-status').innerText = item.attachment_url ? `Đã đính kèm: ${item.attachment_url}` : '';
+            document.getElementById('modal-store-compliance-explain').classList.remove('hidden');
+        }
+        function closeModalStoreExplain() {
+            document.getElementById('modal-store-compliance-explain').classList.add('hidden');
+        }
+
+        function compressImageCanvas(file, maxWidth = 1200, maxHeight = 1200, quality = 0.75) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = event => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        let width = img.width;
+                        let height = img.height;
+                        if (width > height) {
+                            if (width > maxWidth) {
+                                height = Math.round((height * maxWidth) / width);
+                                width = maxWidth;
+                            }
+                        } else {
+                            if (height > maxHeight) {
+                                width = Math.round((width * maxHeight) / height);
+                                height = maxHeight;
+                            }
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        canvas.toBlob(blob => {
+                            resolve(blob);
+                        }, 'image/jpeg', quality);
+                    };
+                    img.onerror = error => reject(error);
+                };
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        async function submitStoreExplain() {
+            const ticketCode = document.getElementById('comp-store-ticket-code').value;
+            const explanation = document.getElementById('comp-store-explanation').value.trim();
+            if (!explanation) {
+                alert('Vui lòng nhập nội dung giải trình của Cửa hàng!');
+                return;
+            }
+
+            const btn = document.getElementById('btn-submit-store-explain');
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Đang lưu giải trình...';
+
+            let attachmentUrl = '';
+            const fileInput = document.getElementById('comp-store-file');
+            if (fileInput.files && fileInput.files.length > 0) {
+                try {
+                    let fileToUpload = fileInput.files[0];
+                    if (fileToUpload.type.startsWith('image/')) {
+                        document.getElementById('comp-store-file-status').innerText = '⏳ Đang tự động nén ảnh xuống < 250KB...';
+                        const compressedBlob = await compressImageCanvas(fileToUpload);
+                        fileToUpload = new File([compressedBlob], fileToUpload.name.replace(/\.[^/.]+$/, ".jpg"), { type: 'image/jpeg' });
+                    }
+                    const formData = new FormData();
+                    formData.append('file', fileToUpload);
+                    const uploadRes = await fetch('/api/upload_compliance_attachment', { method: 'POST', body: formData });
+                    const uploadData = await uploadRes.json();
+                    if (uploadData.ok) {
+                        attachmentUrl = uploadData.attachment_url;
+                    }
+                } catch (e) {
+                    console.error('Error compressing/uploading file:', e);
+                }
+            }
+
+            try {
+                const res = await fetch('/api/update_compliance_audit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ticket_code: ticketCode,
+                        store_explanation: explanation,
+                        attachment_url: attachmentUrl,
+                        status: 'CH đã giải trình'
+                    })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    showToast("✅ Đã Lưu Giải Trình", "Hồ sơ đã được gửi đến ASM để đánh giá", "✅");
+                    closeModalStoreExplain();
+                    await loadComplianceAudits();
+                } else {
+                    alert('Lỗi cập nhật: ' + data.error);
+                }
+            } catch (err) {
+                alert('Lỗi kết nối máy chủ!');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '💾 Gửi Giải Trình Đến ASM';
+            }
+        }
+
+        function openModalAsmApprove(ticketCode) {
+            const item = currentComplianceData.find(i => i.ticket_code === ticketCode);
+            if (!item) return;
+            document.getElementById('comp-asm-ticket-code').value = ticketCode;
+            document.getElementById('comp-asm-modal-subtitle').innerText = `Mã Vé: ${ticketCode} | CH: ${item.store_name} (${item.store_code})`;
+            document.getElementById('comp-asm-modal-store-exp').innerText = `Giải trình CH: ${item.store_explanation || 'Chưa có giải trình'}`;
+            document.getElementById('comp-asm-modal-attach').innerHTML = item.attachment_url ? `<a href="${item.attachment_url}" target="_blank" class="text-blue-600 font-bold underline">📎 Xem Tờ Trình / Ảnh Đính Kèm</a>` : '';
+            document.getElementById('comp-asm-assessment').value = item.asm_assessment || '';
+            document.getElementById('comp-violating-staff').value = item.violating_staff_info || '';
+            document.getElementById('modal-asm-compliance-approve').classList.remove('hidden');
+        }
+        function closeModalAsmApprove() {
+            document.getElementById('modal-asm-compliance-approve').classList.add('hidden');
+        }
+
+        async function submitAsmApprove() {
+            const ticketCode = document.getElementById('comp-asm-ticket-code').value;
+            const assessment = document.getElementById('comp-asm-assessment').value.trim();
+            const staffInfo = document.getElementById('comp-violating-staff').value.trim();
+            const fine = document.getElementById('comp-fine-deduction').value;
+            const status = document.getElementById('comp-asm-status').value;
+
+            if (!assessment) {
+                alert('Vui lòng nhập ý kiến nhận xét/đánh giá của ASM!');
+                return;
+            }
+
+            const btn = document.getElementById('btn-submit-asm-approve');
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Đang lưu đánh giá...';
+
+            try {
+                const res = await fetch('/api/update_compliance_audit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ticket_code: ticketCode,
+                        asm_assessment: `${assessment} (Phạt: ${fine})`,
+                        violating_staff_info: staffInfo,
+                        status: status
+                    })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    showToast("✅ Đã Lưu Đánh Giá ASM", "Hồ sơ sự vụ tuân thủ đã được cập nhật", "✅");
+                    closeModalAsmApprove();
+                    await loadComplianceAudits();
+                } else {
+                    alert('Lỗi cập nhật: ' + data.error);
+                }
+            } catch (err) {
+                alert('Lỗi kết nối máy chủ!');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '💾 Đóng Hồ Sơ & Lưu Đánh Giá';
+            }
+        }
+
+        async function openModalComplianceAnalytics() {
+            document.getElementById('modal-compliance-analytics').classList.remove('hidden');
+            try {
+                const res = await fetch('/api/compliance_analytics');
+                const data = await res.json();
+                if (!data.ok) return;
+
+                const repeatBody = document.getElementById('comp-analytics-repeat-body');
+                if (data.repeat_stores && data.repeat_stores.length > 0) {
+                    repeatBody.innerHTML = data.repeat_stores.map(r => `
+                        <tr class="hover:bg-rose-50 text-xs">
+                            <td class="p-2 font-bold text-gray-800">${r.store_name} (${r.store_code})</td>
+                            <td class="p-2 text-gray-600">${r.violation_group}</td>
+                            <td class="p-2 text-center font-black text-rose-600">${r.repeat_count} lần</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    repeatBody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-400">Không có CH tái phạm</td></tr>';
+                }
+
+                const groupsBody = document.getElementById('comp-analytics-groups-body');
+                if (data.group_stats && data.group_stats.length > 0) {
+                    groupsBody.innerHTML = data.group_stats.map(g => `
+                        <tr class="hover:bg-blue-50 text-xs">
+                            <td class="p-2 font-bold text-gray-800">${g.violation_group}</td>
+                            <td class="p-2 text-center font-bold text-blue-600">${g.cnt} vụ</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    groupsBody.innerHTML = '<tr><td colspan="2" class="text-center py-4 text-gray-400">Không có dữ liệu</td></tr>';
+                }
+
+                const asmBody = document.getElementById('comp-analytics-asm-body');
+                if (data.asm_stats && data.asm_stats.length > 0) {
+                    asmBody.innerHTML = data.asm_stats.map(a => `
+                        <tr class="hover:bg-slate-100 text-xs">
+                            <td class="p-2 font-bold text-indigo-900">${a.asm_name}</td>
+                            <td class="p-2 text-center font-bold text-gray-800">${a.total}</td>
+                            <td class="p-2 text-center font-bold text-rose-600">${a.repeat_cnt}</td>
+                            <td class="p-2 text-center font-bold text-emerald-600">${a.completed}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    asmBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-400">Không có dữ liệu</td></tr>';
+                }
+            } catch (err) {
+                console.error('Analytics error:', err);
+            }
+        }
+        function closeModalComplianceAnalytics() {
+            document.getElementById('modal-compliance-analytics').classList.add('hidden');
+        }
+
+        function exportComplianceExcel() {
+            const asm = document.getElementById('comp-filter-asm')?.value || '';
+            const status = document.getElementById('comp-filter-status')?.value || '';
+            window.open(`/api/export_compliance_excel?asm=${encodeURIComponent(asm)}&status=${encodeURIComponent(status)}`, '_blank');
         }
 
     </script>
@@ -6408,6 +6949,234 @@
                 <button id="btn-submit-update-support" onclick="submitUpdateSupportTicket()" class="btn-primary text-xs px-5 py-2 font-bold shadow-md">
                     💾 Lưu Cập Nhật Tiến Độ
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL NẠP EXCEL P.QLQT (Import Compliance Audit Checklist Modal) -->
+    <div id="modal-import-compliance-excel" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="card w-full max-w-md p-6 space-y-4 shadow-2xl rounded-2xl relative bg-white">
+            <button onclick="closeModalImportCompliance()" class="absolute top-4 right-4 text-gray-400 hover:text-brand-red text-xl font-bold transition-all">&times;</button>
+            <div class="flex items-center gap-3 border-b border-gray-100 pb-3">
+                <div class="w-10 h-10 bg-blue-100 text-blue-800 rounded-xl flex items-center justify-center font-bold text-lg">📥</div>
+                <div>
+                    <h3 class="font-extrabold text-brand-navy text-base">Nạp Báo Cáo Kiếm Soát Nội Bộ P.QLQT</h3>
+                    <p class="text-xs text-gray-500 font-medium">Tải file Excel Checklist camera (.xlsx) từ Phòng Quản lý quy trình</p>
+                </div>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Chọn File Excel Báo Cáo (*)</label>
+                    <input type="file" id="comp-import-file" accept=".xlsx" class="w-full text-xs text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Kỳ Tháng Báo Cáo</label>
+                        <input type="month" id="comp-import-month" class="input-field font-semibold">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Hạn SLA Phản Hồi (Mặc định +3 ngày)</label>
+                        <input type="date" id="comp-import-deadline" class="input-field font-semibold" placeholder="Để trống nếu lấy +3 ngày">
+                    </div>
+                </div>
+
+                <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-[11px] space-y-1">
+                    <div class="font-bold flex items-center gap-1"><span>💡</span> Lưu ý quy trình tự động:</div>
+                    <div>• Hệ thống tự động quét 11 sheet, khớp Mã CH, Tên CH và Phân Cụm ASM.</div>
+                    <div>• Tự động đối soát lịch sử sự vụ 365 ngày để phát hiện & cảnh báo TÁI PHẠM.</div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
+                <button onclick="closeModalImportCompliance()" class="btn-outline text-xs px-4 py-2">Hủy Bỏ</button>
+                <button id="btn-submit-import-comp" onclick="submitImportCompliance()" class="btn-primary text-xs px-5 py-2 font-bold shadow-md flex items-center gap-1">
+                    <span>🚀</span> Nạp File & Khởi Tạo Sự Vụ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CỬA HÀNG GIẢI TRÌNH (Store Explanation & Attachment Upload Modal) -->
+    <div id="modal-store-compliance-explain" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="card w-full max-w-lg p-6 space-y-4 shadow-2xl rounded-2xl relative bg-white">
+            <button onclick="closeModalStoreExplain()" class="absolute top-4 right-4 text-gray-400 hover:text-brand-red text-xl font-bold transition-all">&times;</button>
+            <div class="flex items-center gap-3 border-b border-gray-100 pb-3">
+                <div class="w-10 h-10 bg-amber-100 text-amber-800 rounded-xl flex items-center justify-center font-bold text-lg">📝</div>
+                <div>
+                    <h3 class="font-extrabold text-brand-navy text-base">Cửa Hàng Cập Nhật Giải Trình Sự Vụ</h3>
+                    <div id="comp-store-modal-subtitle" class="text-xs text-gray-500 font-semibold">Vé: --- | CH: ---</div>
+                </div>
+            </div>
+
+            <input type="hidden" id="comp-store-ticket-code" value="">
+
+            <div class="space-y-3 text-xs">
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700">
+                    <div class="font-bold text-slate-800 mb-1" id="comp-store-modal-checkitem">Nội dung vi phạm: ---</div>
+                    <div class="text-[11px] text-slate-500" id="comp-store-modal-desc">Mô tả vi phạm: ---</div>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-brand-navy uppercase mb-1">Nội dung Giải Trình Từ Cửa Hàng (*)</label>
+                    <textarea id="comp-store-explanation" rows="4" class="input-field text-xs font-medium" placeholder="Nhập chi tiết nguyên nhân, giải trình diễn biến sự việc và phương hướng khắc phục..."></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Đính Kèm Ảnh / Biên Bản Phản Hồi (Tùy chọn - Tự nén &lt; 250KB)</label>
+                    <input type="file" id="comp-store-file" accept="image/*,.pdf" class="w-full text-xs text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100">
+                    <div id="comp-store-file-status" class="text-[11px] text-gray-500 mt-1 italic"></div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
+                <button onclick="closeModalStoreExplain()" class="btn-outline text-xs px-4 py-2">Hủy Bỏ</button>
+                <button id="btn-submit-store-explain" onclick="submitStoreExplain()" class="btn-primary text-xs px-5 py-2 font-bold shadow-md bg-amber-600 hover:bg-amber-700">
+                    💾 Gửi Giải Trình Đến ASM
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ASM ĐÁNH GIÁ & XỬ LÝ KỶ LUẬT (ASM Assessment & Fine Deduction Modal) -->
+    <div id="modal-asm-compliance-approve" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="card w-full max-w-lg p-6 space-y-4 shadow-2xl rounded-2xl relative bg-white">
+            <button onclick="closeModalAsmApprove()" class="absolute top-4 right-4 text-gray-400 hover:text-brand-red text-xl font-bold transition-all">&times;</button>
+            <div class="flex items-center gap-3 border-b border-gray-100 pb-3">
+                <div class="w-10 h-10 bg-indigo-100 text-indigo-800 rounded-xl flex items-center justify-center font-bold text-lg">⚖️</div>
+                <div>
+                    <h3 class="font-extrabold text-brand-navy text-base">ASM Đánh Giá & Xử Lý Sự Vụ Tuân Thủ</h3>
+                    <div id="comp-asm-modal-subtitle" class="text-xs text-gray-500 font-semibold">Vé: --- | CH: ---</div>
+                </div>
+            </div>
+
+            <input type="hidden" id="comp-asm-ticket-code" value="">
+
+            <div class="space-y-3 text-xs">
+                <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900">
+                    <div class="font-bold mb-1" id="comp-asm-modal-store-exp">CH Giải Trình: ---</div>
+                    <div id="comp-asm-modal-attach" class="text-[11px]"></div>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Đánh Giá & Nhận Xét Của ASM (QLKD) (*)</label>
+                    <textarea id="comp-asm-assessment" rows="3" class="input-field text-xs font-medium" placeholder="Ý kiến đánh giá của ASM về mức độ vi phạm, chấp nhận hay bác bỏ giải trình của CH..."></textarea>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Thông Tin Nhân Sự Vi Phạm</label>
+                        <input type="text" id="comp-violating-staff" class="input-field font-semibold" placeholder="Họ tên nhân sự vi phạm">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Mức Độ Phạt / Khấu Trừ Chế Thưởng</label>
+                        <select id="comp-fine-deduction" class="input-field font-bold text-red-600">
+                            <option value="0%">0% (Nhắc nhở / Không trừ)</option>
+                            <option value="20%">20% Chế Thưởng</option>
+                            <option value="50%">50% Chế Thưởng</option>
+                            <option value="100%">100% Khấu Trừ Chế Thưởng (Chế tài nặng)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Trạng Thái Hồ Sơ</label>
+                    <select id="comp-asm-status" class="input-field font-bold text-brand-navy">
+                        <option value="CH đã giải trình">⏳ CH đã giải trình (Đang xem xét)</option>
+                        <option value="Hoàn tất">✅ Hoàn tất & Chốt Hồ Sơ</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
+                <button onclick="closeModalAsmApprove()" class="btn-outline text-xs px-4 py-2">Hủy Bỏ</button>
+                <button id="btn-submit-asm-approve" onclick="submitAsmApprove()" class="btn-primary text-xs px-5 py-2 font-bold shadow-md bg-indigo-600 hover:bg-indigo-700">
+                    💾 Đóng Hồ Sơ & Lưu Đánh Giá
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL BÁO CÁO TÁI PHẠM & THỐNG KÊ P.QLQT (Compliance Analytics Modal) -->
+    <div id="modal-compliance-analytics" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="card w-full max-w-4xl p-6 space-y-4 shadow-2xl rounded-2xl relative bg-white max-h-[90vh] overflow-y-auto">
+            <button onclick="closeModalComplianceAnalytics()" class="absolute top-4 right-4 text-gray-400 hover:text-brand-red text-xl font-bold transition-all">&times;</button>
+            <div class="flex items-center gap-3 border-b border-gray-100 pb-3">
+                <div class="w-10 h-10 bg-indigo-100 text-indigo-800 rounded-xl flex items-center justify-center font-bold text-lg">📊</div>
+                <div>
+                    <h3 class="font-extrabold text-brand-navy text-base">Báo Cáo Phân Tích Tái Phạm & Tỷ Lệ Tuân Thủ Cụm</h3>
+                    <p class="text-xs text-gray-500 font-medium">Tổng hợp lịch sử vi phạm, xếp hạng Cửa hàng tái phạm nhiều nhất và thống kê theo ASM</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <!-- Repeat Offender Stores Table -->
+                <div class="bg-rose-50/50 p-4 rounded-xl border border-rose-100 space-y-2">
+                    <h4 class="font-bold text-rose-800 uppercase text-xs flex items-center gap-1.5">
+                        <span>⚠️</span> Top Cửa Hàng Tái Phạm Nhiều Nhất
+                    </h4>
+                    <div class="overflow-x-auto max-h-60 overflow-y-auto bg-white rounded-lg border border-rose-200">
+                        <table class="w-full text-xs text-left">
+                            <thead class="bg-rose-100 text-rose-900 font-bold uppercase text-[10px]">
+                                <tr>
+                                    <th class="p-2">Tên CH</th>
+                                    <th class="p-2">Nhóm Lỗi Vi Phạm</th>
+                                    <th class="p-2 text-center">Số Lần</th>
+                                </tr>
+                            </thead>
+                            <tbody id="comp-analytics-repeat-body" class="divide-y divide-gray-100">
+                                <tr><td colspan="3" class="text-center py-4 text-gray-400">Đang tải...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Violation Groups Table -->
+                <div class="bg-blue-50/50 p-4 rounded-xl border border-blue-100 space-y-2">
+                    <h4 class="font-bold text-blue-800 uppercase text-xs flex items-center gap-1.5">
+                        <span>📌</span> Thống Kê Theo Nhóm Vi Phạm
+                    </h4>
+                    <div class="overflow-x-auto max-h-60 overflow-y-auto bg-white rounded-lg border border-blue-200">
+                        <table class="w-full text-xs text-left">
+                            <thead class="bg-blue-100 text-blue-900 font-bold uppercase text-[10px]">
+                                <tr>
+                                    <th class="p-2">Nhóm Lỗi</th>
+                                    <th class="p-2 text-center">Tổng Sự Vụ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="comp-analytics-groups-body" class="divide-y divide-gray-100">
+                                <tr><td colspan="2" class="text-center py-4 text-gray-400">Đang tải...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ASM Ranking Table -->
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 text-xs">
+                <h4 class="font-bold text-slate-800 uppercase text-xs flex items-center gap-1.5">
+                    <span>👑</span> Tổng Hợp Sự Vụ Theo Cụm ASM (QLKD)
+                </h4>
+                <div class="overflow-x-auto max-h-60 overflow-y-auto bg-white rounded-lg border border-slate-200">
+                    <table class="w-full text-xs text-left">
+                        <thead class="bg-slate-100 text-slate-900 font-bold uppercase text-[10px]">
+                            <tr>
+                                <th class="p-2">Tên ASM</th>
+                                <th class="p-2 text-center">Tổng Sự Vụ</th>
+                                <th class="p-2 text-center">Số Lần Tái Phạm</th>
+                                <th class="p-2 text-center">Đã Hoàn Tất</th>
+                            </tr>
+                        </thead>
+                        <tbody id="comp-analytics-asm-body" class="divide-y divide-gray-100">
+                            <tr><td colspan="4" class="text-center py-4 text-gray-400">Đang tải...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end pt-2 border-t border-gray-100">
+                <button onclick="closeModalComplianceAnalytics()" class="btn-outline text-xs px-5 py-2">Đóng</button>
             </div>
         </div>
     </div>

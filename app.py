@@ -295,6 +295,46 @@ def safe_migrate_db():
             created_at VARCHAR(30) DEFAULT '',
             updated_at VARCHAR(30) DEFAULT ''
         )
+        """,
+        f"""
+        CREATE TABLE IF NOT EXISTS tb_compliance_imports (
+            id {pk_auto},
+            batch_code VARCHAR(50) UNIQUE NOT NULL,
+            filename TEXT NOT NULL,
+            imported_at VARCHAR(50) NOT NULL,
+            imported_by VARCHAR(100) DEFAULT 'Admin/P.QLQT',
+            total_records INTEGER DEFAULT 0,
+            month_period VARCHAR(20) DEFAULT ''
+        )
+        """,
+        f"""
+        CREATE TABLE IF NOT EXISTS tb_compliance_audits (
+            id {pk_auto},
+            batch_code VARCHAR(50) DEFAULT '',
+            ticket_code VARCHAR(50) UNIQUE NOT NULL,
+            sheet_name VARCHAR(100) DEFAULT '',
+            topic VARCHAR(150) DEFAULT '',
+            check_item VARCHAR(255) DEFAULT '',
+            criteria_standard TEXT DEFAULT '',
+            store_code VARCHAR(50) NOT NULL,
+            store_name VARCHAR(150) DEFAULT '',
+            asm_name VARCHAR(100) DEFAULT '',
+            camera_evidence_time TEXT DEFAULT '',
+            violation_group VARCHAR(255) DEFAULT '',
+            violation_description TEXT DEFAULT '',
+            pqlqt_evaluation VARCHAR(50) DEFAULT 'Không đạt',
+            received_date VARCHAR(20) DEFAULT '',
+            response_deadline VARCHAR(20) DEFAULT '',
+            store_explanation TEXT DEFAULT '',
+            asm_assessment TEXT DEFAULT '',
+            violating_staff_info TEXT DEFAULT '',
+            attachment_url TEXT DEFAULT '',
+            status VARCHAR(50) DEFAULT 'Mới tiếp nhận',
+            is_repeat_offense INTEGER DEFAULT 0,
+            repeat_count INTEGER DEFAULT 1,
+            created_at VARCHAR(50) DEFAULT '',
+            updated_at VARCHAR(50) DEFAULT ''
+        )
         """
     ]
     
@@ -1654,6 +1694,557 @@ def update_support_ticket():
         pass
 
     return jsonify({'ok': True, 'message': f'Đã cập nhật sự vụ thành công!'})
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PHÂN HỆ QUẢN LÝ TUÂN THỦ & KIỂM SOÁT NỘI BỘ P.QLQT (COMPLIANCE AUDITS)
+# ──────────────────────────────────────────────────────────────────────────────
+
+@app.route('/api/admin/import_compliance_excel', methods=['POST'])
+def import_compliance_excel():
+    """API cho Admin / P.QLQT nạp file Excel Checklist kiểm tra camera"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'ok': False, 'error': 'Vui lòng chọn file Excel đính kèm'})
+            
+        file = request.files['file']
+        if not file or not file.filename:
+            return jsonify({'ok': False, 'error': 'Tệp tải lên không hợp lệ'})
+            
+        custom_deadline = request.form.get('custom_deadline', '').strip()
+        month_period = request.form.get('month_period', '').strip()
+        pin = request.form.get('pin', '').strip()
+        
+        master_pin = os.environ.get('MASTER_PIN', '8888')
+        if pin and pin != master_pin and not _default_pin_allowed(pin):
+            asm = query_db("SELECT * FROM tb_asms WHERE passcode = ?", (pin,), one=True)
+            if not asm or not ('khôi' in asm.get('asm_name','').lower() or 'khoi' in asm.get('asm_name','').lower()):
+                return jsonify({'ok': False, 'error': 'Chỉ Admin và QLQT/ASM Khôi mới có quyền nạp báo cáo kiểm soát nội bộ'})
+                
+        import openpyxl
+        import uuid
+        wb = openpyxl.load_workbook(file, data_only=True)
+        
+        today_obj = datetime.now()
+        today_str = today_obj.strftime('%Y-%m-%d')
+        now_str = today_obj.strftime('%Y-%m-%d %H:%M:%S')
+        
+        if custom_deadline:
+            default_deadline = custom_deadline
+        else:
+            default_deadline = (today_obj + timedelta(days=3)).strftime('%Y-%m-%d')
+            
+        if not month_period:
+            month_period = today_obj.strftime('%Y-%m')
+            
+        batch_code = f"BATCH-PQLQT-{today_obj.strftime('%Y%m%d%H%M%S')}"
+        
+        all_stores = query_db("SELECT * FROM tb_stores")
+        store_by_code = {s['store_code'].upper().strip(): s for s in all_stores}
+        store_by_name = {sanitize_filename_part(s['store_name']).lower(): s for s in all_stores}
+
+        existing_repeats = query_db("""
+            SELECT store_code, violation_group, COUNT(*) as cnt
+            FROM tb_compliance_audits
+            GROUP BY store_code, violation_group
+        """)
+        repeat_map = {(r['store_code'], r['violation_group']): r['cnt'] for r in existing_repeats}
+
+        inserted_count = 0
+        repeat_count = 0
+        audits_to_insert = []
+
+        for sheet_name in wb.sheetnames:
+            ws = wb[sheet_name]
+            rows = list(ws.iter_rows(max_row=250, values_only=True))
+            if len(rows) < 4:
+                continue
+
+            header_idx = 3
+            for idx, r in enumerate(rows[:6]):
+                if r and len(r) > 1 and r[1] and 'stt' in str(r[1]).lower():
+                    header_idx = idx
+                    break
+
+            empty_consecutive = 0
+            for r in rows[header_idx + 1:]:
+                if not r:
+                    empty_consecutive += 1
+                    if empty_consecutive >= 5:
+                        break
+                    continue
+
+                topic = str(r[2] or '').strip() if len(r) > 2 else ''
+                check_item = str(r[3] or '').strip() if len(r) > 3 else ''
+                criteria_standard = str(r[5] or '').strip() if len(r) > 5 else ''
+                raw_store_code = str(r[7] or '').strip() if len(r) > 7 else ''
+                raw_store_name = str(r[8] or '').strip() if len(r) > 8 else ''
+                raw_asm_name = str(r[9] or '').strip() if len(r) > 9 else ''
+                cam_evidence_time = str(r[10] or '').strip() if len(r) > 10 else ''
+                if not cam_evidence_time and len(r) > 11 and r[11]:
+                    cam_evidence_time = f"Ngày: {r[11]} Giờ: {r[12] if len(r) > 12 else ''}"
+                    
+                violation_group = str((r[13] if len(r) > 13 else '') or (r[12] if len(r) > 12 else '') or '').strip()
+                violation_description = str((r[14] if len(r) > 14 else '') or (r[13] if len(r) > 13 else '') or '').strip()
+                pqlqt_eval = str((r[18] if len(r) > 18 else '') or (r[16] if len(r) > 16 else '') or 'Không đạt').strip()
+
+                if not raw_store_code and not raw_store_name and not check_item:
+                    empty_consecutive += 1
+                    if empty_consecutive >= 5:
+                        break
+                    continue
+                empty_consecutive = 0
+
+                matched_store = store_by_code.get(raw_store_code.upper())
+                if not matched_store and raw_store_name:
+                    clean_n = sanitize_filename_part(raw_store_name).lower()
+                    matched_store = store_by_name.get(clean_n)
+
+                if matched_store:
+                    final_store_code = matched_store['store_code']
+                    final_store_name = matched_store['store_name']
+                    final_asm_name = matched_store['asm_name']
+                else:
+                    final_store_code = raw_store_code or 'UNKNOWN'
+                    final_store_name = raw_store_name or final_store_code
+                    final_asm_name = raw_asm_name or 'Chưa phân công'
+
+                clean_slug = sanitize_filename_part(final_store_code)[:15] if 'sanitize_filename_part' in globals() else final_store_code[:15]
+                ticket_code = f"TK-COMP-{clean_slug}-{today_obj.strftime('%Y%m%d')}-{inserted_count + 1}-{uuid.uuid4().hex[:4].upper()}"
+
+                key = (final_store_code, violation_group)
+                prev_cnt = repeat_map.get(key, 0)
+                is_repeat = 1 if prev_cnt > 0 else 0
+                cur_repeat_cnt = prev_cnt + 1
+                repeat_map[key] = cur_repeat_cnt
+                cur_repeat_cnt = prev_cnt + 1
+                if is_repeat:
+                    repeat_count += 1
+
+                audits_to_insert.append((
+                    batch_code, ticket_code, sheet_name, topic, check_item, criteria_standard,
+                    final_store_code, final_store_name, final_asm_name, cam_evidence_time, violation_group,
+                    violation_description, pqlqt_eval, today_str, default_deadline,
+                    'Mới tiếp nhận', is_repeat, cur_repeat_cnt, now_str, now_str
+                ))
+                inserted_count += 1
+
+        if audits_to_insert:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            if DATABASE_URL:
+                try:
+                    import psycopg2.extras
+                    sql_insert_pg = """
+                        INSERT INTO tb_compliance_audits (
+                            batch_code, ticket_code, sheet_name, topic, check_item, criteria_standard,
+                            store_code, store_name, asm_name, camera_evidence_time, violation_group,
+                            violation_description, pqlqt_evaluation, received_date, response_deadline,
+                            status, is_repeat_offense, repeat_count, created_at, updated_at
+                        ) VALUES %s
+                    """
+                    psycopg2.extras.execute_values(cur, sql_insert_pg, audits_to_insert)
+                except Exception:
+                    for row_args in audits_to_insert:
+                        execute_db("""
+                            INSERT INTO tb_compliance_audits (
+                                batch_code, ticket_code, sheet_name, topic, check_item, criteria_standard,
+                                store_code, store_name, asm_name, camera_evidence_time, violation_group,
+                                violation_description, pqlqt_evaluation, received_date, response_deadline,
+                                status, is_repeat_offense, repeat_count, created_at, updated_at
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """, row_args)
+            else:
+                sql_insert_sqlite = """
+                    INSERT INTO tb_compliance_audits (
+                        batch_code, ticket_code, sheet_name, topic, check_item, criteria_standard,
+                        store_code, store_name, asm_name, camera_evidence_time, violation_group,
+                        violation_description, pqlqt_evaluation, received_date, response_deadline,
+                        status, is_repeat_offense, repeat_count, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """
+                cur.executemany(sql_insert_sqlite, audits_to_insert)
+            conn.commit()
+
+        execute_db("""
+            INSERT INTO tb_compliance_imports (
+                batch_code, filename, imported_at, imported_by, total_records, month_period
+            ) VALUES (?, ?, ?, ?, ?, ?)
+        """, (batch_code, file.filename, now_str, 'Admin/P.QLQT', inserted_count, month_period))
+
+        return jsonify({
+            'ok': True,
+            'message': f'Đã nạp báo cáo kiểm soát nội bộ thành công ({inserted_count} vụ việc)!',
+            'batch_code': batch_code,
+            'total_records': inserted_count,
+            'repeat_count': repeat_count
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'ok': False, 'error': f'Lỗi nạp file Excel báo cáo: {str(e)}'})
+
+@app.route('/api/get_compliance_audits', methods=['GET'])
+def get_compliance_audits():
+    """API lấy danh sách các sự vụ kiểm soát nội bộ P.QLQT"""
+    try:
+        role = request.args.get('role', 'store')
+        pin = request.args.get('pin', '')
+        asm = request.args.get('asm', '')
+        store_code = request.args.get('store_code', '')
+        status_filter = request.args.get('status', '')
+        days_window = int(request.args.get('days_window', 365))
+        repeat_only = request.args.get('repeat_only', '') == '1'
+
+        scope = get_auth_scope(role, asm, pin, store_code)
+
+        where_clauses = []
+        args = []
+
+        if scope['type'] == 'STORE':
+            where_clauses.append("c.store_code = ?")
+            args.append(scope['store'])
+        elif scope['type'] == 'ASM':
+            asm_target = scope['asm']
+            clean_asm = sanitize_filename_part(asm_target).lower() if 'sanitize_filename_part' in globals() else asm_target.lower()
+            where_clauses.append("(c.asm_name = ? OR LOWER(c.asm_name) LIKE ?)")
+            args.append(asm_target)
+            args.append(f"%{clean_asm}%")
+        else:
+            if asm and asm != 'ALL' and asm != 'undefined':
+                clean_asm = sanitize_filename_part(asm).lower() if 'sanitize_filename_part' in globals() else asm.lower()
+                where_clauses.append("(c.asm_name = ? OR LOWER(c.asm_name) LIKE ?)")
+                args.append(asm)
+                args.append(f"%{clean_asm}%")
+            if store_code:
+                where_clauses.append("c.store_code = ?")
+                args.append(store_code)
+
+        if status_filter == 'PENDING_STORE':
+            where_clauses.append("c.status IN ('Mới tiếp nhận', 'Chờ CH tường trình')")
+        elif status_filter == 'PENDING_ASM':
+            where_clauses.append("c.status = 'Chờ ASM duyệt'")
+        elif status_filter == 'COMPLETED':
+            where_clauses.append("c.status IN ('Đã hoàn tất', 'Đã hủy')")
+
+        if repeat_only:
+            where_clauses.append("c.is_repeat_offense = 1")
+
+        where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+
+        sql = f"""
+            SELECT c.*, s.store_name as ref_store_name, s.asm_name as ref_asm_name
+            FROM tb_compliance_audits c
+            LEFT JOIN tb_stores s ON c.store_code = s.store_code
+            {where_sql}
+            ORDER BY c.is_repeat_offense DESC, c.id DESC
+        """
+        rows = query_db(sql, tuple(args))
+
+        today_str = datetime.now().strftime('%Y-%m-%d')
+
+        audits = []
+        total_cnt = len(rows)
+        pending_store_cnt = 0
+        pending_asm_cnt = 0
+        completed_cnt = 0
+        repeat_cnt = 0
+        overdue_cnt = 0
+
+        for r in rows:
+            item = dict(r)
+            item['store_name'] = item.get('ref_store_name') or item.get('store_name') or item['store_code']
+            item['asm_name'] = item.get('ref_asm_name') or item.get('asm_name') or 'Chưa phân công'
+
+            st = item.get('status', 'Mới tiếp nhận')
+            deadline = item.get('response_deadline', '')
+
+            if st in ('Đã hoàn tất', 'Đã hủy'):
+                item['sla_badge'] = '✅ Hoàn tất'
+                item['is_overdue'] = False
+                completed_cnt += 1
+            else:
+                if st in ('Mới tiếp nhận', 'Chờ CH tường trình'):
+                    pending_store_cnt += 1
+                elif st == 'Chờ ASM duyệt':
+                    pending_asm_cnt += 1
+
+                if deadline and deadline < today_str:
+                    item['sla_badge'] = '🔴 Quá hạn SLA'
+                    item['is_overdue'] = True
+                    overdue_cnt += 1
+                elif deadline and deadline == today_str:
+                    item['sla_badge'] = '🟡 Hạn hôm nay'
+                    item['is_overdue'] = False
+                else:
+                    item['sla_badge'] = '🟢 Trong hạn'
+                    item['is_overdue'] = False
+
+            if item.get('is_repeat_offense'):
+                repeat_cnt += 1
+
+            audits.append(item)
+
+        return jsonify({
+            'ok': True,
+            'audits': audits,
+            'kpis': {
+                'total': total_cnt,
+                'pending_store': pending_store_cnt,
+                'pending_asm': pending_asm_cnt,
+                'completed': completed_cnt,
+                'repeat': repeat_cnt,
+                'overdue': overdue_cnt
+            }
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'ok': False, 'error': f'Lỗi tải danh sách kiểm soát tuân thủ: {str(e)}'})
+
+@app.route('/api/update_compliance_audit', methods=['POST'])
+def update_compliance_audit():
+    """API Cửa Hàng nhập giải trình / ASM phê duyệt & gán % trừ thưởng"""
+    try:
+        data = request.get_json() or {}
+        ticket_code = data.get('ticket_code')
+        pin = data.get('pin')
+        store_explanation = data.get('store_explanation')
+        asm_assessment = data.get('asm_assessment')
+        violating_staff_info = data.get('violating_staff_info')
+        attachment_url = data.get('attachment_url')
+        status = data.get('status')
+        custom_deadline = data.get('response_deadline')
+
+        if not ticket_code:
+            return jsonify({'ok': False, 'error': 'Mã ticket không hợp lệ'})
+
+        ticket = query_db("SELECT * FROM tb_compliance_audits WHERE ticket_code = ?", (ticket_code,), one=True)
+        if not ticket:
+            return jsonify({'ok': False, 'error': 'Không tìm thấy ticket vi phạm'})
+
+        master_pin = os.environ.get('MASTER_PIN', '8888')
+        is_valid_pin = (pin == master_pin) or _default_pin_allowed(pin)
+        if not is_valid_pin and pin:
+            store = query_db("SELECT * FROM tb_stores WHERE store_code = ? AND passcode = ?", (ticket['store_code'], pin), one=True)
+            if store:
+                is_valid_pin = True
+            else:
+                asm = query_db("SELECT * FROM tb_asms WHERE passcode = ?", (pin,), one=True)
+                if asm:
+                    is_valid_pin = True
+
+        if not is_valid_pin:
+            return jsonify({'ok': False, 'error': 'Mã PIN không có quyền cập nhật sự vụ này'})
+
+        now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        updates = []
+        args = []
+
+        if store_explanation is not None:
+            updates.append("store_explanation = ?")
+            args.append(store_explanation)
+            if not status and ticket['status'] in ('Mới tiếp nhận', 'Chờ CH tường trình'):
+                status = 'Chờ ASM duyệt'
+
+        if asm_assessment is not None:
+            updates.append("asm_assessment = ?")
+            args.append(asm_assessment)
+
+        if violating_staff_info is not None:
+            updates.append("violating_staff_info = ?")
+            args.append(violating_staff_info)
+
+        if attachment_url is not None:
+            updates.append("attachment_url = ?")
+            args.append(attachment_url)
+
+        if status is not None:
+            updates.append("status = ?")
+            args.append(status)
+
+        if custom_deadline is not None:
+            updates.append("response_deadline = ?")
+            args.append(custom_deadline)
+
+        if not updates:
+            return jsonify({'ok': False, 'error': 'Không có dữ liệu thay đổi'})
+
+        updates.append("updated_at = ?")
+        args.append(now_str)
+        args.append(ticket['id'])
+
+        execute_db(f"UPDATE tb_compliance_audits SET {', '.join(updates)} WHERE id = ?", tuple(args))
+
+        try:
+            if status is not None and '_log_ticket_history' in globals():
+                _log_ticket_history('COMPLIANCE', str(ticket_code), ticket['store_code'], ticket.get('status'), status)
+        except Exception:
+            pass
+
+        return jsonify({'ok': True, 'message': 'Đã cập nhật hồ sơ tuân thủ thành công!'})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': f'Lỗi cập nhật: {str(e)}'})
+
+@app.route('/api/upload_compliance_attachment', methods=['POST'])
+def upload_compliance_attachment():
+    """API nhận file Tờ trình / Biên bản đính kèm (ảnh nạp nén từ Canvas / PDF)"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'ok': False, 'error': 'Không tìm thấy file tải lên'})
+        file = request.files['file']
+        if not file or not file.filename:
+            return jsonify({'ok': False, 'error': 'File không hợp lệ'})
+
+        upload_dir = os.path.join(app.root_path, 'static', 'uploads', 'compliance')
+        os.makedirs(upload_dir, exist_ok=True)
+
+        ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
+        filename = f"att_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{os.urandom(4).hex()}.{ext}"
+        filepath = os.path.join(upload_dir, filename)
+        file.save(filepath)
+
+        rel_url = f"/static/uploads/compliance/{filename}"
+        return jsonify({'ok': True, 'url': rel_url, 'filename': filename})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': f'Lỗi upload file: {str(e)}'})
+
+@app.route('/api/compliance_analytics', methods=['GET'])
+def compliance_analytics():
+    """API tổng hợp báo cáo kiểm soát tuân thủ theo ASM, Cửa Hàng & Top Tái Phạm"""
+    try:
+        asm_stats = query_db("""
+            SELECT asm_name, 
+                   COUNT(*) as total_violations,
+                   SUM(CASE WHEN is_repeat_offense = 1 THEN 1 ELSE 0 END) as repeat_violations,
+                   SUM(CASE WHEN status IN ('Đã hoàn tất', 'Đã hủy') THEN 1 ELSE 0 END) as completed_cnt
+            FROM tb_compliance_audits
+            GROUP BY asm_name
+            ORDER BY total_violations DESC
+        """)
+        
+        repeat_stores = query_db("""
+            SELECT store_code, store_name, asm_name, 
+                   COUNT(*) as total_violations,
+                   SUM(CASE WHEN is_repeat_offense = 1 THEN 1 ELSE 0 END) as repeat_cnt
+            FROM tb_compliance_audits
+            GROUP BY store_code, store_name, asm_name
+            HAVING SUM(CASE WHEN is_repeat_offense = 1 THEN 1 ELSE 0 END) > 0 OR COUNT(*) > 1
+            ORDER BY repeat_cnt DESC, total_violations DESC
+            LIMIT 15
+        """)
+        
+        group_stats = query_db("""
+            SELECT violation_group, COUNT(*) as cnt
+            FROM tb_compliance_audits
+            WHERE violation_group IS NOT NULL AND violation_group != ''
+            GROUP BY violation_group
+            ORDER BY cnt DESC
+            LIMIT 10
+        """)
+
+        return jsonify({
+            'ok': True,
+            'asm_stats': [dict(r) for r in asm_stats],
+            'repeat_stores': [dict(r) for r in repeat_stores],
+            'group_stats': [dict(r) for r in group_stats]
+        })
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)})
+
+@app.route('/api/export_compliance_excel', methods=['GET'])
+def export_compliance_excel():
+    """API xuất file Excel báo cáo kiểm soát nội bộ P.QLQT (điền đầy đủ thông tin giải trình & % trừ thưởng)"""
+    try:
+        batch_code = request.args.get('batch_code', '')
+        asm = request.args.get('asm', '')
+        
+        where_clauses = []
+        args = []
+        if batch_code:
+            where_clauses.append("batch_code = ?")
+            args.append(batch_code)
+        if asm and asm != 'ALL':
+            clean_asm = sanitize_filename_part(asm).lower() if 'sanitize_filename_part' in globals() else asm.lower()
+            where_clauses.append("(asm_name = ? OR LOWER(asm_name) LIKE ?)")
+            args.append(asm)
+            args.append(f"%{clean_asm}%")
+            
+        where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+        audits = query_db(f"SELECT * FROM tb_compliance_audits {where_sql} ORDER BY id ASC", tuple(args))
+        
+        import openpyxl
+        from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+        
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "BaoCao_TuanThu_PQLQT"
+        
+        headers = [
+            "STT", "Chuyên Đề", "Hạng Mục Kiểm Tra", "Tiêu Chuẩn Yêu Cầu", "Mã CH", "Tên CH",
+            "QLKD Phụ Trách", "Thời Gian CAM", "Nhóm Lỗi Vi Phạm", "Mô Tả Vi Phạm (P.QLQT)",
+            "Đánh Giá", "SLA Hạn Phản Hồi", "Trạng Thái", "Tái Phạm?",
+            "Tường Trình Cửa Hàng (CH)", "Nhận Định QLKD (ASM) & % Trừ Thưởng", "Nhân Sự Vi Phạm", "Link Tờ Trình Đính Kèm"
+        ]
+        
+        header_font = Font(name="Arial", size=10, bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+        center_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        left_align = Alignment(horizontal="left", vertical="center", wrap_text=True)
+        
+        thin_border = Border(
+            left=Side(style='thin', color='CBD5E1'),
+            right=Side(style='thin', color='CBD5E1'),
+            top=Side(style='thin', color='CBD5E1'),
+            bottom=Side(style='thin', color='CBD5E1')
+        )
+        
+        ws.append(headers)
+        for col_idx in range(1, len(headers) + 1):
+            cell = ws.cell(1, col_idx)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = center_align
+            
+        for idx, a in enumerate(audits, 1):
+            is_rep = "⚠️ TÁI PHẠM" if a.get('is_repeat_offense') else "Lần 1"
+            row = [
+                idx,
+                a.get('topic', ''),
+                a.get('check_item', ''),
+                a.get('criteria_standard', ''),
+                a.get('store_code', ''),
+                a.get('store_name', ''),
+                a.get('asm_name', ''),
+                a.get('camera_evidence_time', ''),
+                a.get('violation_group', ''),
+                a.get('violation_description', ''),
+                a.get('pqlqt_evaluation', ''),
+                a.get('response_deadline', ''),
+                a.get('status', ''),
+                is_rep,
+                a.get('store_explanation', ''),
+                a.get('asm_assessment', ''),
+                a.get('violating_staff_info', ''),
+                a.get('attachment_url', '')
+            ]
+            ws.append(row)
+            r_idx = idx + 1
+            for c_idx in range(1, len(row) + 1):
+                c = ws.cell(r_idx, c_idx)
+                c.border = thin_border
+                c.alignment = center_align if c_idx in (1, 5, 7, 11, 12, 13, 14) else left_align
+                
+        from io import BytesIO
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        filename = f"Checklist_TuanThu_PQLQT_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+        from flask import send_file
+        return send_file(output, download_name=filename, as_attachment=True, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    except Exception as e:
+        return jsonify({'ok': False, 'error': f'Lỗi xuất file Excel: {str(e)}'})
 
 # ──────────────────────────────────────────────────────────────────────────────
 # NEW API: NON-PURCHASE REASON ANALYTICS
