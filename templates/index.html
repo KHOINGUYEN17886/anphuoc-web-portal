@@ -7104,8 +7104,31 @@
             if (!item) return;
             document.getElementById('comp-asm-ticket-code').value = ticketCode;
             document.getElementById('comp-asm-modal-subtitle').innerText = `Mã Vé: ${ticketCode} | CH: ${item.store_name} (${item.store_code})`;
-            document.getElementById('comp-asm-modal-store-exp').innerText = `Giải trình CH: ${item.store_explanation || 'Chưa có giải trình'}`;
-            document.getElementById('comp-asm-modal-attach').innerHTML = item.attachment_url ? `<a href="${item.attachment_url}" target="_blank" class="text-blue-600 font-bold underline">📎 Xem Tờ Trình / Ảnh Đính Kèm</a>` : '';
+            
+            const expTextEl = document.getElementById('comp-asm-modal-store-exp-text');
+            if (expTextEl) {
+                expTextEl.innerText = item.store_explanation || '(Cửa hàng chưa gửi nội dung giải trình)';
+            }
+
+            const attachEl = document.getElementById('comp-asm-modal-attach');
+            if (attachEl) {
+                if (item.attachment_url) {
+                    const isPdf = item.attachment_url.toLowerCase().endsWith('.pdf');
+                    attachEl.innerHTML = `
+                        <div class="p-2 bg-white/90 border border-indigo-200 rounded-lg flex items-center justify-between shadow-2xs">
+                            <span class="text-xs text-indigo-900 font-bold flex items-center gap-1">
+                                <span>📎</span> File đính kèm từ CH:
+                            </span>
+                            <a href="${escapeHtml(item.attachment_url)}" target="_blank" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-md shadow-2xs inline-flex items-center gap-1 transition-all">
+                                <span>👁️</span> Xem / Tải Tờ Trình (${isPdf ? 'PDF' : 'Ảnh'})
+                            </a>
+                        </div>
+                    `;
+                } else {
+                    attachEl.innerHTML = '<span class="text-xs text-gray-400 italic font-normal">Cửa hàng chưa gửi file đính kèm</span>';
+                }
+            }
+
             document.getElementById('comp-asm-assessment').value = item.asm_assessment || '';
             document.getElementById('comp-violating-staff').value = item.violating_staff_info || '';
             
@@ -7636,9 +7659,17 @@
             <input type="hidden" id="comp-asm-ticket-code" value="">
 
             <div class="space-y-3 text-xs">
-                <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900">
-                    <div class="font-bold mb-1" id="comp-asm-modal-store-exp">CH Giải Trình: ---</div>
-                    <div id="comp-asm-modal-attach" class="text-[11px]"></div>
+                <!-- Container hiển thị toàn bộ Giải Trình & File Đính Kèm Cửa Hàng ngay trong modal ASM -->
+                <div class="p-3.5 bg-gradient-to-br from-amber-50 to-orange-50/80 border border-amber-200/80 rounded-xl space-y-2 shadow-2xs">
+                    <div class="flex items-center justify-between border-b border-amber-200/60 pb-1.5">
+                        <span class="font-extrabold text-amber-900 text-xs flex items-center gap-1.5 uppercase">
+                            <span>📝</span> Nội Dung Giải Trình Thực Tế Từ Cửa Hàng
+                        </span>
+                    </div>
+                    <div id="comp-asm-modal-store-exp-text" class="text-xs text-amber-950 font-medium whitespace-pre-line leading-relaxed max-h-36 overflow-y-auto p-2.5 bg-white/80 rounded-lg border border-amber-200/60">
+                        (Chưa có giải trình)
+                    </div>
+                    <div id="comp-asm-modal-attach" class="pt-1"></div>
                 </div>
 
                 <div>

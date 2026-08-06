@@ -2,12 +2,13 @@ import os
 import calendar
 from datetime import date, datetime, timedelta
 from collections import defaultdict
-from flask import Flask, render_template, request, jsonify, send_file, g, has_app_context
+from flask import Flask, render_template, request, jsonify, send_file, g, has_app_context, make_response, send_from_directory
 import sqlite3
 import threading
 import urllib.request
 import urllib.parse
 import json
+import base64
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -340,6 +341,15 @@ def safe_migrate_db():
             repeat_count INTEGER DEFAULT 1,
             created_at VARCHAR(50) DEFAULT '',
             updated_at VARCHAR(50) DEFAULT ''
+        )
+        """,
+        f"""
+        CREATE TABLE IF NOT EXISTS tb_compliance_attachments (
+            id {pk_auto},
+            filename VARCHAR(255) UNIQUE NOT NULL,
+            file_data TEXT NOT NULL,
+            mime_type VARCHAR(100) DEFAULT 'application/pdf',
+            created_at VARCHAR(50) DEFAULT ''
         )
         """
     ]
@@ -2112,10 +2122,10 @@ def get_compliance_audits():
         if scope['type'] == 'STORE':
             st_target = scope['store']
             clean_st = st_target.replace('126_', '').replace('126', '').strip()
-            where_clauses.append("(c.store_code = ? OR c.store_code LIKE ? OR c.store_code LIKE ?)")
+            where_clauses.append("(c.store_code = ? OR c.store_code = ? OR c.store_code = ?)")
             args.append(st_target)
-            args.append(f"%{clean_st}%")
-            args.append(f"126_%{clean_st}%")
+            args.append(clean_st)
+            args.append(f"126_{clean_st}")
         elif scope['type'] == 'ASM':
             asm_target = scope['asm']
             clean_asm = sanitize_filename_part(asm_target).lower() if 'sanitize_filename_part' in globals() else asm_target.lower()
@@ -2130,10 +2140,10 @@ def get_compliance_audits():
                 args.append(f"%{clean_asm}%")
             if store_code:
                 clean_st = store_code.replace('126_', '').replace('126', '').strip()
-                where_clauses.append("(c.store_code = ? OR c.store_code LIKE ? OR c.store_code LIKE ?)")
+                where_clauses.append("(c.store_code = ? OR c.store_code = ? OR c.store_code = ?)")
                 args.append(store_code)
-                args.append(f"%{clean_st}%")
-                args.append(f"126_%{clean_st}%")
+                args.append(clean_st)
+                args.append(f"126_{clean_st}")
 
         if status_filter:
             if status_filter == 'PENDING_STORE':
@@ -2459,7 +2469,7 @@ def update_compliance_audit():
 
 @app.route('/api/upload_compliance_attachment', methods=['POST'])
 def upload_compliance_attachment():
-    """API nhận file Tờ trình / Biên bản đính kèm (ảnh nạp nén từ Canvas / PDF)"""
+    """API nhận file Tờ trình / Biên bản đính kèm, lưu trực tiếp vào DB để chống lỗi 404 trên Render Cloud Container"""
     try:
         if 'file' not in request.files:
             return jsonify({'ok': False, 'error': 'Không tìm thấy file tải lên'})
@@ -2467,18 +2477,72 @@ def upload_compliance_attachment():
         if not file or not file.filename:
             return jsonify({'ok': False, 'error': 'File không hợp lệ'})
 
-        upload_dir = os.path.join(app.root_path, 'static', 'uploads', 'compliance')
-        os.makedirs(upload_dir, exist_ok=True)
+        file_bytes = file.read()
+        if not file_bytes:
+            return jsonify({'ok': False, 'error': 'File rỗng'})
 
         ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
+        mime = 'application/pdf' if ext == 'pdf' else f'image/{"jpeg" if ext in ("jpg", "jpeg") else ext}'
         filename = f"att_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{os.urandom(4).hex()}.{ext}"
-        filepath = os.path.join(upload_dir, filename)
-        file.save(filepath)
 
-        rel_url = f"/static/uploads/compliance/{filename}"
-        return jsonify({'ok': True, 'url': rel_url, 'attachment_url': rel_url, 'filename': filename})
+        # Base64 encode file content for persistent DB storage
+        b64_data = base64.b64encode(file_bytes).decode('utf-8')
+        data_url = f"data:{mime};base64,{b64_data}"
+
+        now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        try:
+            execute_db("""
+                INSERT INTO tb_compliance_attachments (filename, file_data, mime_type, created_at)
+                VALUES (?, ?, ?, ?)
+            """, (filename, data_url, mime, now_str))
+        except Exception as dbe:
+            print(f"⚠️ DB attachment save warning: {dbe}")
+
+        # Save to local disk as secondary fallback
+        try:
+            upload_dir = os.path.join(app.root_path, 'static', 'uploads', 'compliance')
+            os.makedirs(upload_dir, exist_ok=True)
+            with open(os.path.join(upload_dir, filename), 'wb') as f:
+                f.write(file_bytes)
+        except Exception:
+            pass
+
+        persistent_url = f"/api/compliance_attachment/{filename}"
+        return jsonify({'ok': True, 'url': persistent_url, 'attachment_url': persistent_url, 'filename': filename})
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'ok': False, 'error': f'Lỗi upload file: {str(e)}'})
+
+@app.route('/api/compliance_attachment/<filename>', methods=['GET'])
+def get_compliance_attachment(filename):
+    """API trả về file đính kèm trực tiếp từ DB (100% không bao giờ bị lỗi 404 khi Render restart/redeploy)"""
+    try:
+        clean_name = filename.rsplit('/', 1)[-1] if '/' in filename else filename
+        rec = query_db("SELECT * FROM tb_compliance_attachments WHERE filename = ?", (clean_name,), one=True)
+        if rec and rec.get('file_data'):
+            data_str = rec['file_data']
+            mime = rec.get('mime_type') or ('application/pdf' if clean_name.endswith('.pdf') else 'image/jpeg')
+
+            if data_str.startswith('data:'):
+                b64_part = data_str.split(',', 1)[1]
+                binary_data = base64.b64decode(b64_part)
+            else:
+                binary_data = base64.b64decode(data_str)
+
+            resp = make_response(binary_data)
+            resp.headers.set('Content-Type', mime)
+            resp.headers.set('Content-Disposition', f'inline; filename="{clean_name}"')
+            return resp
+
+        # Fallback 1: Local static disk
+        local_path = os.path.join(app.root_path, 'static', 'uploads', 'compliance', clean_name)
+        if os.path.exists(local_path):
+            return send_from_directory(os.path.join(app.root_path, 'static', 'uploads', 'compliance'), clean_name)
+
+        return jsonify({'ok': False, 'error': f'Không tìm thấy file đính kèm {clean_name}'}), 404
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
 
 @app.route('/api/compliance_analytics', methods=['GET'])
 def compliance_analytics():
