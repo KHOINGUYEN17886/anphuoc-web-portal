@@ -82,10 +82,15 @@ def close_db_connection(exception):
 def execute_db(query, args=()):
     conn = get_db_connection()
     cur = conn.cursor()
-    if DATABASE_URL:
-        query = query.replace('?', '%s')
     try:
-        cur.execute(query, args)
+        if DATABASE_URL and psycopg2:
+            if args:
+                query_pg = query.replace('%', '%%').replace('?', '%s')
+                cur.execute(query_pg, args)
+            else:
+                cur.execute(query)
+        else:
+            cur.execute(query, args)
         conn.commit()
     except Exception:
         # Rollback ngay để không đẩy connection dùng chung (g.db_conn) vào
@@ -101,25 +106,24 @@ def execute_db(query, args=()):
         if not has_app_context():
             conn.close()
 
-def query_db(query, args=(), one=False, conn=None):
+def query_db(query, args=(), one=False):
+    conn = get_db_connection()
     close_conn = False
-    if conn is None:
-        conn = get_db_connection()
-        if not has_app_context():
-            close_conn = True
+    if not has_app_context():
+        close_conn = True
     # Use DictCursor for PostgreSQL to act like sqlite3.Row
     if DATABASE_URL and psycopg2:
         cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        query = query.replace('?', '%s')
-    else:
-        cur = conn.cursor()
-    
-    cur.execute(query, args)
-    
-    if DATABASE_URL and psycopg2:
+        if args:
+            query_pg = query.replace('%', '%%').replace('?', '%s')
+            cur.execute(query_pg, args)
+        else:
+            cur.execute(query)
         rv = cur.fetchall()
         rv = [dict(r) for r in rv]
     else:
+        cur = conn.cursor()
+        cur.execute(query, args)
         rv = cur.fetchall()
         # Convert sqlite3.Row to dict
         rv = [dict(r) for r in rv]
@@ -1814,10 +1818,29 @@ def import_compliance_excel():
         
         all_stores = query_db("SELECT * FROM tb_stores")
         store_by_code = {s['store_code'].upper().strip(): s for s in all_stores}
+        all_stores = query_db("SELECT * FROM tb_stores")
+        store_by_code = {s['store_code'].upper().strip(): s for s in all_stores}
         store_by_name = {sanitize_filename_part(s['store_name']).lower(): s for s in all_stores}
         
-        # Build additional code lookups (e.g. AP10, AM05)
+        # Build additional code lookups (e.g. 126_3T2 -> 1263T2)
+        for s in all_stores:
+            clean_code = re.sub(r'[^A-Z0-9]', '', s['store_code'].upper())
+            if clean_code:
+                store_by_code[clean_code] = s
+        
         store_code_regex = re.compile(r'\b(AP\d+|AM\d+)\b', re.IGNORECASE)
+
+        asm_full_map = {
+            'đinh thị cát linh': 'Linh', 'linh': 'Linh',
+            'đỗ thị hoa tiên': 'Tiên', 'tiên': 'Tiên',
+            'nguyễn đăng khôi': 'Khôi', 'khôi': 'Khôi',
+            'nguyễn lâm trung tín': 'Tín', 'tín': 'Tín',
+            'nguyễn đăng quân': 'Quân', 'quân': 'Quân',
+            'trần thanh dũng': 'Dũng', 'dũng': 'Dũng',
+            'nguyễn thị thu hương': 'Hương', 'hương': 'Hương',
+            'nguyễn văn lâm': 'Lâm', 'lâm': 'Lâm',
+            'bùi minh ni': 'Ni', 'ni': 'Ni', 'hn': 'HN'
+        }
 
         existing_repeats = query_db("""
             SELECT store_code, violation_group, COUNT(*) as cnt
@@ -1830,21 +1853,23 @@ def import_compliance_excel():
         repeat_count = 0
         audits_to_insert = []
 
-        # ── Process visible sheets, prioritizing 'Báo cáo' ──
+        # ── Process visible sheets, prioritizing detailed 'Báo cáo' ──
         visible_sheets = [s for s in wb.worksheets if s.sheet_state == 'visible']
         if not visible_sheets:
             visible_sheets = wb.worksheets
 
-        for ws in visible_sheets:
+        # Filter out summary sheets ending in 'TH' or 'tổng hợp' if detailed report sheet exists
+        detail_sheets = [s for s in visible_sheets if s.title.strip().lower() in ['báo cáo', 'bao cao', 'báo cáo chi tiết', 'checklist']]
+        target_sheets = detail_sheets if detail_sheets else visible_sheets
+
+        for ws in target_sheets:
             sheet_name = ws.title
             s_name_lower = sheet_name.lower().strip()
             
-            # Skip hidden sheets or non-report sheets if multiple visible sheets exist
-            if len(visible_sheets) > 1:
-                # If sheet name doesn't contain 'báo cáo', 'bao cao', 'kiểm tra', 'checklist', 'data', skip
-                is_report_sheet = any(k in s_name_lower for k in ['báo cáo', 'bao cao', 'kiểm tra', 'checklist', 'dữ liệu', 'data', 'sheet1'])
-                if not is_report_sheet:
-                    continue
+            # Skip summary sheets
+            if s_name_lower in ['bao cao th', 'báo cáo tổng hợp', 'báo cáo th']:
+                continue
+
             rows = list(ws.iter_rows(max_row=350, values_only=True))
             if len(rows) < 2:
                 continue
@@ -1855,7 +1880,6 @@ def import_compliance_excel():
             for idx, r in enumerate(rows[:10]):
                 if not r: continue
                 r_str = [str(cell or '').strip().lower() for cell in r]
-                # Check if this row looks like a header row
                 if any(k in ' '.join(r_str) for k in ['stt', 'mã ch', 'ma ch', 'cửa hàng', 'hạng mục', 'nội dung', 'vi phạm', 'đánh giá', 'asm']):
                     header_idx = idx
                     for col_i, cell_val in enumerate(r_str):
@@ -1871,7 +1895,7 @@ def import_compliance_excel():
                         elif 'tên ch' in cell_val or 'ten ch' in cell_val or 'tên cửa hàng' in cell_val or 'cửa hàng' in cell_val:
                             if 'store_code' not in col_map or col_map['store_code'] != col_i:
                                 col_map['store_name'] = col_i
-                        elif 'asm' in cell_val or 'quản lý' in cell_val:
+                        elif 'asm' in cell_val or 'quản lý' in cell_val or 'phụ trách' in cell_val:
                             col_map['asm_name'] = col_i
                         elif 'thời gian' in cell_val or 'camera' in cell_val or 'bằng chứng' in cell_val:
                             col_map['cam_time'] = col_i
@@ -1890,7 +1914,6 @@ def import_compliance_excel():
                         break
                     continue
 
-                # Extract fields via dynamic col_map with robust fallback index
                 def get_c(key, fallback_indices):
                     if key in col_map and col_map[key] < len(r):
                         v = str(r[col_map[key]] or '').strip()
@@ -1904,17 +1927,17 @@ def import_compliance_excel():
                 topic                 = get_c('topic', [2, 1])
                 check_item            = get_c('check_item', [3, 2, 4])
                 criteria_standard     = get_c('criteria_standard', [5, 4, 6])
-                raw_store_code        = get_c('store_code', [7, 6, 8, 1])
-                raw_store_name        = get_c('store_name', [8, 7, 9, 2])
-                raw_asm_name          = get_c('asm_name', [9, 8, 10])
-                cam_evidence_time     = get_c('cam_time', [10, 11])
-                violation_group       = topic or check_item[:30] or 'Vi phạm quy trình'
-                violation_description = get_c('violation_description', [14, 13, 12, 11, 4]) or check_item
-                pqlqt_eval            = get_c('pqlqt_eval', [18, 16, 17, 15]) or 'Không đạt'
+                raw_store_code        = get_c('store_code', [8, 7, 6, 1])
+                raw_store_name        = get_c('store_name', [9, 8, 7, 2])
+                raw_asm_name          = get_c('asm_name', [10, 9, 8])
+                cam_evidence_time     = get_c('cam_time', [11, 10])
+                violation_group       = get_c('violation_group', [15, 3]) or topic or check_item[:30] or 'Vi phạm quy trình'
+                violation_description = get_c('violation_description', [16, 15, 14, 13, 4]) or check_item
+                pqlqt_eval            = get_c('pqlqt_eval', [21, 18, 16, 15]) or 'Không đạt'
 
-                # Skip garbage non-audit rows (directory lists, headers, emails, numbers)
+                # Skip non-audit rows (headers, emails, directory table titles)
                 all_text = f"{raw_store_code} {raw_store_name} {violation_description} {check_item}".lower()
-                if '@anphuoc' in all_text or '@gmail' in all_text or 'danh sách hệ thống' in all_text or raw_store_code in ['Số nhà', 'Tên đường', 'Phường', 'STT']:
+                if '@anphuoc' in all_text or '@gmail' in all_text or 'danh sách hệ thống' in all_text or raw_store_code in ['Số nhà', 'Tên đường', 'Phường', 'STT', 'Stt']:
                     continue
 
                 if not raw_store_code and not raw_store_name and not check_item and not violation_description:
@@ -1924,31 +1947,37 @@ def import_compliance_excel():
                     continue
                 empty_consecutive = 0
 
-                matched_store = store_by_code.get(raw_store_code.upper())
+                # Store Code Matching
+                clean_raw_c = re.sub(r'[^A-Z0-9]', '', raw_store_code.upper())
+                matched_store = store_by_code.get(raw_store_code.upper()) or store_by_code.get(clean_raw_c) or store_by_code.get('AP' + clean_raw_c)
                 if not matched_store and raw_store_name:
                     clean_n = sanitize_filename_part(raw_store_name).lower()
                     matched_store = store_by_name.get(clean_n)
 
-                # Try regex matching store code if not matched directly
                 if not matched_store:
                     code_match = store_code_regex.search(f"{raw_store_code} {raw_store_name} {violation_description}")
                     if code_match:
                         matched_store = store_by_code.get(code_match.group(1).upper())
 
-                # Skip numeric STT rows that fail to match a real store
                 if not matched_store and raw_store_code.isdigit():
                     continue
+
+                # Map ASM Name from full name to short code (e.g. Đinh Thị Cát Linh -> Linh)
+                clean_asm_raw = raw_asm_name.lower().strip()
+                mapped_asm = ''
+                for k, v in asm_full_map.items():
+                    if k in clean_asm_raw:
+                        mapped_asm = v
+                        break
 
                 if matched_store:
                     final_store_code = matched_store['store_code']
                     final_store_name = matched_store['store_name']
-                    final_asm_name = matched_store['asm_name']
+                    final_asm_name = mapped_asm or matched_store['asm_name']
                 else:
                     final_store_code = raw_store_code or 'UNKNOWN'
                     final_store_name = raw_store_name or final_store_code
-                    # Validate raw_asm_name against valid ASMs
-                    valid_asm_set = {s['asm_name'] for s in all_stores if s.get('asm_name')}
-                    final_asm_name = raw_asm_name if raw_asm_name in valid_asm_set else 'Chưa phân công'
+                    final_asm_name = mapped_asm or 'Chưa phân công'
 
                 clean_slug = sanitize_filename_part(final_store_code)[:15] if 'sanitize_filename_part' in globals() else final_store_code[:15]
                 ticket_code = f"TK-COMP-{clean_slug}-{file_date_obj.strftime('%Y%m%d')}-{inserted_count + 1}-{uuid.uuid4().hex[:8].upper()}"
@@ -2060,7 +2089,7 @@ def get_compliance_audits():
             args.append(asm_target)
             args.append(f"%{clean_asm}%")
         else:
-            if asm and asm != 'ALL' and asm != 'undefined':
+            if asm and asm not in ('ALL', 'undefined', 'Tất cả ASM', '', 'all'):
                 clean_asm = sanitize_filename_part(asm).lower() if 'sanitize_filename_part' in globals() else asm.lower()
                 where_clauses.append("(c.asm_name = ? OR LOWER(c.asm_name) LIKE ?)")
                 args.append(asm)
