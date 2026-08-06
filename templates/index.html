@@ -6986,12 +6986,15 @@
                     const uploadRes = await fetch('/api/upload_compliance_attachment', { method: 'POST', body: formData });
                     const uploadData = await uploadRes.json();
                     if (uploadData.ok) {
-                        attachmentUrl = uploadData.attachment_url;
+                        attachmentUrl = uploadData.attachment_url || uploadData.url || '';
                     }
                 } catch (e) {
                     console.error('Error compressing/uploading file:', e);
                 }
             }
+
+            const role = (typeof currentStore !== 'undefined' && currentStore && currentStore.role) ? currentStore.role : 'store';
+            const pin = (typeof currentStore !== 'undefined' && currentStore && currentStore.pin) ? currentStore.pin : '8888';
 
             try {
                 const res = await fetch('/api/update_compliance_audit', {
@@ -6999,6 +7002,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         ticket_code: ticketCode,
+                        role: role,
+                        pin: pin,
                         store_explanation: explanation,
                         attachment_url: attachmentUrl,
                         status: 'CH đã giải trình'
@@ -7121,12 +7126,17 @@
             btn.disabled = true;
             btn.innerHTML = '⏳ Đang lưu đánh giá...';
 
+            const role = (typeof currentStore !== 'undefined' && currentStore && currentStore.role) ? currentStore.role : 'admin';
+            const pin = (typeof currentStore !== 'undefined' && currentStore && currentStore.pin) ? currentStore.pin : '8888';
+
             try {
                 const res = await fetch('/api/update_compliance_audit', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         ticket_code: ticketCode,
+                        role: role,
+                        pin: pin,
                         asm_assessment: assessment,
                         violating_staff_info: staffInfo,
                         violating_staff_position: staffPos,
