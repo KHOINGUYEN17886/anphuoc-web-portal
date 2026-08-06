@@ -4119,8 +4119,10 @@
 
         // ASM Tab 3 load
         async function loadSupportRequests() {
+            if (!statusSupportReportDate || !statusSupportTableBody) return;
             const dateVal = statusSupportReportDate.value;
-            statusSupportTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-gray-400">Đang tải yêu cầu hỗ trợ...</td></tr>';
+            const filterStatusVal = statusSupportFilter ? statusSupportFilter.value : '';
+            statusSupportTableBody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-gray-400">Đang tải yêu cầu hỗ trợ...</td></tr>';
             
             try {
                 const role = currentStore ? currentStore.role : '';
@@ -4138,35 +4140,130 @@
                 
                 if (data.ok) {
                     statusSupportTableBody.innerHTML = '';
-                    if (data.requests.length === 0) {
-                        statusSupportTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-gray-400 italic">✅ Không có yêu cầu hỗ trợ nào trong tuần này.</td></tr>';
+                    let requests = data.requests || [];
+
+                    // Apply status filter if selected
+                    if (filterStatusVal) {
+                        requests = requests.filter(r => (r.status || 'Mới ghi nhận') === filterStatusVal);
+                    }
+
+                    if (requests.length === 0) {
+                        statusSupportTableBody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-gray-400 italic">✅ Không có yêu cầu hỗ trợ nào trong tuần này.</td></tr>';
                         return;
                     }
                     
-                    data.requests.forEach(r => {
+                    requests.forEach(r => {
                         let priorityBadge = '<span class="status-badge badge-gray">Trung bình</span>';
-                        if (r.priority === 'Cao') {
-                            priorityBadge = '<span class="status-badge badge-red">Cao</span>';
+                        if (r.priority === 'Cao' || r.priority === 'Khẩn cấp') {
+                            priorityBadge = '<span class="status-badge badge-red">Khẩn cấp</span>';
                         } else if (r.priority === 'Trung bình') {
                             priorityBadge = '<span class="status-badge badge-amber">Trung bình</span>';
+                        } else if (r.priority === 'Thấp') {
+                            priorityBadge = '<span class="status-badge badge-blue">Thấp</span>';
                         }
-                        
+
+                        let statusBadge = '<span class="px-2 py-1 rounded-md text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">⏳ Mới ghi nhận</span>';
+                        const st = r.status || 'Mới ghi nhận';
+                        if (st === 'Hoàn tất' || st === 'Đã xong') {
+                            statusBadge = '<span class="px-2 py-1 rounded-md text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">✅ Hoàn tất</span>';
+                        } else if (st === 'Đang xử lý') {
+                            statusBadge = '<span class="px-2 py-1 rounded-md text-[11px] font-bold bg-blue-100 text-blue-800 border border-blue-300">🔄 Đang xử lý</span>';
+                        } else if (st === 'Đang xem xét') {
+                            statusBadge = '<span class="px-2 py-1 rounded-md text-[11px] font-bold bg-purple-100 text-purple-800 border border-purple-300">🔍 Đang xem xét</span>';
+                        } else if (st === 'Đã hủy') {
+                            statusBadge = '<span class="px-2 py-1 rounded-md text-[11px] font-bold bg-gray-100 text-gray-600 border border-gray-300">❌ Đã hủy</span>';
+                        }
+
+                        const reqJson = JSON.stringify(r).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+
                         statusSupportTableBody.innerHTML += `
                             <tr class="hover:bg-brand-red-l transition-colors">
-                                <td class="py-3 px-3 text-brand-navy font-bold">${r.store_name}</td>
+                                <td class="py-3 px-3 text-brand-navy font-bold">${r.store_name} <div class="text-[10px] text-gray-400 font-mono">${r.store_code}</div></td>
                                 <td class="py-3 px-3 text-gray-700 font-medium">${r.category}</td>
                                 <td class="py-3 px-3 text-center">${priorityBadge}</td>
                                 <td class="py-3 px-3 text-gray-800 whitespace-normal break-words max-w-xs">${r.issue_item}</td>
                                 <td class="py-3 px-3 text-gray-500 font-mono text-xs">${r.deadline || '-'}</td>
-                                <td class="py-3 px-3 text-gray-700 font-medium">${r.person_in_charge || '-'}</td>
+                                <td class="py-3 px-3 text-center">${statusBadge}</td>
+                                <td class="py-3 px-3 text-gray-700 text-xs italic">${r.asm_hq_note ? '<div class="font-semibold text-blue-900 font-sans not-italic">💬 ' + r.asm_hq_note + '</div>' : '<span class="text-gray-400">Chưa có phản hồi</span>'}</td>
+                                <td class="py-3 px-3 text-center">
+                                    <button onclick='openUpdateSupportModal(${reqJson})' class="btn-primary text-xs px-2.5 py-1.5 font-bold flex items-center justify-center gap-1 mx-auto shadow-sm hover:scale-105 transition-all">
+                                        ⚡ Cập Nhật
+                                    </button>
+                                </td>
                             </tr>
                         `;
                     });
                 }
             } catch (err) {
-                statusSupportTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-brand-red">Lỗi kết nối API.</td></tr>';
+                console.error("loadSupportRequests error:", err);
+                statusSupportTableBody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-brand-red">Lỗi kết nối API.</td></tr>';
             }
         }
+
+        window.openUpdateSupportModal = function(ticketData) {
+            document.getElementById('supp-modal-ticket-code').value = ticketData.ticket_code || `TK-${ticketData.store_code}-${ticketData.report_date}`;
+            document.getElementById('supp-modal-subtitle').innerText = `Cửa hàng: ${ticketData.store_name} (${ticketData.store_code}) | Mã Ticket: ${ticketData.ticket_code || 'Tạo tự động'}`;
+            document.getElementById('supp-modal-issue-title').innerText = 'Nội dung sự cố: ' + (ticketData.issue_item || '');
+            document.getElementById('supp-modal-issue-meta').innerText = `Phân loại: ${ticketData.category || ''} | Mức độ: ${ticketData.priority || ''} | Nộp ngày: ${ticketData.report_date || ''}`;
+            
+            document.getElementById('supp-modal-status').value = ticketData.status || 'Mới ghi nhận';
+            document.getElementById('supp-modal-charge').value = ticketData.person_in_charge || 'QLKD / ASM';
+            document.getElementById('supp-modal-deadline').value = ticketData.deadline || '';
+            document.getElementById('supp-modal-asm-note').value = ticketData.asm_hq_note || '';
+
+            const modal = document.getElementById('modal-update-support-ticket');
+            if (modal) modal.classList.remove('hidden');
+        };
+
+        window.closeUpdateSupportModal = function() {
+            const modal = document.getElementById('modal-update-support-ticket');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        window.submitUpdateSupportTicket = async function() {
+            const ticketCode = document.getElementById('supp-modal-ticket-code').value;
+            const status = document.getElementById('supp-modal-status').value;
+            const personInCharge = document.getElementById('supp-modal-charge').value;
+            const deadline = document.getElementById('supp-modal-deadline').value;
+            const asmHqNote = document.getElementById('supp-modal-asm-note').value;
+            const pin = currentStore ? (currentStore.pin || '') : '';
+
+            const btn = document.getElementById('btn-submit-update-support');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerText = '⏳ Đang lưu...';
+            }
+
+            try {
+                const res = await fetch('/api/update_support_ticket', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ticket_code: ticketCode,
+                        status: status,
+                        person_in_charge: personInCharge,
+                        deadline: deadline,
+                        asm_hq_note: asmHqNote,
+                        pin: pin
+                    })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    alert('✅ ' + (data.message || 'Cập nhật tiến độ sự cố thành công!'));
+                    closeUpdateSupportModal();
+                    await loadSupportRequests();
+                } else {
+                    alert('❌ Lỗi: ' + (data.error || 'Cập nhật thất bại.'));
+                }
+            } catch (err) {
+                alert('❌ Lỗi kết nối máy chủ!');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = '💾 Lưu Cập Nhật Tiến Độ';
+                }
+            }
+        };
 
         // ====================== STORE HR & ONBOARDING MODULE ======================
         const tabHrBtn = document.getElementById('tab-hr-btn');
@@ -6247,6 +6344,63 @@
                 <button onclick="closeAddSupportStaffModal()" class="btn-outline text-xs px-4 py-2">Hủy Bỏ</button>
                 <button id="btn-confirm-add-supp-submit" onclick="confirmAddSuppSubmit()" class="btn-primary text-xs px-5 py-2 font-bold shadow-md">
                     🤝 Thêm Nhân Sự Hỗ Trợ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CẬP NHẬT TIẾN ĐỘ YÊU CẦU HỖ TRỢ (4.5) -->
+    <div id="modal-update-support-ticket" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="card w-full max-w-lg p-6 space-y-4 shadow-2xl rounded-2xl relative bg-white">
+            <button onclick="closeUpdateSupportModal()" class="absolute top-4 right-4 text-gray-400 hover:text-brand-red text-xl font-bold transition-all">&times;</button>
+            <div class="flex items-center gap-3 border-b border-gray-100 pb-3">
+                <div class="w-10 h-10 bg-amber-100 text-amber-800 rounded-xl flex items-center justify-center font-bold text-lg">⚡</div>
+                <div>
+                    <h3 class="font-extrabold text-brand-navy text-base">Cập Nhật Tiến Độ & Phản Hồi Sự Cố</h3>
+                    <div id="supp-modal-subtitle" class="text-xs text-gray-500 font-semibold">Cửa hàng: --- | Mã Ticket: ---</div>
+                </div>
+            </div>
+
+            <input type="hidden" id="supp-modal-ticket-code" value="">
+
+            <div class="space-y-3 text-xs">
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700">
+                    <div class="font-bold text-slate-800 mb-1" id="supp-modal-issue-title">Nội dung sự cố: ---</div>
+                    <div class="text-[11px] text-slate-500" id="supp-modal-issue-meta">Phân loại: --- | Mức độ: ---</div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Trạng Thái Xử Lý (*)</label>
+                        <select id="supp-modal-status" class="input-field font-bold text-brand-navy">
+                            <option value="Mới ghi nhận">⏳ Mới ghi nhận (Chờ xử lý)</option>
+                            <option value="Đang xem xét">🔍 Đang xem xét</option>
+                            <option value="Đang xử lý">🔄 Đang xử lý</option>
+                            <option value="Hoàn tất">✅ Hoàn tất (Đã giải quyết)</option>
+                            <option value="Đã hủy">❌ Đã hủy / Không tiếp nhận</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Bộ Phận Phụ Trách</label>
+                        <input type="text" id="supp-modal-charge" class="input-field font-semibold" placeholder="VD: QLKD / ASM / IT / PTTT">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Thời Hạn Dự Kiến Hoàn Thành</label>
+                    <input type="date" id="supp-modal-deadline" class="input-field font-semibold">
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-brand-navy uppercase mb-1">Phản Hồi & Chỉ Đạo Từ ASM / HQ (*)</label>
+                    <textarea id="supp-modal-asm-note" rows="3" class="input-field text-xs font-medium" placeholder="Nhập phản hồi, hướng dẫn hoặc tiến độ xử lý gửi lại Cửa hàng..."></textarea>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
+                <button onclick="closeUpdateSupportModal()" class="btn-outline text-xs px-4 py-2">Hủy Bỏ</button>
+                <button id="btn-submit-update-support" onclick="submitUpdateSupportTicket()" class="btn-primary text-xs px-5 py-2 font-bold shadow-md">
+                    💾 Lưu Cập Nhật Tiến Độ
                 </button>
             </div>
         </div>

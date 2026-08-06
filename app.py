@@ -1578,23 +1578,32 @@ def update_support_ticket():
     store_progress_note = data.get('store_progress_note')
     asm_hq_note = data.get('asm_hq_note')
     person_in_charge = data.get('person_in_charge')
+    deadline = data.get('deadline')
     
     if not ticket_code:
         return jsonify({'ok': False, 'error': 'Mã ticket không hợp lệ'})
         
     ticket = query_db("SELECT * FROM tb_support_requests WHERE ticket_code = ?", (ticket_code,), one=True)
     if not ticket:
-        return jsonify({'ok': False, 'error': 'Không tìm thấy thông tin sự vụ'})
+        if str(ticket_code).isdigit():
+            ticket = query_db("SELECT * FROM tb_support_requests WHERE id = ?", (int(ticket_code),), one=True)
+        elif str(ticket_code).startswith("TK-"):
+            parts = str(ticket_code).split("-")
+            if len(parts) >= 3:
+                sc = parts[1]
+                rd = "-".join(parts[2:])
+                ticket = query_db("SELECT * FROM tb_support_requests WHERE store_code = ? AND report_date = ? LIMIT 1", (sc, rd), one=True)
+                
+    if not ticket:
+        return jsonify({'ok': False, 'error': 'Không tìm thấy thông tin sự vụ trong hệ thống'})
         
     master_pin = os.environ.get('MASTER_PIN', '8888')
-    is_valid_pin = (pin == master_pin)
+    is_valid_pin = (pin == master_pin) or _default_pin_allowed(pin)
     if not is_valid_pin and pin:
-        # Check store pin
         store = query_db("SELECT * FROM tb_stores WHERE store_code = ? AND passcode = ?", (ticket['store_code'], pin), one=True)
-        if store or _default_pin_allowed(pin):
+        if store:
             is_valid_pin = True
         else:
-            # Check ASM pin
             asm = query_db("SELECT * FROM tb_asms WHERE passcode = ?", (pin,), one=True)
             if asm:
                 is_valid_pin = True
@@ -1603,6 +1612,7 @@ def update_support_ticket():
         return jsonify({'ok': False, 'error': 'Mã PIN không có quyền cập nhật sự vụ này'})
         
     now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    target_id = ticket['id']
     
     updates = []
     args = []
@@ -1618,20 +1628,27 @@ def update_support_ticket():
     if person_in_charge is not None:
         updates.append("person_in_charge = ?")
         args.append(person_in_charge)
+    if deadline is not None:
+        updates.append("deadline = ?")
+        args.append(deadline)
         
     if not updates:
         return jsonify({'ok': False, 'error': 'Không có thông tin thay đổi'})
         
     updates.append("updated_at = ?")
     args.append(now_str)
-    args.append(ticket_code)
+    args.append(target_id)
     
-    query = f"UPDATE tb_support_requests SET {', '.join(updates)} WHERE ticket_code = ?"
+    query = f"UPDATE tb_support_requests SET {', '.join(updates)} WHERE id = ?"
     execute_db(query, tuple(args))
-    if status is not None:
-        _log_ticket_history('SUPPORT', ticket_code, ticket['store_code'], ticket.get('status'), status)
+    
+    try:
+        if status is not None and '_log_ticket_history' in globals():
+            _log_ticket_history('SUPPORT', str(ticket_code), ticket['store_code'], ticket.get('status'), status)
+    except Exception:
+        pass
 
-    return jsonify({'ok': True, 'message': f'Đã cập nhật sự vụ {ticket_code} thành công!'})
+    return jsonify({'ok': True, 'message': f'Đã cập nhật sự vụ thành công!'})
 
 # ──────────────────────────────────────────────────────────────────────────────
 # NEW API: NON-PURCHASE REASON ANALYTICS
