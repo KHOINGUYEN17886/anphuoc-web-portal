@@ -797,7 +797,7 @@
                     Yêu cầu hỗ trợ (4.5)
                 </button>
                 <button id="status-tab-compliance-btn" class="tab-btn">
-                    📋 Kiểm Soát Tuân Thủ (P.QLQT)
+                    📋 Quản Lý Quy Trình & Tuân Thủ PQLQT
                 </button>
                 <button id="status-tab-hr-btn" class="tab-btn">
                     👥 Định Biên & Báo Cáo Nhân Sự Cụm
@@ -1539,8 +1539,8 @@
                 </div>
             </div>
 
-            <!-- Tabs -->
-            <div class="flex border-b border-gray-200 bg-white rounded-t-xl overflow-x-auto mb-0">
+            <!-- Tabs: scrollable sticky tab bar with clear active indicator -->
+            <div class="sticky top-[76px] z-20 flex border-b-2 border-gray-200 bg-white rounded-t-xl overflow-x-auto mb-0 shadow-sm" style="scrollbar-width:none">
                 <button class="tab-btn active qr-tab-switch" data-tab="tong-hop">📊 Tổng Hợp</button>
                 <button class="tab-btn qr-tab-switch" data-tab="hop-dong">✍️ Hợp Đồng</button>
                 <button class="tab-btn qr-tab-switch" data-tab="van-hanh">⚙️ Vận Hành</button>
@@ -3826,6 +3826,8 @@
             statusTabWeeklyContent.classList.add('hidden');
             statusTabDailyContent.classList.add('hidden');
             statusTabSupportContent.classList.add('hidden');
+            if (statusTabComplianceContent) statusTabComplianceContent.classList.add('hidden');
+            if (statusTabClosureContent) statusTabClosureContent.classList.add('hidden');
             if (statusTabHrContent) statusTabHrContent.classList.add('hidden');
 
             await loadPasscodes();
@@ -4005,35 +4007,68 @@
             }
 
             try {
+                // Determine correct user_id and pin for API auth
+                const userId = role === 'admin' ? 'ADMIN'
+                             : role === 'asm'   ? (currentStore.asm || asmName || '')
+                             : (storeCode || '');
+                const pin = currentStore ? (currentStore.pin || '') : '';
+                // Determine asm_filter for admin/ASM Khôi
+                const filterAsm = (role === 'admin' || isASMKhôi()) ? (asmVal || '') : '';
                 const params = new URLSearchParams({
-                    role: role||'store',
-                    store_code: storeCode||'',
-                    asm: asmName||'',
-                    date: dateVal,
-                    filter_asm: asmVal
+                    role:        role || 'store',
+                    user_id:     userId,
+                    pin:         pin,
+                    report_date: dateVal || new Date().toISOString().split('T')[0],
+                    asm_filter:  filterAsm
                 });
                 const resp = await fetch('/api/quick_report?' + params.toString());
                 if (!resp.ok) throw new Error('API error');
                 const data = await resp.json();
+                if (!data.ok) {
+                    console.error('Quick Report API error:', data.error);
+                    const kpiGrid2 = document.getElementById('qr-kpi-grid');
+                    if (kpiGrid2) kpiGrid2.innerHTML = `<div class="col-span-4 text-center py-4 text-red-500 text-sm">⚠️ Lỗi tải báo cáo: ${data.error||'Unknown error'}</div>`;
+                    return;
+                }
+
+                // ── Map API response fields (API returns summary.* not top-level) ──
+                const summary = data.summary || {};
+                const totalTraffic = summary.total_traffic || 0;
+                const totalBills   = summary.total_bills   || 0;
+                const submitted    = summary.submitted     || 0;
+                const totalStores  = summary.total_stores  || 0;
+                const avgCR = totalTraffic > 0 ? ((totalBills / totalTraffic) * 100).toFixed(1) : '-';
+
+                // Populate ASM filter from API response (for admin after data loaded)
+                if (data.can_filter_asm && data.asms && data.asms.length > 0 && qrAsmFilter) {
+                    if (qrAsmFilter.options.length <= 1) {
+                        qrAsmFilter.innerHTML = '<option value="">-- Tất cả ASM --</option>';
+                        data.asms.forEach(a => {
+                            const o = document.createElement('option'); o.value = a; o.textContent = a;
+                            qrAsmFilter.appendChild(o);
+                        });
+                    }
+                    if (qrFilterBar) { qrFilterBar.classList.remove('hidden'); qrFilterBar.classList.add('flex'); }
+                }
 
                 // KPI Grid
                 const kpiGrid = document.getElementById('qr-kpi-grid');
                 if (kpiGrid) kpiGrid.innerHTML = `
-                    <div class="kpi-card"><div class="section-title">CH đã nộp</div><div class="text-3xl font-extrabold text-brand-red">${data.stores_submitted??'-'}</div></div>
-                    <div class="kpi-card"><div class="section-title">Tổng Traffic</div><div class="text-3xl font-extrabold text-brand-navy">${(data.total_traffic||0).toLocaleString()}</div></div>
-                    <div class="kpi-card"><div class="section-title">Tổng Bill</div><div class="text-3xl font-extrabold text-brand-navy">${(data.total_bills||0).toLocaleString()}</div></div>
-                    <div class="kpi-card"><div class="section-title">CR TB</div><div class="text-3xl font-extrabold text-brand-gold">${data.avg_cr??'-'}%</div></div>
+                    <div class="kpi-card"><div class="section-title">CH đã nộp / Tổng</div><div class="text-3xl font-extrabold text-brand-red">${submitted}<span class="text-base text-gray-400 font-normal">/${totalStores}</span></div></div>
+                    <div class="kpi-card"><div class="section-title">Tổng Traffic</div><div class="text-3xl font-extrabold text-brand-navy">${totalTraffic.toLocaleString()}</div></div>
+                    <div class="kpi-card"><div class="section-title">Tổng Bill</div><div class="text-3xl font-extrabold text-brand-navy">${totalBills.toLocaleString()}</div></div>
+                    <div class="kpi-card"><div class="section-title">CR TB</div><div class="text-3xl font-extrabold text-brand-gold">${avgCR}%</div></div>
                 `;
 
-                // Store table
+                // Store table (API returns data.stores[])
                 const storeBody = document.getElementById('qr-store-table-body');
-                const rows = data.store_rows||[];
+                const rows = data.stores || [];
                 if (storeBody) {
-                    if (!rows.length) storeBody.innerHTML='<tr><td colspan="9" class="text-center py-8 text-gray-400 italic">Chưa có dữ liệu</td></tr>';
+                    if (!rows.length) storeBody.innerHTML='<tr><td colspan="9" class="text-center py-8 text-gray-400 italic">Chưa có dữ liệu cho tuần này</td></tr>';
                     else storeBody.innerHTML = rows.map(r => {
-                        const cr = r.traffic>0 ? ((r.bills/r.traffic)*100).toFixed(1) : '-';
-                        const sub = r.submitted_at ? new Date(r.submitted_at).toLocaleString('vi-VN') : '-';
-                        return `<tr><td class="font-semibold">${r.store_code}</td><td>${r.asm_name||''}</td><td>${(r.traffic||0).toLocaleString()}</td><td>${(r.bills||0).toLocaleString()}</td><td>${cr!=='-'?`<span class="status-badge ${parseFloat(cr)>=15?'badge-green':parseFloat(cr)>=10?'badge-amber':'badge-red'}">${cr}%</span>`:'-'}</td><td>${r.contract_count??0}</td><td>${r.contract_value_total?(r.contract_value_total/1e6).toFixed(1):0}</td><td class="text-xs text-gray-400">${r.report_week||'-'}</td><td class="text-xs text-gray-400">${sub}</td></tr>`;
+                        const cr = r.cr !== undefined ? r.cr : (r.traffic>0 ? ((r.bills/r.traffic)*100).toFixed(1) : '-');
+                        const subMark = r.submitted ? '<span class="status-badge badge-green">✅ Đã nộp</span>' : '<span class="status-badge badge-red">⏳ Chưa nộp</span>';
+                        return `<tr><td class="font-semibold">${r.store_code}</td><td>${r.asm_name||''}</td><td>${(r.traffic||0).toLocaleString()}</td><td>${(r.bills||0).toLocaleString()}</td><td>${cr!=='-'?`<span class="status-badge ${parseFloat(cr)>=15?'badge-green':parseFloat(cr)>=10?'badge-amber':'badge-red'}">${cr}%</span>`:'-'}</td><td>-</td><td>-</td><td class="text-xs text-gray-400">${r.region||'-'}</td><td>${subMark}</td></tr>`;
                     }).join('');
                 }
 
@@ -4047,33 +4082,34 @@
                 if(cBody) cBody.innerHTML = !contracts.length ? '<tr><td colspan="8" class="text-center py-6 text-gray-400 italic">Không có</td></tr>'
                     : contracts.map(c=>`<tr><td class="font-semibold">${c.store_code}</td><td>${c.customer_name||'-'}</td><td><span class="status-badge badge-blue">${c.contract_number||'Đang GD'}</span></td><td>${c.product_category||'-'}</td><td>${c.contract_value?(c.contract_value/1e6).toFixed(2):'-'}</td><td>${c.deposit_paid?(c.deposit_paid/1e6).toFixed(2):'0'}</td><td><span class="status-badge ${c.status==='Hoàn tất'?'badge-green':c.status==='Chờ ký kết'?'badge-amber':'badge-blue'}">${c.status||'-'}</span></td><td class="text-xs text-gray-500">${c.reason||''}</td></tr>`).join('');
 
-                // Unsigned (3.2)
+                // Unsigned (3.2) — API field: data.unsigned
                 const uBody = document.getElementById('qr-unsigned-body');
-                const unsigned = data.unsigned_contracts||[];
+                const unsigned = data.unsigned || data.unsigned_contracts || [];
                 const ucnt = document.getElementById('qr-unsigned-count');
                 if(ucnt) ucnt.textContent = unsigned.length;
                 if(uBody) uBody.innerHTML = !unsigned.length ? '<tr><td colspan="7" class="text-center py-6 text-gray-400 italic">Không có</td></tr>'
                     : unsigned.map(u=>`<tr><td class="font-semibold">${u.store_code}</td><td><span class="status-badge badge-gray">${u.contract_number||'Đang GD'}</span></td><td class="font-medium text-gray-800">${u.customer_name||'-'}</td><td>${u.product_category||'-'}</td><td>${u.prev_year_value?(u.prev_year_value/1e6).toFixed(2):'-'}</td><td>${u.expected_signing_time||'-'}</td><td><span class="status-badge ${u.status==='Đã hủy bỏ'?'badge-red':'badge-amber'}">${u.status||'-'}</span></td><td class="text-xs text-gray-500">${u.reason||''}</td></tr>`).join('');
 
-                // Ops
+                // Ops (Vận Hành) — API field: data.details
                 const oBody = document.getElementById('qr-ops-body');
-                const ops = data.operational||[];
+                const ops = data.details || data.operational || [];
                 if(oBody) oBody.innerHTML = !ops.length ? '<tr><td colspan="10" class="text-center py-6 text-gray-400 italic">Không có</td></tr>'
                     : ops.map(o=>{const bf=v=>v==='Đạt'?'<span class="status-badge badge-green">Đạt</span>':'<span class="status-badge badge-red">KĐ</span>';
                     return `<tr><td class="font-semibold">${o.store_code}</td><td>${bf(o.op_open_status)}</td><td>${bf(o.op_uniform_status)}</td><td>${bf(o.op_greet_status)}</td><td>${bf(o.op_feedback_status)}</td><td>${bf(o.op_other_status)}</td><td>${o.hr_target||'-'}</td><td>${o.hr_actual||'-'}</td><td class="text-xs">${(o.hr_leave_note||'-').substring(0,40)}</td><td class="text-xs">${(o.hr_absent_note||'-').substring(0,30)}</td></tr>`;}).join('');
 
-                // Inventory
+                // Inventory — extracted from data.details (same API source)
                 const iBody = document.getElementById('qr-inventory-body');
-                const inv = data.inventory||[];
+                const inv = data.details || data.inventory || [];
                 if(iBody) iBody.innerHTML = !inv.length ? '<tr><td colspan="6" class="text-center py-6 text-gray-400 italic">Không có</td></tr>'
                     : inv.map(i=>`<tr><td class="font-semibold">${i.store_code}</td><td class="text-xs">${(i.inv_stock_status||'-').substring(0,60)}</td><td class="text-xs">${(i.inv_info_goods||'-').substring(0,50)}</td><td class="text-xs">${(i.inv_return_warehouse||'-').substring(0,50)}</td><td class="text-xs">${(i.inv_proposal||'-').substring(0,50)}</td><td class="text-xs">${(i.market_competitor_info||'-').substring(0,60)}</td></tr>`).join('');
 
                 // Support
                 const sBody = document.getElementById('qr-support-body');
-                const supp = data.support||[];
+                const supp = data.support || [];
                 const pb=p=>p==='Cao'?'badge-red':p==='Trung bình'?'badge-amber':'badge-gray';
+                // API returns r.issue_item (not r.item)
                 if(sBody) sBody.innerHTML = !supp.length ? '<tr><td colspan="5" class="text-center py-6 text-gray-400 italic">Không có yêu cầu</td></tr>'
-                    : supp.map(s=>`<tr><td class="font-semibold">${s.store_code}</td><td><span class="status-badge badge-blue">${s.category||'-'}</span></td><td><span class="status-badge ${pb(s.priority)}">${s.priority||'-'}</span></td><td>${s.item||'-'}</td><td class="text-xs">${s.deadline||'-'}</td></tr>`).join('');
+                    : supp.map(s=>`<tr><td class="font-semibold">${s.store_code||s.store_name||'-'}</td><td><span class="status-badge badge-blue">${s.category||'-'}</span></td><td><span class="status-badge ${pb(s.priority)}">${s.priority||'-'}</span></td><td class="text-xs">${s.issue_item||s.item||'-'}</td><td class="text-xs">${s.deadline||'-'}</td></tr>`).join('');
 
             } catch(e) { console.error('QR Error:', e); }
         }
