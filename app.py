@@ -1809,41 +1809,76 @@ def import_compliance_excel():
 
         for sheet_name in wb.sheetnames:
             ws = wb[sheet_name]
-            rows = list(ws.iter_rows(max_row=250, values_only=True))
-            if len(rows) < 4:
+            rows = list(ws.iter_rows(max_row=350, values_only=True))
+            if len(rows) < 2:
                 continue
 
-            header_idx = 3
-            for idx, r in enumerate(rows[:6]):
-                if r and len(r) > 1 and r[1] and 'stt' in str(r[1]).lower():
+            # ── Dynamic Header Map Detection ──
+            col_map = {}
+            header_idx = 0
+            for idx, r in enumerate(rows[:10]):
+                if not r: continue
+                r_str = [str(cell or '').strip().lower() for cell in r]
+                # Check if this row looks like a header row
+                if any(k in ' '.join(r_str) for k in ['stt', 'mã ch', 'ma ch', 'cửa hàng', 'hạng mục', 'nội dung', 'vi phạm', 'đánh giá', 'asm']):
                     header_idx = idx
-                    break
+                    for col_i, cell_val in enumerate(r_str):
+                        if not cell_val: continue
+                        if 'chủ đề' in cell_val or 'nhóm' in cell_val or 'topic' in cell_val:
+                            col_map['topic'] = col_i
+                        elif 'mục kiểm tra' in cell_val or 'nội dung kiểm tra' in cell_val or 'hạng mục' in cell_val or 'tên mục' in cell_val:
+                            col_map['check_item'] = col_i
+                        elif 'tiêu chuẩn' in cell_val or 'quy định' in cell_val or 'chuẩn' in cell_val:
+                            col_map['criteria_standard'] = col_i
+                        elif 'mã ch' in cell_val or 'ma ch' in cell_val or 'mã cửa hàng' in cell_val or cell_val == 'mã':
+                            col_map['store_code'] = col_i
+                        elif 'tên ch' in cell_val or 'ten ch' in cell_val or 'tên cửa hàng' in cell_val or 'cửa hàng' in cell_val:
+                            if 'store_code' not in col_map or col_map['store_code'] != col_i:
+                                col_map['store_name'] = col_i
+                        elif 'asm' in cell_val or 'quản lý' in cell_val:
+                            col_map['asm_name'] = col_i
+                        elif 'thời gian' in cell_val or 'camera' in cell_val or 'bằng chứng' in cell_val:
+                            col_map['cam_time'] = col_i
+                        elif 'mô tả' in cell_val or 'chi tiết' in cell_val or 'nội dung vi phạm' in cell_val or 'lỗi' in cell_val:
+                            col_map['violation_description'] = col_i
+                        elif 'đánh giá' in cell_val or 'kết quả' in cell_val or 'p.qlqt' in cell_val or 'xếp loại' in cell_val:
+                            col_map['pqlqt_eval'] = col_i
+                    if 'store_code' in col_map or 'store_name' in col_map or 'check_item' in col_map:
+                        break
 
             empty_consecutive = 0
             for r in rows[header_idx + 1:]:
                 if not r:
                     empty_consecutive += 1
-                    if empty_consecutive >= 5:
+                    if empty_consecutive >= 10:
                         break
                     continue
 
-                topic = str(r[2] or '').strip() if len(r) > 2 else ''
-                check_item = str(r[3] or '').strip() if len(r) > 3 else ''
-                criteria_standard = str(r[5] or '').strip() if len(r) > 5 else ''
-                raw_store_code = str(r[7] or '').strip() if len(r) > 7 else ''
-                raw_store_name = str(r[8] or '').strip() if len(r) > 8 else ''
-                raw_asm_name = str(r[9] or '').strip() if len(r) > 9 else ''
-                cam_evidence_time = str(r[10] or '').strip() if len(r) > 10 else ''
-                if not cam_evidence_time and len(r) > 11 and r[11]:
-                    cam_evidence_time = f"Ngày: {r[11]} Giờ: {r[12] if len(r) > 12 else ''}"
-                    
-                violation_group = str((r[13] if len(r) > 13 else '') or (r[12] if len(r) > 12 else '') or '').strip()
-                violation_description = str((r[14] if len(r) > 14 else '') or (r[13] if len(r) > 13 else '') or '').strip()
-                pqlqt_eval = str((r[18] if len(r) > 18 else '') or (r[16] if len(r) > 16 else '') or 'Không đạt').strip()
+                # Extract fields via dynamic col_map with robust fallback index
+                def get_c(key, fallback_indices):
+                    if key in col_map and col_map[key] < len(r):
+                        v = str(r[col_map[key]] or '').strip()
+                        if v: return v
+                    for fi in fallback_indices:
+                        if fi < len(r) and r[fi]:
+                            v = str(r[fi]).strip()
+                            if v: return v
+                    return ''
 
-                if not raw_store_code and not raw_store_name and not check_item:
+                topic                 = get_c('topic', [2, 1])
+                check_item            = get_c('check_item', [3, 2, 4])
+                criteria_standard     = get_c('criteria_standard', [5, 4, 6])
+                raw_store_code        = get_c('store_code', [7, 6, 8, 1])
+                raw_store_name        = get_c('store_name', [8, 7, 9, 2])
+                raw_asm_name          = get_c('asm_name', [9, 8, 10])
+                cam_evidence_time     = get_c('cam_time', [10, 11])
+                violation_group       = topic or check_item[:30] or 'Vi phạm quy trình'
+                violation_description = get_c('violation_description', [14, 13, 12, 11, 4]) or check_item
+                pqlqt_eval            = get_c('pqlqt_eval', [18, 16, 17, 15]) or 'Không đạt'
+
+                if not raw_store_code and not raw_store_name and not check_item and not violation_description:
                     empty_consecutive += 1
-                    if empty_consecutive >= 5:
+                    if empty_consecutive >= 10:
                         break
                     continue
                 empty_consecutive = 0
@@ -1946,8 +1981,16 @@ def get_compliance_audits():
         asm = request.args.get('asm', '')
         store_code = request.args.get('store_code', '')
         status_filter = request.args.get('status', '')
-        days_window = int(request.args.get('days_window', 365))
-        repeat_only = request.args.get('repeat_only', '') == '1'
+        
+        # Support both param naming conventions from JS and API spec
+        days_param = request.args.get('days_window') or request.args.get('days') or '365'
+        try:
+            days_window = int(days_param)
+        except ValueError:
+            days_window = 365
+            
+        repeat_param = request.args.get('repeat_only') or request.args.get('is_repeat') or ''
+        repeat_only = (str(repeat_param).strip() == '1')
 
         scope = get_auth_scope(role, asm, pin, store_code)
 

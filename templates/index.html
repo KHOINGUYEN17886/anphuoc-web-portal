@@ -6419,7 +6419,7 @@
             const isRepeat = document.getElementById('comp-filter-repeat')?.value || '';
 
             try {
-                const res = await fetch(`/api/get_compliance_audits?asm=${encodeURIComponent(asm)}&status=${encodeURIComponent(status)}&days=${days}&is_repeat=${isRepeat}`);
+                const res = await fetch(`/api/get_compliance_audits?asm=${encodeURIComponent(asm)}&status=${encodeURIComponent(status)}&days=${days}&days_window=${days}&is_repeat=${isRepeat}&repeat_only=${isRepeat}`);
                 const data = await res.json();
 
                 if (!data.ok) {
@@ -6588,6 +6588,10 @@
                 if (data.ok) {
                     showToast("✅ Nạp Thành Công", data.message, "✅");
                     closeModalImportCompliance();
+                    const filterRepeat = document.getElementById('comp-filter-repeat');
+                    if (filterRepeat) filterRepeat.value = "";
+                    const filterStatus = document.getElementById('comp-filter-status');
+                    if (filterStatus) filterStatus.value = "";
                     await loadComplianceAudits();
                 } else {
                     alert('Lỗi nạp file: ' + data.error);
