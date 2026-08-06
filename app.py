@@ -3807,15 +3807,6 @@ def gis_map_view():
         """, 403
 
     try:
-        try:
-            from modules.store_map_visualizer import generate_store_network_map, OUT_MAP_PATH
-            if os.path.exists(OUT_MAP_PATH):
-                with open(OUT_MAP_PATH, 'r', encoding='utf-8') as f:
-                    return f.read(), 200, {'Content-Type': 'text/html; charset=utf-8'}
-        except Exception:
-            pass
-
-        # Fallback to self-contained cloud GIS builder on Render
         from gis_builder import generate_cloud_gis_map_html
         stores_db = query_db("SELECT store_code, store_name, asm_name, region FROM tb_stores")
         html_content = generate_cloud_gis_map_html(stores_db)
@@ -3832,14 +3823,6 @@ def api_gis_data():
     if user_role in ['store', 'store_manager']:
         return jsonify({'ok': False, 'error': '⛔ Quyền truy cập bị từ chối: Cửa hàng không có quyền truy cập dữ liệu GIS toàn hệ thống.'}), 403
     try:
-        try:
-            from modules.store_map_visualizer import build_gis_payload
-            payload = build_gis_payload()
-            return jsonify(payload)
-        except Exception:
-            pass
-
-        # Fallback to self-contained database query on Render
         from gis_builder import load_verified_coords
         stores_db = query_db("SELECT store_code, store_name, asm_name, region FROM tb_stores")
         coords = load_verified_coords()
@@ -3850,9 +3833,12 @@ def api_gis_data():
             store_list.append({
                 'code': code,
                 'name': s.get('store_name'),
-                'addr': s.get('address'),
+                'addr': c_info.get('addr', ''),
                 'asm': s.get('asm_name'),
                 'region': s.get('region'),
+                'mgr': c_info.get('mgr', 'Đang cập nhật'),
+                'phone': c_info.get('phone', 'N/A'),
+                'tier': c_info.get('tier', 'Standard'),
                 'lat': c_info.get('lat', 10.7769),
                 'lng': c_info.get('lng', 106.7009)
             })
@@ -3860,6 +3846,68 @@ def api_gis_data():
     except Exception as e:
         import traceback; traceback.print_exc()
         return jsonify({'ok': False, 'error': str(e)}), 500
+
+
+@app.route('/api/gis/store_detail/<path:store_code>', methods=['GET'])
+def api_gis_store_detail(store_code):
+    """Trả về thông tin chi tiết thực tế của cửa hàng phục vụ GIS Drawer."""
+    user_role = request.args.get('role', '').lower()
+    if user_role in ['store', 'store_manager']:
+        return jsonify({'ok': False, 'error': '⛔ Quyền truy cập bị từ chối.'}), 403
+    try:
+        store = query_db("SELECT store_code, store_name, asm_name, region, brand FROM tb_stores WHERE store_code = %s", (store_code,), one=True)
+        if not store:
+            return jsonify({'ok': False, 'error': 'Không tìm thấy cửa hàng'}), 404
+            
+        # 1. Store Manager (CHT) from tb_store_employees
+        cht = query_db("SELECT full_name, phone_number FROM tb_store_employees WHERE store_code = %s AND (position LIKE '%%Trưởng%%' OR position LIKE '%%CHT%%') AND status = 'ACTIVE' LIMIT 1", (store_code,), one=True)
+        mgr_name = cht['full_name'] if (cht and cht.get('full_name')) else None
+        mgr_phone = cht['phone_number'] if (cht and cht.get('phone_number')) else None
+        
+        if not mgr_name or not mgr_phone:
+            from gis_builder import load_verified_coords
+            coords = load_verified_coords()
+            c_info = coords.get(store_code, {})
+            if not mgr_name:
+                mgr_name = c_info.get('mgr', 'Đang cập nhật')
+            if not mgr_phone:
+                mgr_phone = c_info.get('phone', 'N/A')
+        
+        # 2. Headcount
+        emp_count = query_db("SELECT COUNT(*) as cnt FROM tb_store_employees WHERE store_code = %s AND status = 'ACTIVE'", (store_code,), one=True)
+        tgt = query_db("SELECT target_headcount FROM tb_store_headcount_targets WHERE store_code = %s", (store_code,), one=True)
+        actual_cnt = emp_count['cnt'] if emp_count else 0
+        target_cnt = tgt['target_headcount'] if tgt else 0
+        headcount_str = f"{actual_cnt} / {target_cnt} NV" if target_cnt > 0 else f"{actual_cnt} NV"
+        
+        # 3. Traffic & CR (%) for last 7 days
+        traffics = query_db("SELECT traffic_val, bills_val FROM tb_traffic WHERE store_code = %s ORDER BY traffic_date DESC LIMIT 7", (store_code,))
+        total_tf = sum(t['traffic_val'] for t in traffics) if traffics else 0
+        total_bi = sum(t['bills_val'] for t in traffics) if traffics else 0
+        cr_pct = round((total_bi / total_tf * 100), 1) if total_tf > 0 else 0.0
+        
+        # 4. Support tickets
+        tickets = query_db("SELECT COUNT(*) as cnt FROM tb_support_requests WHERE store_code = %s AND (person_in_charge IS NULL OR person_in_charge != 'Đã xong')", (store_code,), one=True)
+        pending_tickets = tickets['cnt'] if tickets else 0
+        
+        return jsonify({
+            'ok': True,
+            'store_code': store_code,
+            'store_name': store['store_name'],
+            'asm_name': store['asm_name'],
+            'region': store['region'],
+            'mgr': mgr_name,
+            'phone': mgr_phone,
+            'headcount_str': headcount_str,
+            'total_traffic_7d': total_tf,
+            'total_bills_7d': total_bi,
+            'cr_pct': f"{cr_pct}%",
+            'pending_tickets': pending_tickets
+        })
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
 
 
 

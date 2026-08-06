@@ -2,7 +2,8 @@
 """
 gis_builder.py — Self-Contained GIS Command Center Map Builder for Render Cloud Deployment
 ==========================================================================================
-Generates 100% cloud-compatible interactive GIS map HTML without local Windows path dependencies.
+Generates 100% cloud-compatible interactive GIS map HTML with rich store details,
+Leaflet popups, interactive side drawers, and live API fetch integration.
 """
 
 import os
@@ -24,6 +25,11 @@ ASM_COLORS = {
     'Hương': '#eab308',
     'Hà Nội': '#14b8a6',
     'HN': '#14b8a6',
+    'Dũng': '#3b82f6',
+    'Linh': '#8b5cf6',
+    'Lâm': '#10b981',
+    'Tiên': '#ec4899',
+    'Tín': '#f97316',
     'Khác': '#64748b'
 }
 
@@ -64,23 +70,23 @@ def generate_cloud_gis_map_html(db_stores_list: list = None) -> str:
             continue
 
         name = str(item.get('store_name') or item.get('name') or code).strip()
-        addr = str(item.get('address') or item.get('addr') or '').strip()
         asm  = str(item.get('asm_name') or item.get('asm') or 'Khác').strip()
         reg  = str(item.get('region') or 'Khác').strip()
-        tier = str(item.get('store_type') or item.get('tier') or 'Standard').strip()
-        mgr  = str(item.get('cht_name') or item.get('manager') or item.get('mgr') or 'N/A').strip()
-        phone= str(item.get('phone') or 'N/A').strip()
+        
+        c_info = coords_map.get(code, {})
+        
+        addr = str(item.get('address') or item.get('addr') or c_info.get('addr') or '').strip()
+        tier = str(item.get('store_type') or item.get('tier') or c_info.get('tier') or 'Standard').strip()
+        mgr  = str(item.get('cht_name') or item.get('manager') or item.get('mgr') or c_info.get('mgr') or 'Đang cập nhật').strip()
+        phone= str(item.get('phone') or c_info.get('phone') or 'N/A').strip()
 
         asms_set.add(asm)
         regions_set.add(reg)
 
-        # Lookup Lat/Lng from verified coordinates JSON
-        c_info = coords_map.get(code, {})
         lat = c_info.get('lat', 10.7769)
         lng = c_info.get('lng', 106.7009)
         color = ASM_COLORS.get(asm, '#64748b')
 
-        # Stock metrics fallback if offline on cloud
         total_qty = c_info.get('total_qty', 1500)
         total_val_m = c_info.get('total_val_m', 2500.0)
         sku_count = c_info.get('sku_count', 4500)
@@ -158,40 +164,42 @@ def generate_cloud_gis_map_html(db_stores_list: list = None) -> str:
         .theme-btn.active, .theme-btn:hover {{ background: #38bdf8; color: #0f172a; font-weight: 700; box-shadow: 0 0 12px rgba(56, 189, 248, 0.4); }}
 
         #drawer {{
-            width: 400px; background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(20px);
-            border-left: 1px solid rgba(255, 255, 255, 0.12); padding: 28px; display: none; flex-direction: column; gap: 22px;
-            overflow-y: auto; z-index: 1001; box-shadow: -15px 0 40px rgba(0,0,0,0.6); position: absolute; right: 0; top: 0; bottom: 0;
+            width: 420px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(24px);
+            border-left: 1px solid rgba(255, 255, 255, 0.15); padding: 28px; display: none; flex-direction: column; gap: 20px;
+            overflow-y: auto; z-index: 1001; box-shadow: -15px 0 40px rgba(0,0,0,0.7); position: absolute; right: 0; top: 0; bottom: 0;
             animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }}
         @keyframes slideIn {{ from {{ transform: translateX(100%); }} to {{ transform: translateX(0); }} }}
 
-        .drawer-header {{ display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 16px; }}
+        .drawer-header {{ display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 16px; }}
         .drawer-title-main {{ font-size: 20px; font-weight: 800; color: #38bdf8; letter-spacing: -0.5px; }}
-        .drawer-code-badge {{ font-size: 12px; font-weight: 700; color: #94a3b8; background: rgba(255,255,255,0.08); padding: 2px 8px; border-radius: 6px; }}
-        .close-btn {{ cursor: pointer; color: #64748b; font-size: 20px; font-weight: 700; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(255,255,255,0.05); transition: 0.2s; }}
+        .drawer-code-badge {{ font-size: 12px; font-weight: 700; color: #94a3b8; background: rgba(255,255,255,0.08); padding: 3px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); }}
+        .close-btn {{ cursor: pointer; color: #94a3b8; font-size: 20px; font-weight: 700; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(255,255,255,0.08); transition: 0.2s; }}
         .close-btn:hover {{ background: rgba(239, 68, 68, 0.2); color: #ef4444; }}
 
-        .hero-card {{ background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%); padding: 18px; border-radius: 14px; border: 1px solid rgba(56, 189, 248, 0.2); }}
+        .hero-card {{ background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%); padding: 18px; border-radius: 14px; border: 1px solid rgba(56, 189, 248, 0.3); }}
         .hero-val {{ font-size: 26px; font-weight: 800; color: #38bdf8; margin-top: 4px; }}
 
         .info-grid {{ display: flex; flex-direction: column; gap: 10px; }}
-        .info-row {{ display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.03); }}
+        .info-row {{ display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: 10px 14px; border-radius: 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255,255,255,0.05); }}
         .info-lbl {{ color: #94a3b8; font-weight: 500; }}
-        .info-val {{ font-weight: 700; color: #f1f5f9; }}
+        .info-val {{ font-weight: 700; color: #f1f5f9; text-align: right; }}
 
-        /* Marker Pins - Display STORE NAME */
         .custom-pin {{
-            width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
             color: #fff; font-weight: 800; font-size: 11px; border: 2.5px solid #ffffff; box-shadow: 0 0 15px rgba(0,0,0,0.6);
             position: relative; transition: transform 0.2s; cursor: pointer;
         }}
         .custom-pin:hover {{ transform: scale(1.35); z-index: 9999; }}
         .pin-label {{
-            position: absolute; top: -20px; left: 50%; transform: translateX(-50%);
+            position: absolute; top: -22px; left: 50%; transform: translateX(-50%);
             background: rgba(15, 23, 42, 0.95); color: #ffffff; padding: 3px 8px; border-radius: 6px;
             font-size: 11px; font-weight: 700; white-space: nowrap; border: 1px solid rgba(255,255,255,0.25);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: none;
         }}
+        
+        .leaflet-popup-content-wrapper {{ background: #0f172a !important; color: #f8fafc !important; border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }}
+        .leaflet-popup-tip {{ background: #0f172a !important; }}
     </style>
 </head>
 <body>
@@ -247,10 +255,10 @@ def generate_cloud_gis_map_html(db_stores_list: list = None) -> str:
                 <div class="close-btn" onclick="closeDrawer()">✕</div>
             </div>
 
-            <div style="font-size: 13px; color: #94a3b8; line-height:1.5;" id="drawerAddr">---</div>
+            <div style="font-size: 13px; color: #94a3b8; line-height:1.5; background:rgba(255,255,255,0.03); padding:10px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);" id="drawerAddr">---</div>
 
             <div class="hero-card">
-                <div style="font-size: 12px; color: #94a3b8; font-weight: 600;">Tổng Tồn Kho Trực Tuyến</div>
+                <div style="font-size: 12px; color: #94a3b8; font-weight: 600;">Ước Tính Tồn Kho Hệ Thống</div>
                 <div class="hero-val" id="drawerQty">0 pcs</div>
                 <div style="font-size: 13px; color: #94a3b8; margin-top: 6px;">Tổng Giá Trị: <strong style="color:#38bdf8;" id="drawerVal">0 Tr VNĐ</strong></div>
             </div>
@@ -258,10 +266,13 @@ def generate_cloud_gis_map_html(db_stores_list: list = None) -> str:
             <div class="info-grid">
                 <div class="info-row"><span class="info-lbl">ASM Quản Lý:</span><span class="info-val" id="drawerASM">---</span></div>
                 <div class="info-row"><span class="info-lbl">Vùng Địa Lý:</span><span class="info-val" id="drawerRegion">---</span></div>
-                <div class="info-row"><span class="info-lbl">Phân Loại Cửa Hàng:</span><span class="info-val" id="drawerTier">Standard</span></div>
-                <div class="info-row"><span class="info-lbl">Cửa Hàng Trưởng:</span><span class="info-val" id="drawerMgr">N/A</span></div>
+                <div class="info-row"><span class="info-lbl">Cửa Hàng Trưởng (CHT):</span><span class="info-val" style="color:#38bdf8;" id="drawerMgr">Đang nạp...</span></div>
                 <div class="info-row"><span class="info-lbl">Số Điện Thoại CH:</span><span class="info-val" id="drawerPhone">N/A</span></div>
-                <div class="info-row"><span class="info-lbl">Số SKU Đang Có Tồn:</span><span class="info-val" id="drawerSKUs">0 SKUs</span></div>
+                <div class="info-row"><span class="info-lbl">Định Biên & Nhân Sự:</span><span class="info-val" id="drawerHeadcount">Đang nạp...</span></div>
+                <div class="info-row"><span class="info-lbl">Lượt Khách 7 Ngày (Traffic):</span><span class="info-val" id="drawerTraffic">Đang nạp...</span></div>
+                <div class="info-row"><span class="info-lbl">Tỷ Lệ Chuyển Đổi (CR %):</span><span class="info-val" style="color:#10b981;" id="drawerCR">Đang nạp...</span></div>
+                <div class="info-row"><span class="info-lbl">Yêu Cầu Hỗ Trợ Đang Xử Lý:</span><span class="info-val" id="drawerTickets">0 sự cố</span></div>
+                <div class="info-row"><span class="info-lbl">Phân Loại Mạng Lưới:</span><span class="info-val" id="drawerTier">Standard</span></div>
             </div>
         </div>
     </div>
@@ -317,7 +328,7 @@ def generate_cloud_gis_map_html(db_stores_list: list = None) -> str:
 
         let markerStoreMap = {{}};
 
-        // Render Markers displaying STORE NAME
+        // Render Markers with Popup & Drawer Trigger
         stores.forEach(s => {{
             const iconHtml = `<div class="custom-pin" style="background: ${{s.color}};">
                 <div class="pin-label">${{s.name}}</div>
@@ -326,16 +337,34 @@ def generate_cloud_gis_map_html(db_stores_list: list = None) -> str:
             const customIcon = L.divIcon({{
                 html: iconHtml,
                 className: '',
-                iconSize: [32, 32],
-                iconAnchor: [16, 16]
+                iconSize: [34, 34],
+                iconAnchor: [17, 17]
             }});
 
+            const popupHtml = `
+                <div style="font-family:'Plus Jakarta Sans',sans-serif; padding:6px; min-width:230px;">
+                    <div style="font-weight:800; font-size:15px; color:#38bdf8; margin-bottom:4px;">${{s.name}}</div>
+                    <div style="font-size:11px; color:#94a3b8; margin-bottom:8px;">Mã CH: <strong style="color:#fff;">${{s.code}}</strong> | ASM: <strong style="color:${{s.color}};">${{s.asm}}</strong></div>
+                    <div style="font-size:12px; color:#cbd5e1; margin-bottom:10px; line-height:1.4;">📍 ${{s.addr || 'Địa chỉ đang cập nhật'}}</div>
+                    <button onclick="openDrawerByCode('${{s.code}}')" style="width:100%; background:linear-gradient(135deg, #0284c7 0%, #4f46e5 100%); color:#fff; border:none; padding:8px 12px; border-radius:8px; font-weight:700; font-size:12px; cursor:pointer; box-shadow:0 4px 12px rgba(2,132,199,0.4);">
+                        📊 Xem Báo Cáo & Vận Hành Chi Tiết
+                    </button>
+                </div>
+            `;
+
             const marker = L.marker([s.lat, s.lng], {{ icon: customIcon }});
+            marker.bindPopup(popupHtml, {{ maxWidth: 290 }});
             marker.on('click', () => openDrawer(s));
 
             clusterGroup.addLayer(marker);
             markerStoreMap[s.code] = {{ marker: marker, data: s }};
         }});
+
+        window.openDrawerByCode = function(code) {{
+            if (markerStoreMap[code] && markerStoreMap[code].data) {{
+                openDrawer(markerStoreMap[code].data);
+            }}
+        }};
 
         function filterMap() {{
             const query  = document.getElementById('searchInput').value.trim().toLowerCase();
@@ -367,17 +396,35 @@ def generate_cloud_gis_map_html(db_stores_list: list = None) -> str:
         function openDrawer(s) {{
             document.getElementById('drawerName').innerText  = s.name;
             document.getElementById('drawerCode').innerText  = 'Mã Cửa Hàng: ' + s.code;
-            document.getElementById('drawerAddr').innerText  = s.addr;
+            document.getElementById('drawerAddr').innerText  = '📍 ' + (s.addr || 'Địa chỉ đang cập nhật');
             document.getElementById('drawerQty').innerText   = s.total_qty.toLocaleString() + ' pcs';
             document.getElementById('drawerVal').innerText   = s.total_val_m.toLocaleString() + ' Tr VNĐ';
             document.getElementById('drawerASM').innerText   = s.asm;
             document.getElementById('drawerRegion').innerText= s.region;
             document.getElementById('drawerTier').innerText  = s.tier;
-            document.getElementById('drawerMgr').innerText   = s.mgr;
-            document.getElementById('drawerPhone').innerText = s.phone;
-            document.getElementById('drawerSKUs').innerText  = s.sku_count + ' SKUs';
+            document.getElementById('drawerMgr').innerText   = s.mgr || 'Đang nạp...';
+            document.getElementById('drawerPhone').innerText = s.phone || 'N/A';
+            document.getElementById('drawerHeadcount').innerText = 'Đang tải...';
+            document.getElementById('drawerTraffic').innerText   = 'Đang tải...';
+            document.getElementById('drawerCR').innerText        = 'Đang tải...';
+            document.getElementById('drawerTickets').innerText    = 'Đang tải...';
 
             document.getElementById('drawer').style.display = 'flex';
+
+            // Fetch live store operational details from backend API
+            fetch('/api/gis/store_detail/' + encodeURIComponent(s.code))
+                .then(res => res.json())
+                .then(data => {{
+                    if (data && data.ok) {{
+                        if (data.mgr) document.getElementById('drawerMgr').innerText = data.mgr;
+                        if (data.phone && data.phone !== 'N/A') document.getElementById('drawerPhone').innerText = data.phone;
+                        if (data.headcount_str) document.getElementById('drawerHeadcount').innerText = data.headcount_str;
+                        if (data.total_traffic_7d !== undefined) document.getElementById('drawerTraffic').innerText = data.total_traffic_7d.toLocaleString() + ' lượt';
+                        if (data.cr_pct) document.getElementById('drawerCR').innerText = data.cr_pct;
+                        if (data.pending_tickets !== undefined) document.getElementById('drawerTickets').innerText = data.pending_tickets + ' sự cố';
+                    }}
+                }})
+                .catch(err => console.log('Live detail fetch fallback:', err));
         }}
 
         function closeDrawer() {{
