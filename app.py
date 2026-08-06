@@ -1519,12 +1519,17 @@ def get_support_requests():
             where_clauses.append("r.store_code = ?")
             args.append(scope['store'])
         elif scope['type'] == 'ASM':
-            where_clauses.append("s.asm_name = ?")
-            args.append(scope['asm'])
+            asm_target = scope['asm']
+            clean_asm = sanitize_filename_part(asm_target).lower() if 'sanitize_filename_part' in globals() else asm_target.lower()
+            where_clauses.append("(s.asm_name = ? OR LOWER(s.asm_name) LIKE ?)")
+            args.append(asm_target)
+            args.append(f"%{clean_asm}%")
         else:
             if asm and asm != 'ALL' and asm != 'undefined':
-                where_clauses.append("s.asm_name = ?")
+                clean_asm = sanitize_filename_part(asm).lower() if 'sanitize_filename_part' in globals() else asm.lower()
+                where_clauses.append("(s.asm_name = ? OR LOWER(s.asm_name) LIKE ?)")
                 args.append(asm)
+                args.append(f"%{clean_asm}%")
             if store_code:
                 where_clauses.append("r.store_code = ?")
                 args.append(store_code)

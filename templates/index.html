@@ -3282,8 +3282,14 @@
         // Admin ASM filter listener
         adminAsmFilter.addEventListener('change', () => {
             loadSubmissionStatus();
-            if (!statusTabDailyContent.classList.contains('hidden')) {
+            if (statusTabDailyContent && !statusTabDailyContent.classList.contains('hidden')) {
                 loadDailyTrafficSummary();
+            }
+            if (statusTabSupportContent && !statusTabSupportContent.classList.contains('hidden')) {
+                loadSupportRequests();
+            }
+            if (statusTabHrContent && !statusTabHrContent.classList.contains('hidden')) {
+                loadHRAnalytics();
             }
         });
 
