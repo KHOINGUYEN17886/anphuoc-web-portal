@@ -1,19 +1,19 @@
 # MASTER DEVELOPER & SYSTEM GUIDE: AN PHUOC RETAIL COMMANDER WEB PORTAL
 
-> **Tài Liệu Hướng Dẫn Toàn Diện Dành Cho Lập Trình Viên & AI Agent**
-> **Mục tiêu**: Giúp bất kỳ Lập trình viên, AI Agent hoặc hệ thống CLI nào khi tiếp quản dự án đều có thể đọc tài liệu này để nắm bắt 100% kiến trúc, dữ liệu, phân quyền, API và quy trình vận hành của hệ thống Web Portal Nhập Liệu & Báo Cáo QLKD.
+> **Tài Liệu Hướng Dẫn Toàn Diện Dành Cho Lập Trình Viên & AI Agent (Cập Nhật 2026)**
+> **Mục tiêu**: Giúp bất kỳ Lập trình viên, AI Agent hoặc hệ thống CLI nào khi tiếp quản dự án đều có thể đọc tài liệu này để nắm bắt 100% kiến trúc, dữ liệu, phân quyền, API, thuật toán xuất báo cáo Excel và quy trình vận hành của hệ thống Web Portal Nhập Liệu & Báo Cáo QLKD.
 
 ---
 
 ## 1. TỔNG QUAN HỆ THỐNG (SYSTEM OVERVIEW)
 
 ### 1.1. Mục Tiêu Nghiệp Vụ
-Hệ thống **Web Portal Nhập Liệu & Báo Cáo Vận Hành QLKD An Phước** là ứng dụng web quản lý vận hành kinh doanh và định biên nhân sự trực tuyến cho chuỗi **184 cửa hàng bán lẻ** thương hiệu An Phước / Pierre Cardin trên toàn quốc.
+Hệ thống **Web Portal Nhập Liệu & Báo Cáo Vận Hành QLKD An Phước** là ứng dụng web quản lý vận hành kinh doanh, địa lý cửa hàng và định biên nhân sự trực tuyến cho chuỗi **184 cửa hàng bán lẻ** thương hiệu An Phước / Pierre Cardin trên toàn quốc.
 
 Hệ thống phục vụ 3 nhóm người dùng chính:
-1. **Cửa Hàng Trưởng (Store Manager)**: Nhập lượt khách (Traffic), số lượng hóa đơn (Bill) hàng ngày, nộp báo cáo vận hành tuần (Thứ Sáu hàng tuần), cập nhật hồ sơ nhân sự cửa hàng, gửi yêu cầu hỗ trợ sự cố.
-2. **Quản Lý Kinh Doanh (ASM / Area Sales Manager)**: Theo dõi tiến độ nộp báo cáo của các cửa hàng trong cụm, xem báo cáo định biên & thâm niên nhân sự cụm, duyệt yêu cầu hỗ trợ sự cố, xuất báo cáo tổng hợp.
-3. **Ban Giám Đốc & Admin (Executive Management)**: Quản lý tổng thể 184 cửa hàng, điều chỉnh phân cụm ASM động, theo dõi chỉ số HR/Vận hành toàn quốc, xuất file báo cáo Excel 11 Sheets chuẩn doanh nghiệp.
+1. **Cửa Hàng Trưởng (Store Manager)**: Nhập lượt khách (Traffic), số lượng hóa đơn (Bill POS & Online) hàng ngày, nộp báo cáo vận hành tuần (Thứ Sáu hàng tuần), cập nhật hồ sơ nhân sự cửa hàng, gửi yêu cầu hỗ trợ sự cố.
+2. **Quản Lý Kinh Doanh (ASM / Area Sales Manager)**: Theo dõi tiến độ nộp báo cáo của các cửa hàng trong cụm, xem báo cáo định biên & thâm niên nhân sự cụm, duyệt yêu cầu hỗ trợ sự cố, xem bản đồ GIS cửa hàng, xuất báo cáo tổng hợp.
+3. **Ban Giám Đốc & Admin (Executive Management)**: Quản lý tổng thể 184 cửa hàng, điều chỉnh phân cụm ASM động, theo dõi chỉ số HR/Vận hành toàn quốc, xem bản đồ GIS mạng lưới cửa hàng, xuất file báo cáo Excel 11 Sheets chuẩn doanh nghiệp với tên file định danh động.
 
 ### 1.2. Môi Trường Triển Khai & Mã Nguồn
 - **Production URL**: `https://anphuoc-portal.onrender.com`
@@ -32,13 +32,13 @@ Hệ thống phục vụ 3 nhóm người dùng chính:
   - **Production**: Neon Cloud PostgreSQL (`psycopg2` driver, DictCursor).
   - **Local Development Fallback**: SQLite 3 (`operational_data.db`).
   - **Dynamic Engine Switching**: Tự động chuyển đổi dựa trên biến môi trường `DATABASE_URL`.
-- **Frontend Architecture**: Single-Page Application (SPA) viết bằng Vanilla JavaScript, Tailwind CSS (CDN), Chart.js (biểu đồ nhân sự), UI Avatars API.
+- **Frontend Architecture**: Single-Page Application (SPA) viết bằng Vanilla JavaScript, Tailwind CSS (CDN), Chart.js (biểu đồ nhân sự), Leaflet JS (bản đồ GIS), UI Avatars API.
 - **Excel Report Engine**: Pandas + OpenPyXL (Đã tối ưu hóa thuật toán 1-pass styling & header caching cho môi trường máy chủ RAM yếu).
 
 ### 2.2. Sơ Đồ Cấu Trúc Thư Mục (Directory Layout)
 ```
 tools/web_portal/
-├── app.py                         # Engine Flask chính (API Endpoints, Auth, DB Logic, Excel Exporter)
+├── app.py                         # Engine Flask chính (API Endpoints, Auth, DB Logic, Excel Exporter, GIS Map Engine)
 ├── init_db.py                     # Script khởi tạo Schema bảng & Nạp baseline từ Excel
 ├── sync_neon.py                   # Script đồng bộ dữ liệu local SQLite lên Neon Postgres Cloud
 ├── sync_real_staff_list.py        # Script đồng bộ danh sách 1,089 nhân sự thực tế từ file StaffList
@@ -49,7 +49,7 @@ tools/web_portal/
 ├── seed_stores_baseline.json      # Data Baseline 184 cửa hàng & Phân cụm ASM (Dùng đồng bộ online)
 ├── HUONG_DAN.md                   # Hướng dẫn thao tác cho Cửa hàng & ASM
 ├── templates/
-│   └── index.html                 # Giao diện SPA chính (~5,700 lines HTML/JS/CSS/Tailwind)
+│   └── index.html                 # Giao diện SPA chính (~5,700 lines HTML/JS/CSS/Tailwind/Leaflet)
 └── backups/                       # Thư mục lưu file SQLite sao lưu tự động hàng ngày
 ```
 
@@ -67,13 +67,13 @@ Quản lý thông tin 184 cửa hàng bán lẻ và phân cụm ASM quản lý.
 | `store_name` | TEXT | NOT NULL | Tên hiển thị cửa hàng (VD: `126 Ba Tháng Hai`) |
 | `brand` | TEXT | NOT NULL | Thương hiệu (`AP` / `PC`) |
 | `region` | TEXT | | Vùng miền (`Miền Nam`, `Miền Bắc`, `Miền Trung`) |
-| `asm_name` | TEXT | | Tên ASM quản lý trực tiếp (VD: `Dũng`, `Khôi`, `Linh`) |
+| `asm_name` | TEXT | | Tên ASM quản lý trực tiếp (VD: `Dũng`, `Khôi`, `Linh`, `Hương`, `Lâm`, `Ni`, `Tiên`) |
 | `passcode` | TEXT | DEFAULT '1234' | Mã PIN 4 số đăng nhập của cửa hàng |
 
 ### 3.2. Bảng `tb_asms` (Danh Sách Quản Lý Kinh Doanh)
 | Tên Cột | Kiểu Dữ Liệu | Ràng Buộc | Mô Tả |
 | :--- | :--- | :--- | :--- |
-| `asm_name` | TEXT | PRIMARY KEY | Tên ASM (VD: `Khôi`, `Dũng`, `Linh`, `Tiên`) |
+| `asm_name` | TEXT | PRIMARY KEY | Tên ASM (VD: `Khôi`, `Dũng`, `Linh`, `Tiên`, `Hương`, `Lâm`, `Quân`, `Tín`, `Ni`, `HN`, `Thắng`) |
 | `passcode` | TEXT | DEFAULT '9999' | Mã PIN đăng nhập quyền ASM |
 | `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Ngày tạo tài khoản |
 
@@ -166,6 +166,7 @@ Quản lý danh sách 1,089 nhân sự trên toàn bộ hệ thống.
 | `store_code` | TEXT | NOT NULL | Mã cửa hàng |
 | `report_date` | TEXT | NOT NULL | Ngày Thứ 6 của tuần báo cáo |
 | `contract_number` | TEXT | | Mã / Số hợp đồng cùng kỳ năm ngoái |
+| `customer_name` | TEXT | | Tên khách hàng / Đối tác doanh nghiệp |
 | `prev_year_value` | REAL | NOT NULL | Giá trị hợp đồng năm trước (VNĐ) |
 | `expected_signing_time`| TEXT | NOT NULL | Thời gian dự kiến ký năm nay |
 | `product_category` | TEXT | NOT NULL | Chủng loại sản phẩm |
@@ -238,20 +239,20 @@ Hệ thống áp dụng cơ chế xác thực đa cấp (Role-based Authorizatio
 1. **Admin (Ban Giám Đốc)**:
    - Xác thực: `role == 'admin'` hoặc `pin == MASTER_PIN` (Mặc định `8888` hoặc biến môi trường `MASTER_PIN`).
    - Phạn vi: `{'type': 'ALL'}`.
-   - Quyền hạn: Xem, nhập liệu, sửa đổi và **Xuất Excel toàn bộ 184 cửa hàng** hoặc chọn lọc theo bất kỳ ASM nào.
+   - Quyền hạn: Xem, nhập liệu, sửa đổi, xem GIS Map và **Xuất Excel toàn bộ 184 cửa hàng** hoặc chọn lọc theo bất kỳ ASM nào.
 2. **ASM Khôi (Trần Lê Khôi - Đặc Quyền Ban Quản Lý)**:
    - Xác thực: `role == 'asm'` và (`is_asm_khoi(asm_name)` là True HOẶC PIN trùng mã PIN cá nhân của Khôi).
    - Phạm vi: `{'type': 'ALL'}`.
-   - Quyền hạn: Được cấp đặc quyền `ALL` như Admin. Có thể xem & xuất Excel toàn bộ 184 cửa hàng hoặc lọc theo từng ASM cụ thể.
+   - Quyền hạn: Được cấp đặc quyền `ALL` như Admin. Có thể xem Dashboard, GIS Map, và xuất Excel toàn bộ 184 cửa hàng hoặc lọc theo từng ASM cụ thể.
 3. **Các ASM Khác (Dũng, Linh, Tiên, Tín, Hương, HN, Lâm, Quân, Ni, Thắng...)**:
    - Xác thực: `role == 'asm'` và nhập đúng mã PIN ASM (Mặc định `9999` hoặc PIN tùy chỉnh).
    - Phạm vi: `{'type': 'ASM', 'asm': '<tên_asm>'}`.
-   - Quyền hạn: Chỉ xem Dashboard, tiến độ nộp và **chỉ xuất báo cáo Excel cho các cửa hàng thuộc cụm mình quản lý** (VD: ASM Dũng chỉ xuất đúng 15 cửa hàng trong cụm Dũng).
+   - Quyền hạn: Xem Dashboard, tiến độ nộp, GIS Map và **chỉ xuất báo cáo Excel cho các cửa hàng thuộc cụm mình quản lý** (VD: ASM Dũng chỉ xuất đúng 15 cửa hàng trong cụm Dũng).
    - **Bảo mật chặn URL Manipulation**: Nếu ASM Dũng cố tình chỉnh tham số URL `asm=Khôi` hoặc `asm=ALL`, máy chủ tự động dùng scope thực tế `{'type': 'ASM', 'asm': 'Dũng'}` để ghi đè, ngăn chặn hoàn toàn việc rò rỉ dữ liệu cụm khác.
 4. **Cửa Hàng (Store Manager)**:
    - Xác thực: `role == 'store'`, chọn đúng `store_code` và nhập đúng mã PIN 4 số của cửa hàng.
    - Phạm vi: `{'type': 'STORE', 'store': '<store_code>'}`.
-   - Quyền hạn: Chỉ xem & nhập liệu cho duy nhất cửa hàng của mình.
+   - Quyền hạn: Chỉ xem & nhập liệu cho duy nhất cửa hàng của mình. **Khóa quyền xem GIS Map (`/map`) đối với tài khoản Cửa Hàng**.
 
 ---
 
@@ -262,47 +263,33 @@ Hệ thống áp dụng cơ chế xác thực đa cấp (Role-based Authorizatio
   - *Request Body*: `{"role": "store|asm|admin", "store_code": "...", "asm": "...", "pin": "..."}`
   - *Response*: `{"ok": true, "scope": {...}, "message": "..."}`
 - **`POST /api/change_pin`**: Đổi mã PIN đăng nhập cho Cửa hàng hoặc ASM.
-- **`GET /api/asms`**: Trả về danh sách tên các ASM hiện có (`SELECT DISTINCT asm_name FROM tb_stores`).
+- **`GET /api/asms`**: Trả về danh sách tên các ASM hiện có (`SELECT DISTINCT asm_name FROM tb_stores`), hỗ trợ lọc Tiếng Việt không dấu.
 - **`GET /api/stores`**: Trả về danh sách 184 cửa hàng kèm vùng và ASM quản lý.
 
 ### 5.2. Store Data Entry APIs
 - **`POST /api/submit_daily_traffic`**: Lưu lượt khách (Traffic) & số bill bán lẻ hàng ngày.
-  - *Payload*: `{"store_code": "...", "pin": "...", "traffic_date": "2026-07-24", "traffic_val": 120, "bills_val": 45, "company_online_bills": 2, "store_online_bills": 5, "non_purchase_reasons": "{...}"}`
 - **`GET /api/get_daily_traffic`**: Trích xuất dữ liệu Traffic hàng ngày của cửa hàng trong tháng.
 - **`POST /api/submit_weekly_report`**: Nộp báo cáo vận hành tuần (Thứ Sáu).
-  - *Payload*: Lưu đồng thời các bảng `tb_traffic`, `tb_contracts`, `tb_unsigned_contracts`, `tb_operational_details`, `tb_support_requests`.
-- **`GET /api/get_weekly_report`**: Tải dữ liệu báo cáo tuần đã nộp để hiển thị lên form.
+- **`GET /api/get_weekly_report`**: Tải dữ liệu báo cáo tuần đã nộp (hỗ trợ lọc `asm_name` cho Tab Lịch Sử).
 
-### 5.3. HR & Personnel Management APIs
+### 5.3. HR & GIS Map APIs
 - **`GET /api/get_store_hr`**: Lấy danh sách hồ sơ nhân sự của cửa hàng/cụm kèm chỉ tiêu định biên.
 - **`POST /api/save_store_hr`**: Cập nhật hồ sơ nhân sự, bảng thử việc 5 bài học, hoặc thêm nhân sự hỗ trợ chéo giữa các cửa hàng.
-- **`GET /api/get_hr_analytics`**: API phục vụ Tab Báo Cáo Nhân Sự Cụm cho ASM/Admin.
-  - *Response JSON*:
-    ```json
-    {
-      "ok": true,
-      "summary": {
-        "total_stores": 15,
-        "total_target": 60,
-        "total_actual": 52,
-        "deficit": -8,
-        "total_employees": 52
-      },
-      "store_headcounts": [ ... ],
-      "tenure_distribution": { "< 6 tháng": 12, "6 - 12 tháng": 15, "1 - 3 năm": 18, "> 3 năm": 7 },
-      "position_distribution": { "Cửa hàng trưởng": 15, "Nhân viên bán hàng": 32, ... },
-      "employees": [ ... ]
-    }
-    ```
+- **`GET /api/get_hr_analytics`**: API phục vụ Tab Báo Cáo Nhân Sự Cụm cho ASM/Admin (Tổng hợp định biên, phân bố thâm niên, cơ cấu chức danh).
+- **`GET /map` & `GET /api/map_data`**: Trả về giao diện bản đồ GIS tương tác và danh sách tọa độ 184 cửa hàng (RBAC locked cho tài khoản Cửa Hàng).
 
-### 5.4. Excel Export API
+### 5.4. Dynamic Excel Export API
 - **`GET /api/export_excel`**: Tạo và xuất file báo cáo Excel 11 Sheets chuẩn doanh nghiệp.
   - *Query Parameters*: `report_date=YYYY-MM-DD&asm=ALL|<asm_name>&role=admin|asm|store&pin=...&store_code=...`
-  - *Response*: Stream binary file `.xlsx` (`Content-Disposition: attachment; filename=BaoCao_TongHop_...xlsx`).
+  - *Thuật toán tên file động (Scope-based Dynamic Filename)*:
+    - Nếu xuất cho **Cửa Hàng**: `BaoCao_RetailCommander_CH_126_3T2_2026-08-06.xlsx`
+    - Nếu xuất cho **ASM Cụ Thể** (Khôi, Dũng, Hồng, Linh...): `BaoCao_RetailCommander_ASM_Khoi_2026-08-06.xlsx`, `BaoCao_RetailCommander_ASM_Dung_2026-08-06.xlsx`, `BaoCao_RetailCommander_ASM_Nguyen_Thi_Hong_2026-08-06.xlsx`
+    - Nếu xuất **Toàn Quốc (ALL)**: `BaoCao_RetailCommander_ToanQuoc_2026-08-06.xlsx`
+  - *Xử lý Chuẩn Hóa Tên File (`sanitize_filename_part`)*: Tự động loại bỏ dấu tiếng Việt (NFD decomposition), ký tự đặc biệt để tên file không bao giờ bị lỗi hiển thị trên Windows/Mac/Linux.
 
 ### 5.5. Baseline Synchronization APIs (Cloud Maintenance)
 - **`POST /api/seed_online_hr`**: Thực hiện nạp/cập nhật hàng loạt (Batch Upsert) 1,089 hồ sơ nhân sự chuẩn từ file baseline JSON lên Cloud DB Neon.
-- **`POST /api/seed_online_stores`**: Đồng bộ danh sách 184 cửa hàng & phân cụm ASM chuẩn từ file baseline JSON lên Cloud DB Neon.
+- **`POST /api/seed_online_stores`**: Đồng bộ danh sách 184 cửa hàng & Phân cụm ASM chuẩn từ file baseline JSON (`StoresInfo.xlsx`) lên Cloud DB Neon.
 
 ---
 
@@ -316,7 +303,7 @@ File Excel xuất ra từ `/api/export_excel` được trình bày chuyên nghi�
 | **Sheet 2** | `Traffic Chi Tiết Theo Ngày` | Chi tiết lượt khách, số bill và tỷ lệ CR từng ngày từ Thứ Bảy tuần trước đến Thứ Sáu tuần này. |
 | **Sheet 3** | `Input_Traffic` | Bảng so sánh Traffic 6 kỳ: Tuần Này, Tuần Trước, Tuần Cùng Kỳ NĂm Ngoái, Tháng Này, Tháng Trước, Tháng Cùng Kỳ Năm Ngoái. |
 | **Sheet 4** | `HĐ Đang Đàm Phán 3.1` | Danh sách hợp đồng B2B phát sinh trong tuần: Tên khách hàng, mã HĐ, giá trị HĐ, số lượng, tiền cọc đợt 1, thanh toán đợt 2, trạng thái. |
-| **Sheet 5** | `HĐ Chưa Ký 3.2` | Danh sách hợp đồng B2B cùng kỳ năm trước chưa ký lại: Giá trị năm ngoái, thời gian dự kiến ký, nguyên nhân. |
+| **Sheet 5** | `HĐ Chưa Ký 3.2` | Danh sách hợp đồng B2B cùng kỳ năm trước chưa ký lại: Mã HĐ năm trước, **Tên khách hàng/Doanh nghiệp**, giá trị năm ngoái, thời gian dự kiến ký, nguyên nhân. |
 | **Sheet 6** | `Chi Tiết Vận Hành 4` | Đánh giá 5 tiêu chuẩn vận hành (Mở/đóng cửa, đồng phục, câu chào, thái độ) + Ý kiến thị trường, phản hồi sản phẩm từ khách hàng. |
 | **Sheet 7** | `Yêu Cầu Hỗ Trợ 4.5` | Tổng hợp các yêu cầu hỗ trợ kỹ thuật/cơ sở vật chất: Danh mục, độ ưu tiên, nội dung sự cố, hạn hoàn thành, người chịu trách nhiệm. |
 | **Sheet 8** | `Phân Tích Lý Do Không Mua` | Chi tiết số lượng khách không mua hàng (Traffic - Bills), tỷ lệ CR tại quầy, lý do chính (Đứt size, Mẫu mã, Giá/KM, Chỉ xem...) & ghi chú. |
@@ -327,8 +314,6 @@ File Excel xuất ra từ `/api/export_excel` được trình bày chuyên nghi�
 ---
 
 ## 7. QUY TRÌNH TỐI ƯU HIỆU NĂNG & HẠ TẦNG (PERFORMANCE SPECS)
-
-Để ứng dụng chạy mượt mà trên gói máy chủ **Render Free Tier (0.1 vCPU, 512MB RAM)** và kết nối **Neon Postgres Cloud Database**, hệ thống đã áp dụng 4 kỹ thuật tối ưu hóa cấp cao:
 
 ### 7.1. Request-Scoped Connection Pooling (Flask `g` Object)
 - Sử dụng `g.db_conn` trong `get_db_connection()` để chỉ mở **duy nhất 1 kết nối Database** cho mỗi HTTP Request.

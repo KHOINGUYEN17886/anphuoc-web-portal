@@ -2812,6 +2812,18 @@ def style_input_traffic_sheet(ws):
         col_letter = get_column_letter(col)
         ws.column_dimensions[col_letter].width = 20
 
+def sanitize_filename_part(text):
+    if not text:
+        return ""
+    import unicodedata
+    import re
+    text = unicodedata.normalize('NFD', str(text))
+    text = ''.join(c for c in text if unicodedata.category(c) != 'Mn')
+    text = text.replace('Đ', 'D').replace('đ', 'd')
+    text = re.sub(r'[^a-zA-Z0-9_]', '_', text)
+    text = re.sub(r'_+', '_', text).strip('_')
+    return text
+
 @app.route('/api/export_excel', methods=['GET'])
 def export_excel():
     report_date = request.args.get('report_date')
@@ -3466,10 +3478,19 @@ def export_excel():
 
         output.seek(0)
         
-        # Format filename
-        filename = f"BaoCao_RetailCommander_{report_date}.xlsx"
-        if filter_asm:
-            filename = f"BaoCao_RetailCommander_{filter_asm}_{report_date}.xlsx"
+        # Determine target scope label for distinct, non-colliding filenames
+        target_label = ""
+        if scope['type'] == 'STORE':
+            target_label = f"CH_{sanitize_filename_part(scope.get('store') or store_code)}"
+        elif scope['type'] == 'ASM':
+            target_label = f"ASM_{sanitize_filename_part(scope.get('asm') or asm)}"
+        else: # scope['type'] == 'ALL'
+            if asm and asm != 'ALL':
+                target_label = f"ASM_{sanitize_filename_part(asm)}"
+            else:
+                target_label = "ToanQuoc"
+                
+        filename = f"BaoCao_RetailCommander_{target_label}_{report_date}.xlsx"
             
         encoded_filename = urllib.parse.quote(filename)
         
