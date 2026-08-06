@@ -6262,6 +6262,16 @@
         // ── COMPLIANCE AUDIT ENGINE & P.QLQT CONTROL LOGIC ───────────────────
         let currentComplianceData = [];
 
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         async function loadComplianceAudits() {
             const tableBody = document.getElementById('comp-table-body');
             if (!tableBody) return;
@@ -6278,7 +6288,7 @@
                 const data = await res.json();
 
                 if (!data.ok) {
-                    tableBody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-red-500 font-bold">Lỗi: ${data.error}</td></tr>`;
+                    tableBody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-red-500 font-bold">Lỗi: ${escapeHtml(data.error)}</td></tr>`;
                     return;
                 }
 
@@ -6291,11 +6301,14 @@
                 }
 
                 const asmSelect = document.getElementById('comp-filter-asm');
-                if (asmSelect && asmSelect.options.length <= 1 && data.asms) {
+                if (asmSelect && data.asms) {
+                    const currentVal = asmSelect.value;
+                    asmSelect.innerHTML = '<option value="">Tất cả ASM</option>';
                     data.asms.forEach(a => {
                         const opt = document.createElement('option');
                         opt.value = a;
                         opt.textContent = a;
+                        if (a === currentVal) opt.selected = true;
                         asmSelect.appendChild(opt);
                     });
                 }
@@ -6318,59 +6331,71 @@
             }
 
             tableBody.innerHTML = audits.map(item => {
+                const safeTicket = escapeHtml(item.ticket_code);
+                const safeStoreName = escapeHtml(item.store_name);
+                const safeStoreCode = escapeHtml(item.store_code);
+                const safeAsmName = escapeHtml(item.asm_name || 'N/A');
+                const safeGroup = escapeHtml(item.violation_group || item.topic || 'N/A');
+                const safeCheckItem = escapeHtml(item.check_item || '');
+                const safeDesc = escapeHtml(item.violation_description || '');
+                const safeCamTime = escapeHtml(item.camera_evidence_time || 'N/A');
+                const safeStoreExp = escapeHtml(item.store_explanation || '');
+                const safeAsmAssessment = escapeHtml(item.asm_assessment || '');
+                const safeStaffInfo = escapeHtml(item.violating_staff_info || '');
+
                 const isRepeatBadge = item.is_repeat_offense ? 
                     `<span class="px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-extrabold text-[10px] animate-pulse">⚠️ TÁI PHẠM LẦN ${item.repeat_count}</span>` : 
                     `<span class="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full font-medium text-[10px]">Lần đầu</span>`;
 
                 let statusBadge = '';
-                if (item.status === 'Hoàn tất') {
+                if (item.status === 'Hoàn tất' || item.status === 'Đã hoàn tất') {
                     statusBadge = `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold text-[10px]">✅ Hoàn tất</span>`;
-                } else if (item.status === 'CH đã giải trình') {
+                } else if (item.status === 'CH đã giải trình' || item.status === 'Chờ ASM duyệt') {
                     statusBadge = `<span class="px-2 py-0.5 bg-blue-100 text-blue-800 rounded font-bold text-[10px]">⏳ Chờ ASM đánh giá</span>`;
                 } else {
                     statusBadge = `<span class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded font-bold text-[10px]">⏳ Chờ CH giải trình</span>`;
                 }
 
-                let slaBadge = `<span class="text-[10px] font-semibold text-emerald-700">${item.sla_badge || '🟢 Trong hạn'} (${item.response_deadline || ''})</span>`;
-                if (item.sla_status === 'overdue') {
-                    slaBadge = `<span class="text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">🔴 Quá hạn ${item.overdue_days} ngày</span>`;
+                let slaBadge = `<span class="text-[10px] font-semibold text-emerald-700">${escapeHtml(item.sla_badge || '🟢 Trong hạn')} (${escapeHtml(item.response_deadline || '')})</span>`;
+                if (item.sla_status === 'overdue' || item.is_overdue) {
+                    slaBadge = `<span class="text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">🔴 Quá hạn SLA</span>`;
                 }
 
                 const attachHtml = item.attachment_url ? 
-                    `<a href="${item.attachment_url}" target="_blank" class="text-blue-600 hover:underline font-bold flex items-center gap-1">📎 Xem ảnh/tờ trình</a>` : 
+                    `<a href="${escapeHtml(item.attachment_url)}" target="_blank" class="text-blue-600 hover:underline font-bold flex items-center gap-1">📎 Xem ảnh/tờ trình</a>` : 
                     `<span class="text-gray-400 italic">Chưa đính kèm</span>`;
 
                 return `
                     <tr class="hover:bg-slate-50 transition-colors border-b border-gray-100 text-xs">
                         <td class="p-2.5 font-bold text-brand-navy">
-                            <div>${item.ticket_code}</div>
-                            <div class="text-[11px] text-blue-700 font-extrabold">${item.store_name} (${item.store_code})</div>
+                            <div>${safeTicket}</div>
+                            <div class="text-[11px] text-blue-700 font-extrabold">${safeStoreName} (${safeStoreCode})</div>
                         </td>
                         <td class="p-2.5 font-semibold text-gray-700">
-                            <div class="font-bold text-indigo-900">${item.asm_name || 'N/A'}</div>
-                            <div class="text-[11px] text-gray-500">${item.violation_group || item.topic || 'N/A'}</div>
+                            <div class="font-bold text-indigo-900">${safeAsmName}</div>
+                            <div class="text-[11px] text-gray-500">${safeGroup}</div>
                         </td>
                         <td class="p-2.5 max-w-xs">
-                            <div class="font-bold text-gray-800 truncate" title="${item.check_item}">${item.check_item}</div>
-                            <div class="text-[11px] text-gray-500 line-clamp-2" title="${item.violation_description}">${item.violation_description}</div>
+                            <div class="font-bold text-gray-800 truncate" title="${safeCheckItem}">${safeCheckItem}</div>
+                            <div class="text-[11px] text-gray-500 line-clamp-2" title="${safeDesc}">${safeDesc}</div>
                         </td>
                         <td class="p-2.5 text-center">${isRepeatBadge}</td>
-                        <td class="p-2.5 text-center text-gray-600 font-mono text-[11px]">${item.camera_evidence_time || 'N/A'}</td>
+                        <td class="p-2.5 text-center text-gray-600 font-mono text-[11px]">${safeCamTime}</td>
                         <td class="p-2.5 text-center">${slaBadge}</td>
                         <td class="p-2.5 max-w-xs text-[11px]">
-                            <div class="font-medium text-gray-800 line-clamp-2" title="${item.store_explanation || 'Chưa giải trình'}">${item.store_explanation || '<em>(Chưa có giải trình)</em>'}</div>
+                            <div class="font-medium text-gray-800 line-clamp-2" title="${safeStoreExp}">${safeStoreExp || '<em>(Chưa có giải trình)</em>'}</div>
                             <div class="mt-0.5">${attachHtml}</div>
                         </td>
                         <td class="p-2.5 max-w-xs text-[11px]">
-                            <div class="font-bold text-indigo-800">${item.asm_assessment || '<em>(Chưa đánh giá)</em>'}</div>
-                            ${item.violating_staff_info ? `<div class="text-gray-600">NV: ${item.violating_staff_info}</div>` : ''}
+                            <div class="font-bold text-indigo-800">${safeAsmAssessment || '<em>(Chưa đánh giá)</em>'}</div>
+                            ${safeStaffInfo ? `<div class="text-gray-600">NV: ${safeStaffInfo}</div>` : ''}
                         </td>
                         <td class="p-2.5 text-center">${statusBadge}</td>
                         <td class="p-2.5 text-center space-y-1">
-                            <button onclick="openModalStoreExplain('${item.ticket_code}')" class="w-full px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded font-bold text-[10px] flex items-center justify-center gap-1">
+                            <button onclick="openModalStoreExplain('${safeTicket}')" class="w-full px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded font-bold text-[10px] flex items-center justify-center gap-1">
                                 <span>📝</span> CH Giải Trình
                             </button>
-                            <button onclick="openModalAsmApprove('${item.ticket_code}')" class="w-full px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-300 rounded font-bold text-[10px] flex items-center justify-center gap-1">
+                            <button onclick="openModalAsmApprove('${safeTicket}')" class="w-full px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-300 rounded font-bold text-[10px] flex items-center justify-center gap-1">
                                 <span>⚖️</span> ASM Đánh Giá
                             </button>
                         </td>

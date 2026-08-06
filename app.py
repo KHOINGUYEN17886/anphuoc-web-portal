@@ -1809,14 +1809,13 @@ def import_compliance_excel():
                     final_asm_name = raw_asm_name or 'Chưa phân công'
 
                 clean_slug = sanitize_filename_part(final_store_code)[:15] if 'sanitize_filename_part' in globals() else final_store_code[:15]
-                ticket_code = f"TK-COMP-{clean_slug}-{today_obj.strftime('%Y%m%d')}-{inserted_count + 1}-{uuid.uuid4().hex[:4].upper()}"
+                ticket_code = f"TK-COMP-{clean_slug}-{today_obj.strftime('%Y%m%d')}-{inserted_count + 1}-{uuid.uuid4().hex[:8].upper()}"
 
                 key = (final_store_code, violation_group)
                 prev_cnt = repeat_map.get(key, 0)
                 is_repeat = 1 if prev_cnt > 0 else 0
                 cur_repeat_cnt = prev_cnt + 1
                 repeat_map[key] = cur_repeat_cnt
-                cur_repeat_cnt = prev_cnt + 1
                 if is_repeat:
                     repeat_count += 1
 
@@ -1840,7 +1839,7 @@ def import_compliance_excel():
                             store_code, store_name, asm_name, camera_evidence_time, violation_group,
                             violation_description, pqlqt_evaluation, received_date, response_deadline,
                             status, is_repeat_offense, repeat_count, created_at, updated_at
-                        ) VALUES %s
+                        ) VALUES %s ON CONFLICT (ticket_code) DO NOTHING
                     """
                     psycopg2.extras.execute_values(cur, sql_insert_pg, audits_to_insert)
                 except Exception:
@@ -1852,10 +1851,11 @@ def import_compliance_excel():
                                 violation_description, pqlqt_evaluation, received_date, response_deadline,
                                 status, is_repeat_offense, repeat_count, created_at, updated_at
                             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            ON CONFLICT (ticket_code) DO NOTHING
                         """, row_args)
             else:
                 sql_insert_sqlite = """
-                    INSERT INTO tb_compliance_audits (
+                    INSERT OR IGNORE INTO tb_compliance_audits (
                         batch_code, ticket_code, sheet_name, topic, check_item, criteria_standard,
                         store_code, store_name, asm_name, camera_evidence_time, violation_group,
                         violation_description, pqlqt_evaluation, received_date, response_deadline,
@@ -1919,12 +1919,16 @@ def get_compliance_audits():
                 where_clauses.append("c.store_code = ?")
                 args.append(store_code)
 
-        if status_filter == 'PENDING_STORE':
-            where_clauses.append("c.status IN ('Mới tiếp nhận', 'Chờ CH tường trình')")
-        elif status_filter == 'PENDING_ASM':
-            where_clauses.append("c.status = 'Chờ ASM duyệt'")
-        elif status_filter == 'COMPLETED':
-            where_clauses.append("c.status IN ('Đã hoàn tất', 'Đã hủy')")
+        if status_filter:
+            if status_filter == 'PENDING_STORE':
+                where_clauses.append("c.status IN ('Mới tiếp nhận', 'Chờ CH tường trình')")
+            elif status_filter == 'PENDING_ASM':
+                where_clauses.append("c.status IN ('Chờ ASM duyệt', 'CH đã giải trình')")
+            elif status_filter == 'COMPLETED':
+                where_clauses.append("c.status IN ('Đã hoàn tất', 'Hoàn tất', 'Đã hủy')")
+            else:
+                where_clauses.append("c.status = ?")
+                args.append(status_filter)
 
         if repeat_only:
             where_clauses.append("c.is_repeat_offense = 1")
@@ -1942,6 +1946,17 @@ def get_compliance_audits():
 
         today_str = datetime.now().strftime('%Y-%m-%d')
 
+        def norm_date(v):
+            if not v: return ''
+            vs = str(v).strip()
+            if len(vs) >= 10 and vs[4] == '-' and vs[7] == '-':
+                return vs[:10]
+            if '/' in vs:
+                parts = vs.split(' ')[0].split('/')
+                if len(parts) == 3 and len(parts[2]) == 4:
+                    return f"{parts[2]}-{int(parts[1]):02d}-{int(parts[0]):02d}"
+            return vs[:10]
+
         audits = []
         total_cnt = len(rows)
         pending_store_cnt = 0
@@ -1956,16 +1971,18 @@ def get_compliance_audits():
             item['asm_name'] = item.get('ref_asm_name') or item.get('asm_name') or 'Chưa phân công'
 
             st = item.get('status', 'Mới tiếp nhận')
-            deadline = item.get('response_deadline', '')
+            raw_deadline = item.get('response_deadline', '')
+            deadline = norm_date(raw_deadline)
+            item['response_deadline'] = deadline or raw_deadline
 
-            if st in ('Đã hoàn tất', 'Đã hủy'):
+            if st in ('Đã hoàn tất', 'Hoàn tất', 'Đã hủy'):
                 item['sla_badge'] = '✅ Hoàn tất'
                 item['is_overdue'] = False
                 completed_cnt += 1
             else:
                 if st in ('Mới tiếp nhận', 'Chờ CH tường trình'):
                     pending_store_cnt += 1
-                elif st == 'Chờ ASM duyệt':
+                elif st in ('Chờ ASM duyệt', 'CH đã giải trình'):
                     pending_asm_cnt += 1
 
                 if deadline and deadline < today_str:
@@ -2117,7 +2134,7 @@ def compliance_analytics():
             SELECT asm_name, 
                    COUNT(*) as total_violations,
                    SUM(CASE WHEN is_repeat_offense = 1 THEN 1 ELSE 0 END) as repeat_violations,
-                   SUM(CASE WHEN status IN ('Đã hoàn tất', 'Đã hủy') THEN 1 ELSE 0 END) as completed_cnt
+                   SUM(CASE WHEN status IN ('Đã hoàn tất', 'Hoàn tất', 'Đã hủy') THEN 1 ELSE 0 END) as completed_cnt
             FROM tb_compliance_audits
             GROUP BY asm_name
             ORDER BY total_violations DESC
