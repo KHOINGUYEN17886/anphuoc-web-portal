@@ -1912,6 +1912,11 @@ def import_compliance_excel():
                 violation_description = get_c('violation_description', [14, 13, 12, 11, 4]) or check_item
                 pqlqt_eval            = get_c('pqlqt_eval', [18, 16, 17, 15]) or 'Không đạt'
 
+                # Skip garbage non-audit rows (directory lists, headers, emails, numbers)
+                all_text = f"{raw_store_code} {raw_store_name} {violation_description} {check_item}".lower()
+                if '@anphuoc' in all_text or '@gmail' in all_text or 'danh sách hệ thống' in all_text or raw_store_code in ['Số nhà', 'Tên đường', 'Phường', 'STT']:
+                    continue
+
                 if not raw_store_code and not raw_store_name and not check_item and not violation_description:
                     empty_consecutive += 1
                     if empty_consecutive >= 10:
@@ -1930,6 +1935,10 @@ def import_compliance_excel():
                     if code_match:
                         matched_store = store_by_code.get(code_match.group(1).upper())
 
+                # Skip numeric STT rows that fail to match a real store
+                if not matched_store and raw_store_code.isdigit():
+                    continue
+
                 if matched_store:
                     final_store_code = matched_store['store_code']
                     final_store_name = matched_store['store_name']
@@ -1937,7 +1946,9 @@ def import_compliance_excel():
                 else:
                     final_store_code = raw_store_code or 'UNKNOWN'
                     final_store_name = raw_store_name or final_store_code
-                    final_asm_name = raw_asm_name or 'Chưa phân công'
+                    # Validate raw_asm_name against valid ASMs
+                    valid_asm_set = {s['asm_name'] for s in all_stores if s.get('asm_name')}
+                    final_asm_name = raw_asm_name if raw_asm_name in valid_asm_set else 'Chưa phân công'
 
                 clean_slug = sanitize_filename_part(final_store_code)[:15] if 'sanitize_filename_part' in globals() else final_store_code[:15]
                 ticket_code = f"TK-COMP-{clean_slug}-{file_date_obj.strftime('%Y%m%d')}-{inserted_count + 1}-{uuid.uuid4().hex[:8].upper()}"
@@ -2140,11 +2151,10 @@ def get_compliance_audits():
 
             audits.append(item)
 
-        # Get list of unique ASMs for dropdown
+        # Get list of unique valid ASMs for dropdown (from tb_stores)
         asms_rows = query_db("""
-            SELECT DISTINCT asm_name FROM tb_compliance_audits WHERE asm_name IS NOT NULL AND asm_name != ''
-            UNION
-            SELECT DISTINCT asm_name FROM tb_stores WHERE asm_name IS NOT NULL AND asm_name != ''
+            SELECT DISTINCT asm_name FROM tb_stores 
+            WHERE asm_name IS NOT NULL AND asm_name != '' AND asm_name NOT LIKE '%1%' AND asm_name NOT LIKE '%2%'
             ORDER BY asm_name
         """)
         asms_list = [r['asm_name'] for r in asms_rows if r.get('asm_name')]
