@@ -2081,14 +2081,19 @@ def get_compliance_audits():
         repeat_param = request.args.get('repeat_only') or request.args.get('is_repeat') or ''
         repeat_only = (str(repeat_param).strip() == '1')
 
-        scope = get_auth_scope(role, asm, pin, store_code)
+        if role == 'store' and store_code:
+            scope = {'type': 'STORE', 'store': store_code}
 
         where_clauses = []
         args = []
 
         if scope['type'] == 'STORE':
-            where_clauses.append("c.store_code = ?")
-            args.append(scope['store'])
+            st_target = scope['store']
+            clean_st = st_target.replace('126_', '').replace('126', '').strip()
+            where_clauses.append("(c.store_code = ? OR c.store_code LIKE ? OR c.store_code LIKE ?)")
+            args.append(st_target)
+            args.append(f"%{clean_st}%")
+            args.append(f"126_%{clean_st}%")
         elif scope['type'] == 'ASM':
             asm_target = scope['asm']
             clean_asm = sanitize_filename_part(asm_target).lower() if 'sanitize_filename_part' in globals() else asm_target.lower()
@@ -2102,8 +2107,11 @@ def get_compliance_audits():
                 args.append(asm)
                 args.append(f"%{clean_asm}%")
             if store_code:
-                where_clauses.append("c.store_code = ?")
+                clean_st = store_code.replace('126_', '').replace('126', '').strip()
+                where_clauses.append("(c.store_code = ? OR c.store_code LIKE ? OR c.store_code LIKE ?)")
                 args.append(store_code)
+                args.append(f"%{clean_st}%")
+                args.append(f"126_%{clean_st}%")
 
         if status_filter:
             if status_filter == 'PENDING_STORE':

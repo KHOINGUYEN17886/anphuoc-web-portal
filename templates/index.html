@@ -6566,11 +6566,33 @@
             const role = (typeof currentStore !== 'undefined' && currentStore && currentStore.role) ? currentStore.role : 'admin';
             const pin = (typeof currentStore !== 'undefined' && currentStore && currentStore.pin) ? currentStore.pin : '8888';
 
-            const asm = document.getElementById('comp-filter-asm')?.value || '';
-            const storeCode = document.getElementById('comp-filter-store')?.value || '';
+            let asm = document.getElementById('comp-filter-asm')?.value || '';
+            let storeCode = document.getElementById('comp-filter-store')?.value || '';
             const status = document.getElementById('comp-filter-status')?.value || '';
             const days = document.getElementById('comp-filter-days')?.value || '365';
             const isRepeat = document.getElementById('comp-filter-repeat')?.value || '';
+
+            if (role === 'store' && typeof currentStore !== 'undefined' && currentStore) {
+                if (currentStore.code) storeCode = currentStore.code;
+                if (currentStore.asm) asm = currentStore.asm;
+                
+                const storeSelect = document.getElementById('comp-filter-store');
+                if (storeSelect) {
+                    storeSelect.disabled = true;
+                    if (storeSelect.options.length <= 1) {
+                        storeSelect.innerHTML = `<option value="${escapeHtml(storeCode)}">${escapeHtml(currentStore.name || storeCode)}</option>`;
+                    }
+                    storeSelect.value = storeCode;
+                }
+                const asmSelect = document.getElementById('comp-filter-asm');
+                if (asmSelect && asm) {
+                    asmSelect.disabled = true;
+                    if (asmSelect.options.length <= 1) {
+                        asmSelect.innerHTML = `<option value="${escapeHtml(asm)}">${escapeHtml(asm)}</option>`;
+                    }
+                    asmSelect.value = asm;
+                }
+            }
 
             try {
                 const queryParams = new URLSearchParams({
