@@ -6350,7 +6350,13 @@
                         </tr>
                     `).join('');
                 }
-                
+            } catch (err) {
+                console.error('fetchOperationalHistory error:', err);
+                if (listEl) listEl.innerHTML = '<div class="text-center py-10 text-red-400 text-xs italic">Lỗi kết nối khi tải lịch sử nhập liệu.</div>';
+                if (tableBodyEl) tableBodyEl.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-red-400">Lỗi kết nối.</td></tr>';
+            }
+        }
+
         // ── COMPLIANCE AUDIT ENGINE & P.QLQT CONTROL LOGIC ───────────────────
         let currentComplianceData = [];
 
