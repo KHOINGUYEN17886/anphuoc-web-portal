@@ -2081,8 +2081,19 @@ def get_compliance_audits():
         repeat_param = request.args.get('repeat_only') or request.args.get('is_repeat') or ''
         repeat_only = (str(repeat_param).strip() == '1')
 
+        scope = {'type': 'ALL'}
         if role == 'store' and store_code:
             scope = {'type': 'STORE', 'store': store_code}
+        elif role == 'asm' and asm and asm not in ('ALL', 'undefined', 'Tất cả ASM', '', 'all'):
+            scope = {'type': 'ASM', 'asm': asm}
+        elif pin and pin != MASTER_PIN:
+            asm_rec = query_db("SELECT * FROM tb_asms WHERE passcode = ?", (pin,), one=True)
+            if asm_rec:
+                scope = {'type': 'ASM', 'asm': asm_rec['asm_name']}
+            else:
+                st_rec = query_db("SELECT * FROM tb_stores WHERE passcode = ?", (pin,), one=True)
+                if st_rec:
+                    scope = {'type': 'STORE', 'store': st_rec['store_code']}
 
         where_clauses = []
         args = []
