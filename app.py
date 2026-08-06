@@ -1126,64 +1126,63 @@ def validate_pin():
     
     master_pin = os.environ.get('MASTER_PIN', '8888')
     
-    # Handle Admin validation
+    # ── Admin validation ──────────────────────────────────────────────────────
     if store_code == 'ADMIN':
         if pin == master_pin or pin == '8888' or pin == '1234':
-            return jsonify({'ok': True, 'valid': True, 'role': 'admin'})
+            return jsonify({'ok': True, 'valid': True, 'role': 'admin',
+                           'store_name': 'Quản Trị Viên (Admin)', 'asm_name': 'Admin'})
         return jsonify({'ok': True, 'valid': False, 'error': 'Mã PIN ADMIN không đúng (Mặc định: 8888)'})
-        
-    # Master PIN global bypass for all accounts
-    if pin == master_pin or pin == '8888':
-        if store_code.startswith("ASM_"):
-            return jsonify({'ok': True, 'valid': True, 'role': 'asm', 'asm_name': store_code[4:]})
-        return jsonify({'ok': True, 'valid': True, 'role': 'store'})
-        
-    # ⚠️ CRITICAL: ASM login - kiểm tra trong tb_asms TRƯỚC, sau đó fallback sang distinct asm_name trong tb_stores
+    
+    # ── ASM login ─────────────────────────────────────────────────────────────
     if store_code.startswith("ASM_"):
         asm_name = store_code[4:]
         try:
             asm = query_db("SELECT * FROM tb_asms WHERE asm_name = ?", (asm_name,), one=True)
             if asm:
                 valid_pin = asm['passcode']
-                if pin == valid_pin:
-                    return jsonify({'ok': True, 'valid': True, 'role': 'asm', 'asm_name': asm_name})
+                if pin == valid_pin or pin == master_pin or pin == '8888':
+                    return jsonify({'ok': True, 'valid': True, 'role': 'asm',
+                                   'store_name': f'Cụm ASM {asm_name}',
+                                   'asm_name': asm_name})
                 return jsonify({'ok': True, 'valid': False, 'error': 'Mã PIN ASM không đúng'})
             else:
                 # ASM có trong tb_stores.asm_name nhưng chưa được seed vào tb_asms
-                # Kiểm tra xem asm_name có tồn tại trong tb_stores không
                 stores_for_asm = query_db("SELECT COUNT(*) as cnt FROM tb_stores WHERE asm_name = ?", (asm_name,), one=True)
                 if stores_for_asm and stores_for_asm['cnt'] > 0:
-                    # ASM hợp lệ, chưa có pin riêng → chấp nhận master pin hoặc 9999
-                    if pin in ('9999', '8888'):
-                        # Tự động tạo bản ghi tb_asms cho ASM này
+                    if pin in ('9999', '8888') or pin == master_pin:
                         try:
                             execute_db("INSERT INTO tb_asms (asm_name, passcode) VALUES (?, ?) ON CONFLICT (asm_name) DO NOTHING", (asm_name, '9999'))
                         except Exception:
                             pass
-                        return jsonify({'ok': True, 'valid': True, 'role': 'asm', 'asm_name': asm_name})
+                        return jsonify({'ok': True, 'valid': True, 'role': 'asm',
+                                       'store_name': f'Cụm ASM {asm_name}',
+                                       'asm_name': asm_name})
                     return jsonify({'ok': True, 'valid': False, 'error': f'ASM {asm_name} chưa có PIN riêng, vui lòng dùng PIN 9999 hoặc liên hệ Admin.'})
                 return jsonify({'ok': True, 'valid': False, 'error': f'Không tìm thấy ASM: {asm_name}'})
         except Exception as e:
             return jsonify({'ok': False, 'error': str(e)})
     
+    # ── Store login ───────────────────────────────────────────────────────────
     try:
-        # ⚠️ CRITICAL: Trước hết kiểm tra chính xác passcode của cửa hàng
-        store = query_db("SELECT * FROM tb_stores WHERE store_code = ? AND passcode = ?", (store_code, pin), one=True)
-        if store:
+        # Lấy thông tin store trước (cần dù PIN đúng hay master bypass)
+        store_info = query_db("SELECT * FROM tb_stores WHERE store_code = ?", (store_code,), one=True)
+        
+        if not store_info:
+            return jsonify({'ok': True, 'valid': False, 'error': 'Cửa hàng không tồn tại'})
+        
+        store_name = store_info.get('store_name') or store_code
+        asm_name   = store_info.get('asm_name') or ''
+        
+        # Kiểm tra PIN đúng của store
+        if pin == (store_info.get('passcode') or '') or pin == master_pin or pin == '8888' or _default_pin_allowed(pin):
             return jsonify({'ok': True, 'valid': True, 'role': 'store',
-                           'store_name': store.get('store_name', store_code),
-                           'asm_name': store.get('asm_name', '')})
-            
-        # Fallback for default pin if store not configured with one
-        store_exists = query_db("SELECT * FROM tb_stores WHERE store_code = ?", (store_code,), one=True)
-        if store_exists and _default_pin_allowed(pin):
-            return jsonify({'ok': True, 'valid': True, 'role': 'store',
-                           'store_name': store_exists.get('store_name', store_code),
-                           'asm_name': store_exists.get('asm_name', '')})
-            
+                           'store_name': store_name,
+                           'asm_name': asm_name})
+        
         return jsonify({'ok': True, 'valid': False, 'error': 'Mã PIN không đúng'})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # NEW API: DAILY TRAFFIC ENDPOINTS
