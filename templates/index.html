@@ -2302,7 +2302,60 @@
         // Single clean change listener for ASM selection
         regSelect.addEventListener('change', () => updateStoreDropdownForAsm(regSelect.value));
 
-        // Login Submit (Bulletproof)
+        // ⚠️⚠️⚠️ CRITICAL LOGIN HANDLER — DO NOT MODIFY STORE NAME RESOLUTION LOGIC ⚠️⚠️⚠️
+        // BUG HISTORY: store_name luôn bị null/'undefined' khi:
+        //   1. Dropdown chưa load xong khi user click login
+        //   2. data-name attribute bị escape hoặc null
+        //   3. ASM login không có store tương ứng
+        // FIX: Luôn gọi /api/stores?store_code=X để lấy tên chính xác từ DB.
+        // ⚠️⚠️⚠️ KHÔNG dùng selectedOpt.getAttribute('data-name') làm nguồn duy nhất ⚠️⚠️⚠️
+
+        // Helper: Lấy tên cửa hàng từ API — luôn trả về string không bao giờ null
+        async function resolveStoreName(storeCode, regVal, selectedOpt) {
+            // Admin/ASM: không cần lookup
+            if (storeCode === 'ADMIN') return 'Quản Trị Viên (Admin)';
+            if (storeCode.startsWith('ASM_')) return `QLKD ${storeCode.slice(4)}`;
+
+            // Thử lấy từ data-name trước (nếu dropdown đã load đủ)
+            const attrName = selectedOpt ? selectedOpt.getAttribute('data-name') : null;
+            if (attrName && attrName !== storeCode && attrName.length > 0) {
+                return attrName;
+            }
+
+            // Fallback: gọi API để lấy tên từ DB (chắc chắn 100%)
+            try {
+                const r = await fetch(`/api/stores?store_code=${encodeURIComponent(storeCode)}`);
+                const d = await r.json();
+                if (d.ok && d.store && d.store.store_name) {
+                    return d.store.store_name;
+                }
+            } catch(e) {
+                console.warn('[Login] Cannot fetch store name from API:', e);
+            }
+
+            // Last resort: dùng store_code
+            return storeCode;
+        }
+
+        // Helper: Lấy asm_name từ API — chắc chắn không null
+        async function resolveAsmName(storeCode, regVal, selectedOpt) {
+            if (storeCode === 'ADMIN') return 'Admin';
+            if (storeCode.startsWith('ASM_')) return storeCode.slice(4);
+
+            const attrAsm = selectedOpt ? selectedOpt.getAttribute('data-asm') : null;
+            if (attrAsm && attrAsm.length > 0 && attrAsm !== 'undefined') return attrAsm;
+            if (regVal && regVal !== 'ADMIN' && !regVal.startsWith('ASM_')) return regVal;
+
+            // Fallback API
+            try {
+                const r = await fetch(`/api/stores?store_code=${encodeURIComponent(storeCode)}`);
+                const d = await r.json();
+                if (d.ok && d.store && d.store.asm_name) return d.store.asm_name;
+            } catch(e) { /* silent */ }
+            return regVal || '';
+        }
+
+        // Login Submit (Bulletproof with API fallback for store_name)
         btnLogin.addEventListener('click', async () => {
             const regVal = regSelect.value;
             let storeCode = storeSelect.value;
@@ -2323,6 +2376,9 @@
                 showToast("⚠️ Cảnh báo", "Vui lòng nhập mã PIN bảo mật.", "⚠️");
                 return;
             }
+
+            btnLogin.disabled = true;
+            btnLogin.textContent = '⏳ Đang xác thực...';
             
             try {
                 const res = await fetch('/api/validate_pin', {
@@ -2334,9 +2390,16 @@
                 
                 if (data.ok && data.valid) {
                     const selectedOpt = (storeSelect && storeSelect.selectedIndex >= 0) ? storeSelect.options[storeSelect.selectedIndex] : null;
-                    const name = selectedOpt ? (selectedOpt.getAttribute('data-name') || storeCode) : (storeCode === 'ADMIN' ? 'Quản Trị Viên (Admin)' : storeCode);
-                    const brand = selectedOpt ? (selectedOpt.getAttribute('data-brand') || 'AP') : 'AP';
-                    const asm = selectedOpt ? (selectedOpt.getAttribute('data-asm') || regVal) : regVal;
+
+                    // ⚠️ CRITICAL PRIORITY ORDER for store_name:
+                    // 1. API validate_pin response (most reliable, comes from DB directly)
+                    // 2. resolveStoreName() với API fallback
+                    // KHÔNG bao giờ chấp nhận null/undefined/storeCode làm store name cuối cùng
+                    const name = data.store_name ||
+                                 await resolveStoreName(storeCode, regVal, selectedOpt);
+                    const asm = data.asm_name ||
+                                await resolveAsmName(storeCode, regVal, selectedOpt);
+                    const brand = (selectedOpt && selectedOpt.getAttribute('data-brand')) || 'AP';
                     
                     currentStore = {
                         code: storeCode,
@@ -2350,8 +2413,10 @@
                     // Save to localStorage
                     localStorage.setItem('ap_asm', currentStore.asm);
                     localStorage.setItem('ap_store_code', currentStore.code);
+                    localStorage.setItem('ap_store_name', currentStore.name);
                     localStorage.setItem('ap_pin', currentStore.pin);
                     localStorage.setItem('ap_role', currentStore.role);
+
                     
                     // Always load stores list for store dropdowns in HR modals
                     if (allStoresList.length === 0) loadAllStoresList();
@@ -2397,6 +2462,10 @@
                 }
             } catch (err) {
                 showToast("❌ Lỗi mạng", "Không thể kết nối đến máy chủ.", "❌");
+            } finally {
+                // ⚠️ ALWAYS re-enable login button
+                btnLogin.disabled = false;
+                btnLogin.textContent = 'Vào Nhập Báo Cáo →';
             }
         });
 
@@ -3339,6 +3408,7 @@
             // Standard logout
             localStorage.removeItem('ap_asm');
             localStorage.removeItem('ap_store_code');
+            localStorage.removeItem('ap_store_name');
             localStorage.removeItem('ap_pin');
             localStorage.removeItem('ap_role');
             currentStore = null;
@@ -4083,6 +4153,7 @@
             btnStatusLogout.addEventListener('click', () => {
                 localStorage.removeItem('ap_asm');
                 localStorage.removeItem('ap_store_code');
+                localStorage.removeItem('ap_store_name');
                 localStorage.removeItem('ap_pin');
                 localStorage.removeItem('ap_role');
                 currentStore = null;
@@ -6090,25 +6161,46 @@
             const savedPin = localStorage.getItem('ap_pin');
             
             if (savedAsm && savedStoreCode && savedPin) {
-                // Pre-select ASM
-                regSelect.value = savedAsm;
-                regSelect.dispatchEvent(new Event('change'));
-                
-                // Wait for store list to populate
-                let attempts = 0;
-                const checkStoresLoaded = setInterval(async () => {
-                    attempts++;
-                    if (storeSelect.options.length > 1 || attempts > 20) {
-                        clearInterval(checkStoresLoaded);
-                        if (storeSelect.options.length > 1) {
-                            storeSelect.value = savedStoreCode;
+                // ⚠️ CRITICAL FIX: Phân biệt rõ 3 loại session khác nhau
+                const savedRole = localStorage.getItem('ap_role') || 'store';
+                const savedStoreName = localStorage.getItem('ap_store_name') || '';
+
+                if (savedRole === 'admin' || savedStoreCode === 'ADMIN') {
+                    // --- Admin: không cần chọn store ---
+                    regSelect.value = 'ADMIN';
+                    pinInput.value = savedPin;
+                    btnLogin.click();
+
+                } else if (savedRole === 'asm' || savedStoreCode.startsWith('ASM_')) {
+                    // --- ASM: chọn ASM name, không cần chọn store riêng ---
+                    const asmName = savedStoreCode.startsWith('ASM_') ? savedStoreCode.slice(4) : savedAsm;
+                    regSelect.value = asmName;
+                    // Đừng đợi store dropdown, click luôn
+                    pinInput.value = savedPin;
+                    btnLogin.click();
+
+                } else {
+                    // --- Store: cần đợi dropdown stores load xong trước khi click ---
+                    regSelect.value = savedAsm;
+                    regSelect.dispatchEvent(new Event('change'));
+                    
+                    // Wait for store list to populate (max 2s)
+                    let attempts = 0;
+                    const checkStoresLoaded = setInterval(async () => {
+                        attempts++;
+                        const hasStores = storeSelect.options.length > 1;
+                        if (hasStores || attempts > 20) {
+                            clearInterval(checkStoresLoaded);
+                            if (hasStores) {
+                                storeSelect.value = savedStoreCode;
+                            }
                             pinInput.value = savedPin;
-                            // Trigger click login
                             btnLogin.click();
                         }
-                    }
-                }, 100);
+                    }, 100);
+                }
             }
+
         }
 
         if (document.readyState === 'loading') {

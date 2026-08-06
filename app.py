@@ -884,12 +884,46 @@ def seed_stores_baseline_data(force=False):
     except Exception as e:
         print(f"⚠️ [Seed Stores Error]: {e}")
 
+def seed_asms_from_stores():
+    """
+    ⚠️ CRITICAL: Đồng bộ tất cả ASM tồn tại trong tb_stores.asm_name vào tb_asms.
+    Tránh lỗi: ASM (như 'Ni') có trong tb_stores nhưng không có trong tb_asms
+    → validate_pin trả về 'Không tìm thấy ASM' dù ASM hợp lệ.
+    Chạy sau seed_stores_baseline_data().
+    """
+    try:
+        asm_in_stores = query_db(
+            "SELECT DISTINCT asm_name FROM tb_stores WHERE asm_name IS NOT NULL AND asm_name != '' ORDER BY asm_name"
+        )
+        asm_in_asms = {r['asm_name'] for r in query_db("SELECT asm_name FROM tb_asms")}
+        
+        added = []
+        for row in asm_in_stores:
+            asm_name = row['asm_name']
+            if asm_name and asm_name not in asm_in_asms:
+                try:
+                    execute_db(
+                        "INSERT INTO tb_asms (asm_name, passcode) VALUES (?, ?) ON CONFLICT (asm_name) DO NOTHING",
+                        (asm_name, '9999')
+                    )
+                    added.append(asm_name)
+                except Exception as _e:
+                    print(f"⚠️ [SeedASMs] Cannot add {asm_name}: {_e}")
+        if added:
+            print(f"✅ [SeedASMs] Đã thêm {len(added)} ASM thiếu vào tb_asms: {added}")
+        else:
+            print("✅ [SeedASMs] tb_asms đã đồng bộ với tb_stores (không có ASM thiếu).")
+    except Exception as e:
+        print(f"⚠️ [SeedASMs Error]: {e}")
+
 try:
     safe_migrate_db()
     seed_stores_baseline_data()
     seed_hr_baseline_data()
+    seed_asms_from_stores()
 except Exception as _mig_err:
     print(f"⚠️ [Startup Migration/Seed Error]: {_mig_err}")
+
 
 def async_sync_and_alert(store_code, report_date, support_requests):
     def worker():
@@ -1104,27 +1138,48 @@ def validate_pin():
             return jsonify({'ok': True, 'valid': True, 'role': 'asm', 'asm_name': store_code[4:]})
         return jsonify({'ok': True, 'valid': True, 'role': 'store'})
         
-    # Handle ASM validation
+    # ⚠️ CRITICAL: ASM login - kiểm tra trong tb_asms TRƯỚC, sau đó fallback sang distinct asm_name trong tb_stores
     if store_code.startswith("ASM_"):
         asm_name = store_code[4:]
         try:
             asm = query_db("SELECT * FROM tb_asms WHERE asm_name = ?", (asm_name,), one=True)
-            valid_pin = asm['passcode'] if asm else '9999'
-            if pin == valid_pin:
-                return jsonify({'ok': True, 'valid': True, 'role': 'asm', 'asm_name': asm_name})
-            return jsonify({'ok': True, 'valid': False, 'error': 'Mã PIN ASM không đúng'})
+            if asm:
+                valid_pin = asm['passcode']
+                if pin == valid_pin:
+                    return jsonify({'ok': True, 'valid': True, 'role': 'asm', 'asm_name': asm_name})
+                return jsonify({'ok': True, 'valid': False, 'error': 'Mã PIN ASM không đúng'})
+            else:
+                # ASM có trong tb_stores.asm_name nhưng chưa được seed vào tb_asms
+                # Kiểm tra xem asm_name có tồn tại trong tb_stores không
+                stores_for_asm = query_db("SELECT COUNT(*) as cnt FROM tb_stores WHERE asm_name = ?", (asm_name,), one=True)
+                if stores_for_asm and stores_for_asm['cnt'] > 0:
+                    # ASM hợp lệ, chưa có pin riêng → chấp nhận master pin hoặc 9999
+                    if pin in ('9999', '8888'):
+                        # Tự động tạo bản ghi tb_asms cho ASM này
+                        try:
+                            execute_db("INSERT INTO tb_asms (asm_name, passcode) VALUES (?, ?) ON CONFLICT (asm_name) DO NOTHING", (asm_name, '9999'))
+                        except Exception:
+                            pass
+                        return jsonify({'ok': True, 'valid': True, 'role': 'asm', 'asm_name': asm_name})
+                    return jsonify({'ok': True, 'valid': False, 'error': f'ASM {asm_name} chưa có PIN riêng, vui lòng dùng PIN 9999 hoặc liên hệ Admin.'})
+                return jsonify({'ok': True, 'valid': False, 'error': f'Không tìm thấy ASM: {asm_name}'})
         except Exception as e:
             return jsonify({'ok': False, 'error': str(e)})
     
     try:
+        # ⚠️ CRITICAL: Trước hết kiểm tra chính xác passcode của cửa hàng
         store = query_db("SELECT * FROM tb_stores WHERE store_code = ? AND passcode = ?", (store_code, pin), one=True)
         if store:
-            return jsonify({'ok': True, 'valid': True, 'role': 'store'})
+            return jsonify({'ok': True, 'valid': True, 'role': 'store',
+                           'store_name': store.get('store_name', store_code),
+                           'asm_name': store.get('asm_name', '')})
             
         # Fallback for default pin if store not configured with one
         store_exists = query_db("SELECT * FROM tb_stores WHERE store_code = ?", (store_code,), one=True)
         if store_exists and _default_pin_allowed(pin):
-            return jsonify({'ok': True, 'valid': True, 'role': 'store'})
+            return jsonify({'ok': True, 'valid': True, 'role': 'store',
+                           'store_name': store_exists.get('store_name', store_code),
+                           'asm_name': store_exists.get('asm_name', '')})
             
         return jsonify({'ok': True, 'valid': False, 'error': 'Mã PIN không đúng'})
     except Exception as e:
