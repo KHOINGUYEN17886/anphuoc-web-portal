@@ -6496,11 +6496,10 @@
             const storeSelect = document.getElementById('comp-filter-store');
             if (!storeSelect) return;
 
-            const selectedAsm = asmSelect ? asmSelect.value : '';
+            const selectedAsm = asmSelect ? (asmSelect.value || '').trim() : '';
             const currentStoreVal = storeSelect.value;
 
             try {
-                // Query stores from window.allStoresData or fetch API
                 let storeList = [];
                 if (window.allStoresData && window.allStoresData.length > 0) {
                     storeList = window.allStoresData;
@@ -6513,14 +6512,44 @@
                     }
                 }
 
-                storeSelect.innerHTML = '<option value="">Tất cả Cửa Hàng</option>';
-                const filteredStores = selectedAsm ? storeList.filter(s => s.asm === selectedAsm) : storeList;
+                let filteredStores = storeList;
+                if (selectedAsm && selectedAsm !== 'ALL' && selectedAsm !== 'Tất cả ASM') {
+                    const tAsm = selectedAsm.toLowerCase();
+                    filteredStores = storeList.filter(s => {
+                        const sAsm = (s.asm_name || s.asm || '').toLowerCase();
+                        return sAsm === tAsm || sAsm.includes(tAsm) || tAsm.includes(sAsm);
+                    });
+                }
 
+                // If no stores matched from storeList, extract stores from active compliance audits as fallback
+                if ((!filteredStores || filteredStores.length === 0) && currentComplianceData && currentComplianceData.length > 0) {
+                    const tAsm = selectedAsm.toLowerCase();
+                    const seen = new Set();
+                    filteredStores = [];
+                    currentComplianceData.forEach(item => {
+                        const itemAsm = (item.asm_name || '').toLowerCase();
+                        if (!tAsm || itemAsm === tAsm || itemAsm.includes(tAsm) || tAsm.includes(itemAsm)) {
+                            if (item.store_code && !seen.has(item.store_code)) {
+                                seen.add(item.store_code);
+                                filteredStores.push({
+                                    code: item.store_code,
+                                    name: item.store_name || item.store_code,
+                                    store_code: item.store_code,
+                                    store_name: item.store_name
+                                });
+                            }
+                        }
+                    });
+                }
+
+                storeSelect.innerHTML = `<option value="">Tất cả Cửa Hàng (${filteredStores.length} CH)</option>`;
                 filteredStores.forEach(s => {
                     const opt = document.createElement('option');
-                    opt.value = s.code || s.store_code;
-                    opt.textContent = `${s.name || s.store_name} (${s.code || s.store_code})`;
-                    if ((s.code || s.store_code) === currentStoreVal) opt.selected = true;
+                    const code = s.code || s.store_code;
+                    const name = s.name || s.store_name || code;
+                    opt.value = code;
+                    opt.textContent = `${name} (${code})`;
+                    if (code === currentStoreVal) opt.selected = true;
                     storeSelect.appendChild(opt);
                 });
             } catch (err) {
@@ -6637,6 +6666,7 @@
                 }
 
                 currentComplianceData = data.audits || [];
+                updateComplianceStoreDropdown();
                 renderComplianceTable(currentComplianceData);
                 checkCompliancePendingAlerts();
             } catch (err) {
@@ -7088,10 +7118,26 @@
         function onAsmStatusChange() {
             const status = document.getElementById('comp-asm-status')?.value;
             const rejectContainer = document.getElementById('container-asm-reject-reason');
+            const btnSubmit = document.getElementById('btn-submit-asm-approve');
+
             if (status === 'Yêu cầu giải trình lại') {
                 if (rejectContainer) rejectContainer.classList.remove('hidden');
+                if (btnSubmit) {
+                    btnSubmit.innerHTML = '🔄 Gửi Yêu Cầu CH Giải Trình Lại (Gửi Mail CH)';
+                    btnSubmit.className = 'btn-primary text-xs px-5 py-2 font-bold shadow-md bg-amber-600 hover:bg-amber-700 transition-all';
+                }
+            } else if (status === 'Hoàn tất') {
+                if (rejectContainer) rejectContainer.classList.add('hidden');
+                if (btnSubmit) {
+                    btnSubmit.innerHTML = '✅ Chốt & Đóng Hồ Sơ Tuân Thủ';
+                    btnSubmit.className = 'btn-primary text-xs px-5 py-2 font-bold shadow-md bg-emerald-600 hover:bg-emerald-700 transition-all';
+                }
             } else {
                 if (rejectContainer) rejectContainer.classList.add('hidden');
+                if (btnSubmit) {
+                    btnSubmit.innerHTML = '💾 Lưu Đánh Giá ASM (Đang Xem Xét)';
+                    btnSubmit.className = 'btn-primary text-xs px-5 py-2 font-bold shadow-md bg-indigo-600 hover:bg-indigo-700 transition-all';
+                }
             }
         }
 
@@ -7146,6 +7192,10 @@
                 document.getElementById('comp-penalty-months').value = item.penalty_month_count || 1;
             }
             calcPenaltyMonthRange();
+            if (document.getElementById('comp-asm-status')) {
+                document.getElementById('comp-asm-status').value = item.status || 'CH đã giải trình';
+            }
+            onAsmStatusChange();
 
             document.getElementById('modal-asm-compliance-approve').classList.remove('hidden');
         }
