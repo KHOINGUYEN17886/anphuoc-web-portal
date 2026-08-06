@@ -6713,6 +6713,8 @@
                 return;
             }
 
+            const isStoreUser = (typeof currentStore !== 'undefined' && currentStore && currentStore.role === 'store');
+
             tableBody.innerHTML = audits.map(item => {
                 const safeTicket = escapeHtml(item.ticket_code);
                 const safeStoreName = escapeHtml(item.store_name);
@@ -6759,6 +6761,19 @@
                         ${item.penalty_month_range ? `<div class="text-[9px] text-rose-600 font-semibold mt-0.5">📅 ${escapeHtml(item.penalty_month_range)}</div>` : ''}
                      </div>` : '';
 
+                const actionBtns = isStoreUser ? `
+                    <button onclick="openModalStoreExplain('${safeTicket}')" class="w-full px-2.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-lg font-bold text-[11px] shadow-xs flex items-center justify-center gap-1 transition-all">
+                        <span>📝</span> CH Giải Trình
+                    </button>
+                ` : `
+                    <button onclick="openModalStoreExplain('${safeTicket}')" class="w-full px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded font-bold text-[10px] shadow-xs flex items-center justify-center gap-1">
+                        <span>📝</span> CH Giải Trình
+                    </button>
+                    <button onclick="openModalAsmApprove('${safeTicket}')" class="w-full px-2 py-1 bg-gradient-to-r from-indigo-600 to-blue-700 hover:from-indigo-700 hover:to-blue-800 text-white rounded-lg font-bold text-[10px] shadow-xs flex items-center justify-center gap-1">
+                        <span>⚖️</span> ASM Đánh Giá
+                    </button>
+                `;
+
                 return `
                     <tr class="hover:bg-slate-50/80 transition-colors border-b border-gray-100 text-xs">
                         <td class="p-3 font-bold text-brand-navy">
@@ -6790,12 +6805,7 @@
                         </td>
                         <td class="p-3 text-center">${statusBadge}</td>
                         <td class="p-3 text-center space-y-1.5">
-                            <button onclick="openModalStoreExplain('${safeTicket}')" class="w-full px-2.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-lg font-bold text-[11px] shadow-xs flex items-center justify-center gap-1 transition-all">
-                                <span>📝</span> CH Giải Trình
-                            </button>
-                            <button onclick="openModalAsmApprove('${safeTicket}')" class="w-full px-2.5 py-1.5 bg-gradient-to-r from-indigo-600 to-blue-700 hover:from-indigo-700 hover:to-blue-800 text-white rounded-lg font-bold text-[11px] shadow-xs flex items-center justify-center gap-1 transition-all">
-                                <span>⚖️</span> ASM Đánh Giá
-                            </button>
+                            ${actionBtns}
                         </td>
                     </tr>
                 `;
@@ -7053,6 +7063,10 @@
         }
 
         function openModalAsmApprove(ticketCode) {
+            if (typeof currentStore !== 'undefined' && currentStore && currentStore.role === 'store') {
+                alert('⚠️ Bạn đang đăng nhập tài khoản Cửa Hàng. Chức năng ASM Đánh Giá chỉ dành cho ASM quản lý cụm hoặc Admin!');
+                return;
+            }
             const item = currentComplianceData.find(i => i.ticket_code === ticketCode);
             if (!item) return;
             document.getElementById('comp-asm-ticket-code').value = ticketCode;
@@ -7084,6 +7098,10 @@
         }
 
         async function submitAsmApprove() {
+            if (typeof currentStore !== 'undefined' && currentStore && currentStore.role === 'store') {
+                alert('⚠️ Cửa hàng không có quyền thực hiện đánh giá ASM hoặc chốt kết quả sự vụ!');
+                return;
+            }
             const ticketCode = document.getElementById('comp-asm-ticket-code').value;
             const assessment = document.getElementById('comp-asm-assessment').value.trim();
             const staffInfo = document.getElementById('comp-violating-staff').value.trim();

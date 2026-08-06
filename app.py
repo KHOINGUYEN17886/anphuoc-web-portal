@@ -2262,6 +2262,17 @@ def update_compliance_audit():
         if not is_valid_pin:
             return jsonify({'ok': False, 'error': 'Mã PIN không có quyền cập nhật sự vụ này'})
 
+        role = data.get('role', 'store')
+        is_asm_action = (asm_assessment is not None or penalty_percent is not None or status in ('Hoàn tất', 'Đã hoàn tất'))
+        if is_asm_action and role == 'store':
+            is_asm_or_admin = (pin == master_pin)
+            if not is_asm_or_admin and pin:
+                asm_row = query_db("SELECT * FROM tb_asms WHERE passcode = ?", (pin,), one=True)
+                if asm_row:
+                    is_asm_or_admin = True
+            if not is_asm_or_admin:
+                return jsonify({'ok': False, 'error': 'Tài khoản Cửa hàng không có quyền thực hiện đánh giá ASM hoặc chốt kết quả sự vụ!'})
+
         now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         updates = []
