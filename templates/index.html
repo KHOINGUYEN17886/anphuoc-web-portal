@@ -6558,6 +6558,37 @@
 
         function openModalImportCompliance() {
             document.getElementById('modal-import-compliance-excel').classList.remove('hidden');
+            const fileInput = document.getElementById('comp-import-file');
+            if (fileInput && !fileInput.dataset.listenerAdded) {
+                fileInput.dataset.listenerAdded = 'true';
+                fileInput.addEventListener('change', function() {
+                    if (this.files && this.files[0]) {
+                        const fname = this.files[0].name;
+                        const match = fname.match(/(\d{8})/);
+                        if (match) {
+                            const rawDate = match[1];
+                            const y = parseInt(rawDate.substring(0,4));
+                            const m = parseInt(rawDate.substring(4,6)) - 1;
+                            const d = parseInt(rawDate.substring(6,8));
+                            const fileDt = new Date(y, m, d);
+                            if (!isNaN(fileDt.getTime())) {
+                                const monthInput = document.getElementById('comp-import-month');
+                                if (monthInput) monthInput.value = `${y}-${String(m+1).padStart(2,'0')}`;
+                                
+                                const deadlineDt = new Date(fileDt);
+                                deadlineDt.setDate(deadlineDt.getDate() + 5);
+                                const deadlineInput = document.getElementById('comp-import-deadline');
+                                if (deadlineInput) {
+                                    const dy = deadlineDt.getFullYear();
+                                    const dm = String(deadlineDt.getMonth()+1).padStart(2,'0');
+                                    const dd = String(deadlineDt.getDate()).padStart(2,'0');
+                                    deadlineInput.value = `${dy}-${dm}-${dd}`;
+                                }
+                            }
+                        }
+                    }
+                });
+            }
         }
         function closeModalImportCompliance() {
             document.getElementById('modal-import-compliance-excel').classList.add('hidden');
@@ -7141,15 +7172,16 @@
                         <input type="month" id="comp-import-month" class="input-field font-semibold">
                     </div>
                     <div>
-                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Hạn SLA Phản Hồi (Mặc định +3 ngày)</label>
-                        <input type="date" id="comp-import-deadline" class="input-field font-semibold" placeholder="Để trống nếu lấy +3 ngày">
+                        <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Hạn SLA Phản Hồi (Tự động +5 ngày từ YYYYMMDD)</label>
+                        <input type="date" id="comp-import-deadline" class="input-field font-semibold" placeholder="Để trống nếu lấy +5 ngày">
                     </div>
                 </div>
 
                 <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-[11px] space-y-1">
-                    <div class="font-bold flex items-center gap-1"><span>💡</span> Lưu ý quy trình tự động:</div>
-                    <div>• Hệ thống tự động quét 11 sheet, khớp Mã CH, Tên CH và Phân Cụm ASM.</div>
-                    <div>• Tự động đối soát lịch sử sự vụ 365 ngày để phát hiện & cảnh báo TÁI PHẠM.</div>
+                    <div class="font-bold flex items-center gap-1"><span>💡</span> Quy trình tự động P.QLQT:</div>
+                    <div>• Tự động đọc ngày gửi từ 8 chữ số đầu tên file (dạng YYYYMMDD) + 5 ngày SLA.</div>
+                    <div>• Bỏ qua sheet ẩn, chỉ nhận dữ liệu sự vụ từ sheet Báo Cáo / Checklist.</div>
+                    <div>• Đối soát lịch sử 365 ngày để cảnh báo TÁI PHẠM & tự động lấy ASM/Cửa hàng.</div>
                 </div>
             </div>
 

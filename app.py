@@ -1776,25 +1776,48 @@ def import_compliance_excel():
                 
         import openpyxl
         import uuid
+        import re
         wb = openpyxl.load_workbook(file, data_only=True)
         
         today_obj = datetime.now()
         today_str = today_obj.strftime('%Y-%m-%d')
         now_str = today_obj.strftime('%Y-%m-%d %H:%M:%S')
         
-        if custom_deadline:
-            default_deadline = custom_deadline
+        # ── Extract Date YYYYMMDD from filename ──
+        filename_str = file.filename or ''
+        date_match = re.search(r'(\d{8})', filename_str)
+        if date_match:
+            try:
+                dt_raw = date_match.group(1)
+                file_date_obj = datetime.strptime(dt_raw, '%Y%m%d')
+                received_date_str = file_date_obj.strftime('%Y-%m-%d')
+                default_deadline_obj = file_date_obj + timedelta(days=5)
+            except Exception:
+                file_date_obj = today_obj
+                received_date_str = today_str
+                default_deadline_obj = today_obj + timedelta(days=5)
         else:
-            default_deadline = (today_obj + timedelta(days=3)).strftime('%Y-%m-%d')
+            file_date_obj = today_obj
+            received_date_str = today_str
+            default_deadline_obj = today_obj + timedelta(days=5)
+
+        response_deadline_input = request.form.get('response_deadline', '').strip() or request.form.get('custom_deadline', '').strip()
+        if response_deadline_input:
+            default_deadline = response_deadline_input
+        else:
+            default_deadline = default_deadline_obj.strftime('%Y-%m-%d')
             
         if not month_period:
-            month_period = today_obj.strftime('%Y-%m')
+            month_period = file_date_obj.strftime('%Y-%m')
             
-        batch_code = f"BATCH-PQLQT-{today_obj.strftime('%Y%m%d%H%M%S')}"
+        batch_code = f"BATCH-PQLQT-{file_date_obj.strftime('%Y%m%d')}-{today_obj.strftime('%H%M%S')}"
         
         all_stores = query_db("SELECT * FROM tb_stores")
         store_by_code = {s['store_code'].upper().strip(): s for s in all_stores}
         store_by_name = {sanitize_filename_part(s['store_name']).lower(): s for s in all_stores}
+        
+        # Build additional code lookups (e.g. AP10, AM05)
+        store_code_regex = re.compile(r'\b(AP\d+|AM\d+)\b', re.IGNORECASE)
 
         existing_repeats = query_db("""
             SELECT store_code, violation_group, COUNT(*) as cnt
@@ -1807,8 +1830,21 @@ def import_compliance_excel():
         repeat_count = 0
         audits_to_insert = []
 
-        for sheet_name in wb.sheetnames:
-            ws = wb[sheet_name]
+        # ── Process visible sheets, prioritizing 'Báo cáo' ──
+        visible_sheets = [s for s in wb.worksheets if s.sheet_state == 'visible']
+        if not visible_sheets:
+            visible_sheets = wb.worksheets
+
+        for ws in visible_sheets:
+            sheet_name = ws.title
+            s_name_lower = sheet_name.lower().strip()
+            
+            # Skip hidden sheets or non-report sheets if multiple visible sheets exist
+            if len(visible_sheets) > 1:
+                # If sheet name doesn't contain 'báo cáo', 'bao cao', 'kiểm tra', 'checklist', 'data', skip
+                is_report_sheet = any(k in s_name_lower for k in ['báo cáo', 'bao cao', 'kiểm tra', 'checklist', 'dữ liệu', 'data', 'sheet1'])
+                if not is_report_sheet:
+                    continue
             rows = list(ws.iter_rows(max_row=350, values_only=True))
             if len(rows) < 2:
                 continue
@@ -1888,6 +1924,12 @@ def import_compliance_excel():
                     clean_n = sanitize_filename_part(raw_store_name).lower()
                     matched_store = store_by_name.get(clean_n)
 
+                # Try regex matching store code if not matched directly
+                if not matched_store:
+                    code_match = store_code_regex.search(f"{raw_store_code} {raw_store_name} {violation_description}")
+                    if code_match:
+                        matched_store = store_by_code.get(code_match.group(1).upper())
+
                 if matched_store:
                     final_store_code = matched_store['store_code']
                     final_store_name = matched_store['store_name']
@@ -1898,7 +1940,7 @@ def import_compliance_excel():
                     final_asm_name = raw_asm_name or 'Chưa phân công'
 
                 clean_slug = sanitize_filename_part(final_store_code)[:15] if 'sanitize_filename_part' in globals() else final_store_code[:15]
-                ticket_code = f"TK-COMP-{clean_slug}-{today_obj.strftime('%Y%m%d')}-{inserted_count + 1}-{uuid.uuid4().hex[:8].upper()}"
+                ticket_code = f"TK-COMP-{clean_slug}-{file_date_obj.strftime('%Y%m%d')}-{inserted_count + 1}-{uuid.uuid4().hex[:8].upper()}"
 
                 key = (final_store_code, violation_group)
                 prev_cnt = repeat_map.get(key, 0)
@@ -1911,7 +1953,7 @@ def import_compliance_excel():
                 audits_to_insert.append((
                     batch_code, ticket_code, sheet_name, topic, check_item, criteria_standard,
                     final_store_code, final_store_name, final_asm_name, cam_evidence_time, violation_group,
-                    violation_description, pqlqt_eval, today_str, default_deadline,
+                    violation_description, pqlqt_eval, received_date_str, default_deadline,
                     'Mới tiếp nhận', is_repeat, cur_repeat_cnt, now_str, now_str
                 ))
                 inserted_count += 1
@@ -2098,9 +2140,19 @@ def get_compliance_audits():
 
             audits.append(item)
 
+        # Get list of unique ASMs for dropdown
+        asms_rows = query_db("""
+            SELECT DISTINCT asm_name FROM tb_compliance_audits WHERE asm_name IS NOT NULL AND asm_name != ''
+            UNION
+            SELECT DISTINCT asm_name FROM tb_stores WHERE asm_name IS NOT NULL AND asm_name != ''
+            ORDER BY asm_name
+        """)
+        asms_list = [r['asm_name'] for r in asms_rows if r.get('asm_name')]
+
         return jsonify({
             'ok': True,
             'audits': audits,
+            'asms': asms_list,
             'kpis': {
                 'total': total_cnt,
                 'pending_store': pending_store_cnt,
