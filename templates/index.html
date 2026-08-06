@@ -250,6 +250,9 @@
                 </a>
             </div>
 
+            <!-- TAB 4: STORE P.QLQT COMPLIANCE AUDIT CONTAINER -->
+            <div id="store-compliance-container" class="hidden space-y-5"></div>
+
             <!-- TAB 1: WEEKLY REPORT FORM -->
             <div id="tab-weekly-content" class="space-y-5">
                 <!-- Date Picker & Edit Warning Banner -->
@@ -951,120 +954,122 @@
                 </div>
             </div>
 
-            <!-- ASM Tab 4.6: P.QLQT Compliance & Internal Audit Control -->
-            <div id="status-tab-compliance-content" class="hidden card rounded-b-2xl p-5 border-t-0 space-y-4">
-                <!-- Top Actions & Header -->
-                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
-                    <div>
-                        <h4 class="font-extrabold text-brand-navy uppercase text-sm flex items-center gap-2">
-                            <span>📋</span> Kiểm Soát Tuân Thủ & Quy Trình Cửa Hàng (P.QLQT)
-                        </h4>
-                        <p class="text-xs text-gray-500">Theo dõi thời gian thực kết quả kiểm tra camera, xử lý giải trình CH, đánh giá ASM và cảnh báo tái phạm</p>
+            <!-- ASM Tab 4.6: P.QLQT Compliance & Internal Audit Control Container -->
+            <div id="asm-compliance-container" class="hidden space-y-4">
+                <div id="status-tab-compliance-content" class="hidden card rounded-b-2xl p-5 border-t-0 space-y-4">
+                    <!-- Top Actions & Header -->
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
+                        <div>
+                            <h4 class="font-extrabold text-brand-navy uppercase text-sm flex items-center gap-2">
+                                <span>📋</span> Kiểm Soát Tuân Thủ & Quy Trình Cửa Hàng (P.QLQT)
+                            </h4>
+                            <p class="text-xs text-gray-500">Theo dõi thời gian thực kết quả kiểm tra camera, xử lý giải trình CH, đánh giá ASM và cảnh báo tái phạm</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="openModalImportCompliance()" class="asm-only-comp-btn px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm flex items-center gap-1">
+                                <span>📥</span> Nạp Checklist P.QLQT
+                            </button>
+                            <button onclick="openModalComplianceAnalytics()" class="asm-only-comp-btn px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm flex items-center gap-1">
+                                <span>📊</span> Báo Cáo Tái Phạm
+                            </button>
+                            <button onclick="exportComplianceExcel()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm flex items-center gap-1">
+                                <span>📤</span> Xuất Excel Mẫu P.QLQT
+                            </button>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="openModalImportCompliance()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm flex items-center gap-1">
-                            <span>📥</span> Nạp Checklist P.QLQT
-                        </button>
-                        <button onclick="openModalComplianceAnalytics()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm flex items-center gap-1">
-                            <span>📊</span> Báo Cáo Tái Phạm
-                        </button>
-                        <button onclick="exportComplianceExcel()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm flex items-center gap-1">
-                            <span>📤</span> Xuất Excel Mẫu P.QLQT
-                        </button>
-                    </div>
-                </div>
 
-                <!-- KPI Summary Cards -->
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-                    <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center">
-                        <div class="text-xs text-gray-500 font-semibold uppercase">Tổng Sự Vụ</div>
-                        <div id="comp-kpi-total" class="text-xl font-black text-gray-800 mt-1">0</div>
+                    <!-- KPI Summary Cards -->
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center">
+                            <div class="text-xs text-gray-500 font-semibold uppercase">Tổng Sự Vụ</div>
+                            <div id="comp-kpi-total" class="text-xl font-black text-gray-800 mt-1">0</div>
+                        </div>
+                        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
+                            <div class="text-xs text-amber-700 font-semibold uppercase">Chờ CH Giải Trình</div>
+                            <div id="comp-kpi-pending-store" class="text-xl font-black text-amber-600 mt-1">0</div>
+                        </div>
+                        <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-center">
+                            <div class="text-xs text-blue-700 font-semibold uppercase">Chờ ASM Đánh Giá</div>
+                            <div id="comp-kpi-pending-asm" class="text-xl font-black text-blue-600 mt-1">0</div>
+                        </div>
+                        <div class="bg-rose-50 border border-rose-200 rounded-xl p-3 text-center">
+                            <div class="text-xs text-rose-700 font-semibold uppercase">Tái Phạm (⚠️)</div>
+                            <div id="comp-kpi-repeat" class="text-xl font-black text-rose-600 mt-1">0</div>
+                        </div>
+                        <div class="bg-red-50 border border-red-200 rounded-xl p-3 text-center col-span-2 md:col-span-1">
+                            <div class="text-xs text-red-700 font-semibold uppercase">Quá Hạn SLA (🔴)</div>
+                            <div id="comp-kpi-overdue" class="text-xl font-black text-red-600 mt-1">0</div>
+                        </div>
                     </div>
-                    <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
-                        <div class="text-xs text-amber-700 font-semibold uppercase">Chờ CH Giải Trình</div>
-                        <div id="comp-kpi-pending-store" class="text-xl font-black text-amber-600 mt-1">0</div>
-                    </div>
-                    <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-center">
-                        <div class="text-xs text-blue-700 font-semibold uppercase">Chờ ASM Đánh Giá</div>
-                        <div id="comp-kpi-pending-asm" class="text-xl font-black text-blue-600 mt-1">0</div>
-                    </div>
-                    <div class="bg-rose-50 border border-rose-200 rounded-xl p-3 text-center">
-                        <div class="text-xs text-rose-700 font-semibold uppercase">Tái Phạm (⚠️)</div>
-                        <div id="comp-kpi-repeat" class="text-xl font-black text-rose-600 mt-1">0</div>
-                    </div>
-                    <div class="bg-red-50 border border-red-200 rounded-xl p-3 text-center col-span-2 md:col-span-1">
-                        <div class="text-xs text-red-700 font-semibold uppercase">Quá Hạn SLA (🔴)</div>
-                        <div id="comp-kpi-overdue" class="text-xl font-black text-red-600 mt-1">0</div>
-                    </div>
-                </div>
 
-                <!-- Filter Controls -->
-                <div class="flex flex-wrap items-center justify-between gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                    <div class="flex flex-wrap items-center gap-3">
-                        <div class="flex items-center gap-1.5">
-                            <label class="text-xs font-bold text-gray-500">Mốc Tái Phạm:</label>
-                            <select id="comp-filter-days" onchange="loadComplianceAudits()" class="text-xs border rounded-lg px-2 py-1 bg-white font-medium">
-                                <option value="365">1 Năm (365 Ngày)</option>
-                                <option value="180">6 Tháng (180 Ngày)</option>
-                                <option value="90">90 Ngày</option>
-                                <option value="30">30 Ngày</option>
-                            </select>
+                    <!-- Filter Controls -->
+                    <div class="flex flex-wrap items-center justify-between gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div class="flex items-center gap-1.5">
+                                <label class="text-xs font-bold text-gray-500">Mốc Tái Phạm:</label>
+                                <select id="comp-filter-days" onchange="loadComplianceAudits()" class="text-xs border rounded-lg px-2 py-1 bg-white font-medium">
+                                    <option value="365">1 Năm (365 Ngày)</option>
+                                    <option value="180">6 Tháng (180 Ngày)</option>
+                                    <option value="90">90 Ngày</option>
+                                    <option value="30">30 Ngày</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <label class="text-xs font-bold text-gray-500">ASM:</label>
+                                <select id="comp-filter-asm" onchange="onComplianceAsmChange()" class="text-xs border rounded-lg px-2 py-1 bg-white font-medium">
+                                    <option value="">Tất cả ASM</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <label class="text-xs font-bold text-gray-500">Cửa Hàng:</label>
+                                <select id="comp-filter-store" onchange="loadComplianceAudits()" class="text-xs border rounded-lg px-2 py-1 bg-white font-medium max-w-[180px]">
+                                    <option value="">Tất cả cửa hàng</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <label class="text-xs font-bold text-gray-500">Trạng Thái:</label>
+                                <select id="comp-filter-status" onchange="loadComplianceAudits()" class="text-xs border rounded-lg px-2 py-1 bg-white font-medium">
+                                    <option value="">Tất cả trạng thái</option>
+                                    <option value="Mới tiếp nhận">Mới tiếp nhận (Chờ CH)</option>
+                                    <option value="CH đã giải trình">CH đã giải trình (Chờ ASM)</option>
+                                    <option value="Hoàn tất">Hoàn tất</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <label class="text-xs font-bold text-gray-500">Lọc Tái Phạm:</label>
+                                <select id="comp-filter-repeat" onchange="loadComplianceAudits()" class="text-xs border rounded-lg px-2 py-1 bg-white font-medium">
+                                    <option value="">Tất cả sự vụ</option>
+                                    <option value="1">⚠️ Bị tái phạm (≥ 2 lần)</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-1.5">
-                            <label class="text-xs font-bold text-gray-500">ASM:</label>
-                            <select id="comp-filter-asm" onchange="onComplianceAsmChange()" class="text-xs border rounded-lg px-2 py-1 bg-white font-medium">
-                                <option value="">Tất cả ASM</option>
-                            </select>
-                        </div>
-                        <div class="flex items-center gap-1.5">
-                            <label class="text-xs font-bold text-gray-500">Cửa Hàng:</label>
-                            <select id="comp-filter-store" onchange="loadComplianceAudits()" class="text-xs border rounded-lg px-2 py-1 bg-white font-medium max-w-[180px]">
-                                <option value="">Tất cả cửa hàng</option>
-                            </select>
-                        </div>
-                        <div class="flex items-center gap-1.5">
-                            <label class="text-xs font-bold text-gray-500">Trạng Thái:</label>
-                            <select id="comp-filter-status" onchange="loadComplianceAudits()" class="text-xs border rounded-lg px-2 py-1 bg-white font-medium">
-                                <option value="">Tất cả trạng thái</option>
-                                <option value="Mới tiếp nhận">Mới tiếp nhận (Chờ CH)</option>
-                                <option value="CH đã giải trình">CH đã giải trình (Chờ ASM)</option>
-                                <option value="Hoàn tất">Hoàn tất</option>
-                            </select>
-                        </div>
-                        <div class="flex items-center gap-1.5">
-                            <label class="text-xs font-bold text-gray-500">Lọc Tái Phạm:</label>
-                            <select id="comp-filter-repeat" onchange="loadComplianceAudits()" class="text-xs border rounded-lg px-2 py-1 bg-white font-medium">
-                                <option value="">Tất cả sự vụ</option>
-                                <option value="1">⚠️ Bị tái phạm (≥ 2 lần)</option>
-                            </select>
+                        <div>
+                            <input type="text" id="comp-search-text" onkeyup="filterComplianceTableLocal()" placeholder="🔍 Tìm Mã CH, Tên CH, Nội dung..." class="text-xs border border-gray-300 rounded-lg px-3 py-1 bg-white w-56 focus:ring-1 focus:ring-blue-500">
                         </div>
                     </div>
-                    <div>
-                        <input type="text" id="comp-search-text" onkeyup="filterComplianceTableLocal()" placeholder="🔍 Tìm Mã CH, Tên CH, Nội dung..." class="text-xs border border-gray-300 rounded-lg px-3 py-1 bg-white w-56 focus:ring-1 focus:ring-blue-500">
-                    </div>
-                </div>
 
-                <!-- Main Data Table -->
-                <div class="overflow-x-auto rounded-2xl border border-slate-200 shadow-md">
-                    <table class="w-full text-xs text-left text-gray-700">
-                        <thead class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 font-extrabold uppercase text-slate-100 border-b border-slate-700 tracking-wider text-[10px]">
-                            <tr>
-                                <th class="p-3">Mã Vé / Cửa Hàng</th>
-                                <th class="p-3">ASM / Nhóm Lỗi</th>
-                                <th class="p-3">Nội Dung Kiểm Tra / Vi Phạm</th>
-                                <th class="p-3 text-center">Mốc Tái Phạm</th>
-                                <th class="p-3 text-center">Bằng Chứng CAM</th>
-                                <th class="p-3 text-center">SLA Hạn Phản Hồi</th>
-                                <th class="p-3">Giải Trình Cửa Hàng & Đính Kèm</th>
-                                <th class="p-3">Đánh Giá ASM, Khấu Trừ & Nhân Sự</th>
-                                <th class="p-3 text-center">Trạng Thái</th>
-                                <th class="p-3 text-center min-w-[130px]">Thao Tác Xử Lý</th>
-                            </tr>
-                        </thead>
-                        <tbody id="comp-table-body" class="divide-y divide-gray-100 bg-white font-normal">
-                            <tr><td colspan="10" class="text-center py-8 text-gray-400">Đang nạp danh sách hồ sơ tuân thủ P.QLQT...</td></tr>
-                        </tbody>
-                    </table>
+                    <!-- Main Data Table -->
+                    <div class="overflow-x-auto rounded-2xl border border-slate-200 shadow-md">
+                        <table class="w-full text-xs text-left text-gray-700">
+                            <thead class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 font-extrabold uppercase text-slate-100 border-b border-slate-700 tracking-wider text-[10px]">
+                                <tr>
+                                    <th class="p-3">Mã Vé / Cửa Hàng</th>
+                                    <th class="p-3">ASM / Nhóm Lỗi</th>
+                                    <th class="p-3">Nội Dung Kiểm Tra / Vi Phạm</th>
+                                    <th class="p-3 text-center">Mốc Tái Phạm</th>
+                                    <th class="p-3 text-center">Bằng Chứng CAM</th>
+                                    <th class="p-3 text-center">SLA Hạn Phản Hồi</th>
+                                    <th class="p-3">Giải Trình Cửa Hàng & Đính Kèm</th>
+                                    <th class="p-3">Đánh Giá ASM, Khấu Trừ & Nhân Sự</th>
+                                    <th class="p-3 text-center">Trạng Thái</th>
+                                    <th class="p-3 text-center min-w-[130px]">Thao Tác Xử Lý</th>
+                                </tr>
+                            </thead>
+                            <tbody id="comp-table-body" class="divide-y divide-gray-100 bg-white font-normal">
+                                <tr><td colspan="10" class="text-center py-8 text-gray-400">Đang nạp danh sách hồ sơ tuân thủ P.QLQT...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -2514,7 +2519,8 @@
                 
                 tabWeeklyContent.classList.add('hidden');
                 tabDailyContent.classList.add('hidden');
-                if (statusTabComplianceContent) statusTabComplianceContent.classList.remove('hidden');
+                
+                if (typeof ensureComplianceContentParent === 'function') ensureComplianceContentParent();
                 
                 await loadComplianceAudits();
             });
@@ -2527,7 +2533,8 @@
             tabWeeklyBtn.classList.add('active');
             tabWeeklyContent.classList.remove('hidden');
             tabDailyContent.classList.add('hidden');
-            if (statusTabComplianceContent) statusTabComplianceContent.classList.add('hidden');
+            const storeContainer = document.getElementById('store-compliance-container');
+            if (storeContainer) storeContainer.classList.add('hidden');
         });
 
         tabDailyBtn.addEventListener('click', async () => {
@@ -2537,7 +2544,8 @@
             tabDailyBtn.classList.add('active');
             tabDailyContent.classList.remove('hidden');
             tabWeeklyContent.classList.add('hidden');
-            if (statusTabComplianceContent) statusTabComplianceContent.classList.add('hidden');
+            const storeContainer = document.getElementById('store-compliance-container');
+            if (storeContainer) storeContainer.classList.add('hidden');
             
             // Set default month/year selector to current
             const now = new Date();
@@ -3811,7 +3819,8 @@
             statusTabWeeklyContent.classList.remove('hidden');
             statusTabDailyContent.classList.add('hidden');
             statusTabSupportContent.classList.add('hidden');
-            if (statusTabComplianceContent) statusTabComplianceContent.classList.add('hidden');
+            const asmContainer = document.getElementById('asm-compliance-container');
+            if (asmContainer) asmContainer.classList.add('hidden');
             if (statusTabHrContent) statusTabHrContent.classList.add('hidden');
             if (statusTabClosureContent) statusTabClosureContent.classList.add('hidden');
             statusTabPasscodesContent.classList.add('hidden');
@@ -3822,7 +3831,8 @@
             statusTabDailyContent.classList.remove('hidden');
             statusTabWeeklyContent.classList.add('hidden');
             statusTabSupportContent.classList.add('hidden');
-            if (statusTabComplianceContent) statusTabComplianceContent.classList.add('hidden');
+            const asmContainer = document.getElementById('asm-compliance-container');
+            if (asmContainer) asmContainer.classList.add('hidden');
             if (statusTabHrContent) statusTabHrContent.classList.add('hidden');
             if (statusTabClosureContent) statusTabClosureContent.classList.add('hidden');
             statusTabPasscodesContent.classList.add('hidden');
@@ -3835,7 +3845,8 @@
             statusTabSupportContent.classList.remove('hidden');
             statusTabWeeklyContent.classList.add('hidden');
             statusTabDailyContent.classList.add('hidden');
-            if (statusTabComplianceContent) statusTabComplianceContent.classList.add('hidden');
+            const asmContainer = document.getElementById('asm-compliance-container');
+            if (asmContainer) asmContainer.classList.add('hidden');
             if (statusTabHrContent) statusTabHrContent.classList.add('hidden');
             if (statusTabClosureContent) statusTabClosureContent.classList.add('hidden');
             statusTabPasscodesContent.classList.add('hidden');
@@ -3846,7 +3857,7 @@
         if (statusTabComplianceBtn) {
             statusTabComplianceBtn.addEventListener('click', async () => {
                 setStatusTabActive(statusTabComplianceBtn);
-                if (statusTabComplianceContent) statusTabComplianceContent.classList.remove('hidden');
+                if (typeof ensureComplianceContentParent === 'function') ensureComplianceContentParent();
                 statusTabWeeklyContent.classList.add('hidden');
                 statusTabDailyContent.classList.add('hidden');
                 statusTabSupportContent.classList.add('hidden');
@@ -6517,7 +6528,36 @@
             }
         }
 
+        function ensureComplianceContentParent() {
+            const content = document.getElementById('status-tab-compliance-content');
+            const storeContainer = document.getElementById('store-compliance-container');
+            const asmContainer = document.getElementById('asm-compliance-container');
+            
+            if (!content) return;
+            
+            const isStore = currentStore && currentStore.role === 'store';
+            
+            if (isStore) {
+                if (storeContainer && content.parentElement !== storeContainer) {
+                    storeContainer.appendChild(content);
+                }
+                if (storeContainer) storeContainer.classList.remove('hidden');
+                if (asmContainer) asmContainer.classList.add('hidden');
+                document.querySelectorAll('.asm-only-comp-btn').forEach(btn => btn.classList.add('hidden'));
+            } else {
+                if (asmContainer && content.parentElement !== asmContainer) {
+                    asmContainer.appendChild(content);
+                }
+                if (asmContainer) asmContainer.classList.remove('hidden');
+                if (storeContainer) storeContainer.classList.add('hidden');
+                document.querySelectorAll('.asm-only-comp-btn').forEach(btn => btn.classList.remove('hidden'));
+            }
+            content.classList.remove('hidden');
+        }
+
         async function loadComplianceAudits() {
+            ensureComplianceContentParent();
+
             const tableBody = document.getElementById('comp-table-body');
             if (!tableBody) return;
 
