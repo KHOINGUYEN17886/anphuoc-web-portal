@@ -14,6 +14,8 @@ from email.mime.multipart import MIMEMultipart
 import io
 import pandas as pd
 import openpyxl
+import hashlib
+import uuid
 
 # Import psycopg2 for PostgreSQL if on cloud
 try:
@@ -1980,7 +1982,9 @@ def import_compliance_excel():
                     final_asm_name = mapped_asm or 'Chưa phân công'
 
                 clean_slug = sanitize_filename_part(final_store_code)[:15] if 'sanitize_filename_part' in globals() else final_store_code[:15]
-                ticket_code = f"TK-COMP-{clean_slug}-{file_date_obj.strftime('%Y%m%d')}-{inserted_count + 1}-{uuid.uuid4().hex[:8].upper()}"
+                hash_raw = f"{final_store_code}_{check_item[:30]}_{violation_description[:30]}_{cam_evidence_time}_{file_date_obj.strftime('%Y%m%d')}"
+                det_hash = hashlib.md5(hash_raw.encode('utf-8')).hexdigest()[:8].upper()
+                ticket_code = f"TK-COMP-{clean_slug}-{file_date_obj.strftime('%Y%m%d')}-{det_hash}"
 
                 key = (final_store_code, violation_group)
                 prev_cnt = repeat_map.get(key, 0)

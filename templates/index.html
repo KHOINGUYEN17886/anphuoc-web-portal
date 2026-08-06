@@ -188,6 +188,26 @@
 
         <!-- 2. DATA ENTRY PANEL -->
         <section id="form-section" class="hidden space-y-5">
+            <!-- P.QLQT Compliance Alert Banner for Store & ASM -->
+            <div id="comp-alert-banner-store" class="hidden rounded-xl bg-amber-500 text-white p-3.5 shadow-md flex items-center justify-between gap-3 border border-amber-600">
+                <div class="flex items-center gap-2 text-xs md:text-sm font-bold">
+                    <span class="text-xl animate-bounce">⚠️</span>
+                    <span>THÔNG BÁO TỪ P.QLQT: Cửa hàng <strong id="comp-alert-store-name" class="underline"></strong> đang có <strong id="comp-alert-store-count" class="bg-amber-700 px-2 py-0.5 rounded text-white font-extrabold">0</strong> sự vụ tuân thủ chưa gửi giải trình. Vui lòng gửi giải trình trước hạn SLA!</span>
+                </div>
+                <button onclick="switchTab('pqlqt')" class="px-3 py-1.5 bg-white text-amber-900 rounded-lg font-black text-xs hover:bg-amber-100 shadow shrink-0">
+                    📝 Giải Trình Ngay ➔
+                </button>
+            </div>
+
+            <div id="comp-alert-banner-asm" class="hidden rounded-xl bg-blue-700 text-white p-3.5 shadow-md flex items-center justify-between gap-3 border border-blue-800">
+                <div class="flex items-center gap-2 text-xs md:text-sm font-bold">
+                    <span class="text-xl animate-pulse">⚖️</span>
+                    <span>NHẮC NHỞ ASM: Cụm ASM <strong id="comp-alert-asm-name" class="underline"></strong> đang có <strong id="comp-alert-asm-count" class="bg-blue-900 px-2 py-0.5 rounded text-white font-extrabold">0</strong> giải trình sự vụ chờ duyệt & đánh giá!</span>
+                </div>
+                <button onclick="switchTab('pqlqt')" class="px-3 py-1.5 bg-white text-blue-900 rounded-lg font-black text-xs hover:bg-blue-100 shadow shrink-0">
+                    ⚖️ Đánh Giá Ngay ➔
+                </button>
+            </div>
             <!-- Active Store Banner -->
             <div class="card rounded-2xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-l-4 border-brand-red">
                 <div>
@@ -6514,10 +6534,70 @@
 
                 currentComplianceData = data.audits || [];
                 renderComplianceTable(currentComplianceData);
+                checkCompliancePendingAlerts();
             } catch (err) {
                 console.error('Error loading compliance audits:', err);
                 tableBody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-red-500 font-bold">Không thể kết nối máy chủ server</td></tr>';
             }
+        }
+
+        async function checkCompliancePendingAlerts() {
+            if (typeof currentStore === 'undefined' || !currentStore) return;
+            
+            const role = currentStore.role || 'store';
+            const pin = currentStore.pin || '8888';
+            const asm = (currentStore.asm === 'ADMIN' || currentStore.asm === 'Khôi') ? '' : (currentStore.asm || '');
+            const storeCode = (role === 'store') ? (currentStore.code || '') : '';
+            
+            try {
+                const queryParams = new URLSearchParams({
+                    role: role,
+                    pin: pin,
+                    asm: asm,
+                    store_code: storeCode
+                });
+
+                const res = await fetch(`/api/get_compliance_audits?${queryParams.toString()}`);
+                const data = await res.json();
+                if (!data.ok || !data.kpis) return;
+                
+                const storeBanner = document.getElementById('comp-alert-banner-store');
+                const asmBanner = document.getElementById('comp-alert-banner-asm');
+                
+                if (role === 'store' && data.kpis.pending_store > 0) {
+                    if (storeBanner) {
+                        const elName = document.getElementById('comp-alert-store-name');
+                        const elCnt = document.getElementById('comp-alert-store-count');
+                        if (elName) elName.textContent = currentStore.name || currentStore.code;
+                        if (elCnt) elCnt.textContent = data.kpis.pending_store;
+                        storeBanner.classList.remove('hidden');
+                    }
+                } else {
+                    if (storeBanner) storeBanner.classList.add('hidden');
+                }
+                
+                if ((role === 'asm' || role === 'admin') && data.kpis.pending_asm > 0) {
+                    if (asmBanner) {
+                        const elName = document.getElementById('comp-alert-asm-name');
+                        const elCnt = document.getElementById('comp-alert-asm-count');
+                        if (elName) elName.textContent = asm || 'Cụm ASM';
+                        if (elCnt) elCnt.textContent = data.kpis.pending_asm;
+                        asmBanner.classList.remove('hidden');
+                    }
+                } else {
+                    if (asmBanner) asmBanner.classList.add('hidden');
+                }
+            } catch (err) {
+                console.error('Error checking compliance pending alerts:', err);
+            }
+        }
+
+        function exportComplianceReportExcel() {
+            const role = (typeof currentStore !== 'undefined' && currentStore && currentStore.role) ? currentStore.role : 'admin';
+            const pin = (typeof currentStore !== 'undefined' && currentStore && currentStore.pin) ? currentStore.pin : '8888';
+            const asm = document.getElementById('comp-filter-asm')?.value || '';
+            const storeCode = document.getElementById('comp-filter-store')?.value || '';
+            window.location.href = `/api/export_compliance_excel?role=${encodeURIComponent(role)}&pin=${encodeURIComponent(pin)}&asm=${encodeURIComponent(asm)}&store_code=${encodeURIComponent(storeCode)}`;
         }
 
         function renderComplianceTable(audits) {
