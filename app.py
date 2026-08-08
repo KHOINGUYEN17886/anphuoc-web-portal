@@ -3095,26 +3095,61 @@ def save_store_hr():
         
         _now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         if reason == 'TRANSFER' and target_store:
-            execute_db("UPDATE tb_store_employees SET store_code = ?, appointment_date = ?, updated_at = CURRENT_TIMESTAMP WHERE employee_code = ?", (target_store, date.today().strftime('%Y-%m-%d'), emp_code))
-            execute_db("""
-                INSERT INTO tb_hr_lifecycle_tickets (ticket_code, store_code, report_date, employee_code, employee_name, position, event_type, effective_date, reason_note, status, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, 'Chuyển cửa hàng', ?, ?, 'Mới ghi nhận', ?, ?)
-            """, (ticket_code, store_code, report_date, emp_code, emp_name, pos, date.today().strftime('%Y-%m-%d'), f"Chuyển sang cửa hàng {target_store}. Ghi chú: {note}", _now_str, _now_str))
-            _log_ticket_history('HR', ticket_code, store_code, None, 'Mới ghi nhận')
+            # Transfer Gate Rule: Set status to TRANSFER_PENDING (keep in old store until ASM approves)
+            execute_db("UPDATE tb_store_employees SET status = 'TRANSFER_PENDING', updated_at = CURRENT_TIMESTAMP WHERE employee_code = ?", (emp_code,))
+            
+            # Anti-Spam Check: Check if a pending transfer ticket for this employee already exists
+            existing_tk = query_db("""
+                SELECT ticket_code FROM tb_hr_lifecycle_tickets 
+                WHERE store_code = ? AND (employee_code = ? OR employee_name = ?) AND event_type LIKE '%Chuyển%' AND status IN ('Mới ghi nhận', 'PENDING', 'Mới tạo', 'Đang xử lý')
+            """, (store_code, emp_code, emp_name), one=True)
+            
+            note_text = f"Chuyển sang cửa hàng {target_store}. Ghi chú: {note}"
+            if existing_tk:
+                execute_db("UPDATE tb_hr_lifecycle_tickets SET reason_note = ?, updated_at = ? WHERE ticket_code = ?", (note_text, _now_str, existing_tk['ticket_code']))
+            else:
+                execute_db("""
+                    INSERT INTO tb_hr_lifecycle_tickets (ticket_code, store_code, report_date, employee_code, employee_name, position, event_type, effective_date, reason_note, status, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, 'Chuyển cửa hàng', ?, ?, 'Mới ghi nhận', ?, ?)
+                """, (ticket_code, store_code, report_date, emp_code, emp_name, pos, date.today().strftime('%Y-%m-%d'), note_text, _now_str, _now_str))
+                _log_ticket_history('HR', ticket_code, store_code, None, 'Mới ghi nhận')
+                
         elif reason == 'RESIGNED':
+            # Soft Delete Protection: Update status to RESIGNED (never DELETE record)
             execute_db("UPDATE tb_store_employees SET status = 'RESIGNED', updated_at = CURRENT_TIMESTAMP WHERE employee_code = ?", (emp_code,))
-            execute_db("""
-                INSERT INTO tb_hr_lifecycle_tickets (ticket_code, store_code, report_date, employee_code, employee_name, position, event_type, effective_date, reason_note, status, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, 'Nghỉ việc', ?, ?, 'Mới ghi nhận', ?, ?)
-            """, (ticket_code, store_code, report_date, emp_code, emp_name, pos, date.today().strftime('%Y-%m-%d'), f"Nhân sự nghỉ việc. Ghi chú: {note}", _now_str, _now_str))
-            _log_ticket_history('HR', ticket_code, store_code, None, 'Mới ghi nhận')
+            
+            existing_tk = query_db("""
+                SELECT ticket_code FROM tb_hr_lifecycle_tickets 
+                WHERE store_code = ? AND (employee_code = ? OR employee_name = ?) AND event_type LIKE '%Nghỉ%' AND status IN ('Mới ghi nhận', 'PENDING', 'Mới tạo', 'Đang xử lý')
+            """, (store_code, emp_code, emp_name), one=True)
+            
+            note_text = f"Nhân sự nghỉ việc. Ghi chú: {note}"
+            if existing_tk:
+                execute_db("UPDATE tb_hr_lifecycle_tickets SET reason_note = ?, updated_at = ? WHERE ticket_code = ?", (note_text, _now_str, existing_tk['ticket_code']))
+            else:
+                execute_db("""
+                    INSERT INTO tb_hr_lifecycle_tickets (ticket_code, store_code, report_date, employee_code, employee_name, position, event_type, effective_date, reason_note, status, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, 'Nghỉ việc', ?, ?, 'Mới ghi nhận', ?, ?)
+                """, (ticket_code, store_code, report_date, emp_code, emp_name, pos, date.today().strftime('%Y-%m-%d'), note_text, _now_str, _now_str))
+                _log_ticket_history('HR', ticket_code, store_code, None, 'Mới ghi nhận')
+                
         elif reason == 'MATERNITY_LEAVE':
             execute_db("UPDATE tb_store_employees SET status = 'MATERNITY_LEAVE', updated_at = CURRENT_TIMESTAMP WHERE employee_code = ?", (emp_code,))
-            execute_db("""
-                INSERT INTO tb_hr_lifecycle_tickets (ticket_code, store_code, report_date, employee_code, employee_name, position, event_type, effective_date, reason_note, status, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, 'Nghỉ thai sản', ?, ?, 'Mới ghi nhận', ?, ?)
-            """, (ticket_code, store_code, report_date, emp_code, emp_name, pos, date.today().strftime('%Y-%m-%d'), f"Nhân sự nghỉ thai sản. Ghi chú: {note}", _now_str, _now_str))
-            _log_ticket_history('HR', ticket_code, store_code, None, 'Mới ghi nhận')
+            
+            existing_tk = query_db("""
+                SELECT ticket_code FROM tb_hr_lifecycle_tickets 
+                WHERE store_code = ? AND (employee_code = ? OR employee_name = ?) AND event_type LIKE '%thai sản%' AND status IN ('Mới ghi nhận', 'PENDING', 'Mới tạo', 'Đang xử lý')
+            """, (store_code, emp_code, emp_name), one=True)
+            
+            note_text = f"Nhân sự nghỉ thai sản. Ghi chú: {note}"
+            if existing_tk:
+                execute_db("UPDATE tb_hr_lifecycle_tickets SET reason_note = ?, updated_at = ? WHERE ticket_code = ?", (note_text, _now_str, existing_tk['ticket_code']))
+            else:
+                execute_db("""
+                    INSERT INTO tb_hr_lifecycle_tickets (ticket_code, store_code, report_date, employee_code, employee_name, position, event_type, effective_date, reason_note, status, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, 'Nghỉ thai sản', ?, ?, 'Mới ghi nhận', ?, ?)
+                """, (ticket_code, store_code, report_date, emp_code, emp_name, pos, date.today().strftime('%Y-%m-%d'), note_text, _now_str, _now_str))
+                _log_ticket_history('HR', ticket_code, store_code, None, 'Mới ghi nhận')
 
     employees = data.get('employees', [])
     for emp in employees:
@@ -3127,6 +3162,10 @@ def save_store_hr():
         dob = emp.get('dob', '')
         phone = emp.get('phone_number', '')
         position = emp.get('position', 'Nhân viên bán hàng')
+        # Position synonym normalization
+        if position == 'NV bán hàng':
+            position = 'Nhân viên bán hàng'
+            
         app_date = emp.get('appointment_date', '')
         avatar = emp.get('avatar_url', '')
         hr_notes = emp.get('hr_notes', '')
@@ -3203,11 +3242,19 @@ def save_store_hr():
         
         if emp_name:
             _now_str2 = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            execute_db("""
-                INSERT INTO tb_hr_lifecycle_tickets (ticket_code, store_code, report_date, employee_name, position, event_type, effective_date, reason_note, handover_status, status, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Mới ghi nhận', ?, ?)
-            """, (ticket_code, store_code, report_date, emp_name, pos, evt_type, eff_date, reason, handover, _now_str2, _now_str2))
-            _log_ticket_history('HR', ticket_code, store_code, None, 'Mới ghi nhận')
+            existing_tk2 = query_db("""
+                SELECT ticket_code FROM tb_hr_lifecycle_tickets
+                WHERE store_code = ? AND employee_name = ? AND event_type = ? AND status IN ('Mới ghi nhận', 'PENDING', 'Mới tạo', 'Đang xử lý')
+            """, (store_code, emp_name, evt_type), one=True)
+            
+            if existing_tk2:
+                execute_db("UPDATE tb_hr_lifecycle_tickets SET reason_note = ?, handover_status = ?, updated_at = ? WHERE ticket_code = ?", (reason, handover, _now_str2, existing_tk2['ticket_code']))
+            else:
+                execute_db("""
+                    INSERT INTO tb_hr_lifecycle_tickets (ticket_code, store_code, report_date, employee_name, position, event_type, effective_date, reason_note, handover_status, status, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Mới ghi nhận', ?, ?)
+                """, (ticket_code, store_code, report_date, emp_name, pos, evt_type, eff_date, reason, handover, _now_str2, _now_str2))
+                _log_ticket_history('HR', ticket_code, store_code, None, 'Mới ghi nhận')
             
     support_staff_updates = data.get('support_staff_updates', [])
     execute_db("DELETE FROM tb_store_support_staff WHERE store_code = ?", (store_code,))
@@ -3226,6 +3273,138 @@ def save_store_hr():
         """, (store_code, s_code, s_name, from_st, r_desc, st_d, ed_d))
             
     return jsonify({'ok': True, 'message': 'Đã lưu hồ sơ nhân sự thành công'})
+
+@app.route('/api/admin/process_hr_ticket', methods=['POST'])
+def process_hr_ticket():
+    """API dành riêng cho ASM & Admin để Phê Duyệt (Approve), Từ Chối (Reject) hoặc Xóa (Delete) ticket sự vụ nhân sự 1-click"""
+    try:
+        data = request.json or {}
+        ticket_code = data.get('ticket_code', '').strip()
+        action = data.get('action', '').strip().upper() # APPROVE, REJECT, DELETE
+        asm_hr_note = data.get('asm_hr_note', '').strip()
+        
+        if not ticket_code or not action:
+            return jsonify({'ok': False, 'error': 'Thiếu mã ticket hoặc thao tác'}), 400
+            
+        ticket = query_db("SELECT * FROM tb_hr_lifecycle_tickets WHERE ticket_code = ?", (ticket_code,), one=True)
+        if not ticket:
+            return jsonify({'ok': False, 'error': 'Không tìm thấy ticket sự vụ'}), 404
+            
+        if action == 'DELETE':
+            execute_db("DELETE FROM tb_hr_lifecycle_tickets WHERE ticket_code = ?", (ticket_code,))
+            return jsonify({'ok': True, 'message': f'Đã xóa ticket rác {ticket_code} thành công'})
+            
+        new_status = 'APPROVED' if action == 'APPROVE' else 'REJECTED' if action == 'REJECT' else action
+        
+        # Execute Automated Workflow logic if APPROVED
+        if action == 'APPROVE':
+            evt_type = ticket.get('event_type', '')
+            emp_code = ticket.get('employee_code', '')
+            emp_name = ticket.get('employee_name', '')
+            store_code = ticket.get('store_code', '')
+            reason_note = ticket.get('reason_note', '')
+            
+            # 1. Auto-Transfer if event is TRANSFER
+            if 'Chuyển' in evt_type or 'TRANSFER' in evt_type:
+                # Parse target store from reason_note (e.g. "Chuyển sang cửa hàng 126_3T2...")
+                import re
+                m = re.search(r'cửa hàng\s+([A-Za-z0-9_]+)', reason_note, re.IGNORECASE)
+                target_store = m.group(1) if m else None
+                
+                if target_store and emp_code:
+                    _log_note = f"\n[{date.today().strftime('%Y-%m-%d')}] ASM phê duyệt chuyển từ CH {store_code} sang CH {target_store}"
+                    execute_db("""
+                        UPDATE tb_store_employees 
+                        SET store_code = ?, status = 'ACTIVE', hr_notes = coalesce(hr_notes, '') || ?, updated_at = CURRENT_TIMESTAMP
+                        WHERE employee_code = ? OR full_name = ?
+                    """, (target_store, _log_note, emp_code, emp_name))
+            
+            # 2. Auto-Resign if event is RESIGNED
+            elif 'Nghỉ' in evt_type or 'RESIGNED' in evt_type or 'Thôi việc' in evt_type:
+                _log_note = f"\n[{date.today().strftime('%Y-%m-%d')}] ASM phê duyệt thôi việc"
+                execute_db("""
+                    UPDATE tb_store_employees 
+                    SET status = 'RESIGNED', hr_notes = coalesce(hr_notes, '') || ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE employee_code = ? OR full_name = ?
+                """, (_log_note, emp_code, emp_name))
+                
+        elif action == 'REJECT':
+            # Revert TRANSFER_PENDING status back to ACTIVE if rejected
+            emp_code = ticket.get('employee_code', '')
+            emp_name = ticket.get('employee_name', '')
+            execute_db("UPDATE tb_store_employees SET status = 'ACTIVE' WHERE (employee_code = ? OR full_name = ?) AND status = 'TRANSFER_PENDING'", (emp_code, emp_name))
+
+        execute_db("""
+            UPDATE tb_hr_lifecycle_tickets
+            SET status = ?, asm_hr_note = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE ticket_code = ?
+        """, (new_status, asm_hr_note, ticket_code))
+        
+        _log_ticket_history('HR', ticket_code, ticket['store_code'], ticket.get('status'), new_status)
+        return jsonify({'ok': True, 'message': f'Đã cập nhật ticket {ticket_code} thành {new_status}'})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+@app.route('/api/admin/cleanup_duplicate_hr_tickets', methods=['POST'])
+def cleanup_duplicate_hr_tickets():
+    """API dọn dẹp các ticket lặp rác do người dùng submit nhiều lần cùng ngày"""
+    try:
+        # Find duplicates grouping by store_code, employee_name, event_type, report_date
+        dups = query_db("""
+            SELECT store_code, employee_name, event_type, report_date, COUNT(*) as cnt, MIN(ticket_code) as keep_code
+            FROM tb_hr_lifecycle_tickets
+            WHERE status IN ('Mới ghi nhận', 'PENDING', 'Mới tạo')
+            GROUP BY store_code, employee_name, event_type, report_date
+            HAVING COUNT(*) > 1
+        """)
+        
+        cleaned_count = 0
+        for d in dups:
+            st = d['store_code']
+            emp = d['employee_name']
+            evt = d['event_type']
+            rep = d['report_date']
+            keep = d['keep_code']
+            
+            # Delete duplicates except keep_code
+            execute_db("""
+                DELETE FROM tb_hr_lifecycle_tickets
+                WHERE store_code = ? AND employee_name = ? AND event_type = ? AND report_date = ? AND ticket_code != ?
+            """, (st, emp, evt, rep, keep))
+            cleaned_count += (d['cnt'] - 1)
+            
+        return jsonify({'ok': True, 'message': f'Đã dọn dẹp {cleaned_count} ticket rác trùng lặp thành công!'})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+@app.route('/api/admin/sync_baseline_json', methods=['POST'])
+def sync_baseline_json():
+    """API dump toàn bộ dữ liệu nhân sự hiện tại từ Cloud Database về file seed_employees_baseline.json 1-click"""
+    try:
+        employees = query_db("SELECT * FROM tb_store_employees ORDER BY store_code, id ASC")
+        data_list = []
+        for e in employees:
+            data_list.append({
+                'employee_code': e.get('employee_code', ''),
+                'full_name': e.get('full_name', ''),
+                'gender': e.get('gender', 'Nữ'),
+                'dob': e.get('dob', ''),
+                'phone_number': e.get('phone_number', ''),
+                'position': 'Nhân viên bán hàng' if e.get('position') == 'NV bán hàng' else e.get('position', 'Nhân viên bán hàng'),
+                'appointment_date': e.get('appointment_date', ''),
+                'store_code': e.get('store_code', ''),
+                'avatar_url': e.get('avatar_url', ''),
+                'hr_notes': e.get('hr_notes', ''),
+                'status': e.get('status', 'ACTIVE')
+            })
+            
+        json_path = os.path.join(app.root_path, 'seed_employees_baseline.json')
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(data_list, f, ensure_ascii=False, indent=2)
+            
+        return jsonify({'ok': True, 'message': f'Đã đồng bộ thành công {len(data_list)} nhân sự vào seed_employees_baseline.json'})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
 
 @app.route('/api/save_shift_config', methods=['POST'])
 def save_shift_config():

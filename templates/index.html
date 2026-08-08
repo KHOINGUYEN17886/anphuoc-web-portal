@@ -739,17 +739,46 @@
                 </div>
 
                 <!-- ACTIVE HR LIFECYCLE TICKETS SECTION -->
-                <div class="card rounded-2xl p-5 space-y-4 border-l-4 border-brand-red">
-                    <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div class="card rounded-2xl p-5 space-y-4 border-l-4 border-brand-red shadow-sm">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-gray-100 pb-3 gap-3">
                         <div>
                             <h4 class="font-bold text-brand-navy uppercase text-sm flex items-center gap-2">
                                 📝 Nhật Ký Sự Vụ & Biến Động Nhân Sự
                             </h4>
-                            <p class="text-xs text-gray-500">Theo dõi trạng thái giải quyết ticket sự vụ (Nghỉ việc, Tuyển mới, Nghỉ phép) liên tục qua các tuần.</p>
+                            <p class="text-xs text-gray-500">Theo dõi, phê duyệt & tự động hóa điều chuyển / nghỉ việc của lực lượng bán lẻ.</p>
                         </div>
-                        <button id="btn-open-new-hr-ticket-modal" onclick="openNewHRTicketModal()" class="btn-outline text-xs px-3 py-1.5 border-brand-red text-brand-red hover:bg-brand-red/5 cursor-pointer">
-                            ➕ Khai Báo Biến Động Mới
-                        </button>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <button id="btn-cleanup-hr-tickets" onclick="cleanupDuplicateHRTickets()" class="hidden px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-sm cursor-pointer">
+                                🧹 Dọn Rác Ticket Trùng
+                            </button>
+                            <button id="btn-sync-baseline-json" onclick="syncBaselineJSON()" class="hidden px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-300 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-sm cursor-pointer">
+                                🔄 Sync Baseline Data
+                            </button>
+                            <button id="btn-open-new-hr-ticket-modal" onclick="openNewHRTicketModal()" class="btn-outline text-xs px-3 py-1.5 border-brand-red text-brand-red hover:bg-brand-red/5 cursor-pointer font-bold">
+                                ➕ Khai Báo Biến Động Mới
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Smart Filter & Search Bar -->
+                    <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-2 text-xs">
+                        <div class="flex items-center gap-1.5 w-full md:w-auto overflow-x-auto">
+                            <span class="font-bold text-slate-600 whitespace-nowrap">Bộ lọc:</span>
+                            <button onclick="filterHRTicketsByStatus('ALL')" class="hr-status-filter-btn px-2.5 py-1 rounded-md font-bold bg-brand-navy text-white transition-all shadow-sm">Tất Cả</button>
+                            <button onclick="filterHRTicketsByStatus('PENDING')" class="hr-status-filter-btn px-2.5 py-1 rounded-md font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 transition-all">⏳ Chờ ASM Duyệt</button>
+                            <button onclick="filterHRTicketsByStatus('APPROVED')" class="hr-status-filter-btn px-2.5 py-1 rounded-md font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 transition-all">✅ Hoàn Tất</button>
+                            <button onclick="filterHRTicketsByStatus('REJECTED')" class="hr-status-filter-btn px-2.5 py-1 rounded-md font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 transition-all">❌ Từ Chối</button>
+                        </div>
+
+                        <div class="flex items-center gap-2 w-full md:w-auto">
+                            <select id="hr-ticket-filter-event" onchange="filterHRTickets()" class="text-xs p-1.5 border border-slate-300 rounded-lg bg-white outline-none font-medium">
+                                <option value="ALL">Tất cả loại sự vụ</option>
+                                <option value="Chuyển cửa hàng">🔄 Chuyển cửa hàng</option>
+                                <option value="Nghỉ việc">🔴 Nghỉ việc</option>
+                                <option value="Tuyển mới">🟢 Tuyển mới</option>
+                            </select>
+                            <input type="text" id="hr-ticket-search-input" onkeyup="filterHRTickets()" placeholder="🔍 Tìm tên/mã NV..." class="text-xs p-1.5 border border-slate-300 rounded-lg bg-white outline-none w-full md:w-40">
+                        </div>
                     </div>
 
                     <div class="overflow-x-auto">
@@ -764,10 +793,11 @@
                                     <th class="text-center">Trạng Thái Ticket</th>
                                     <th>Tiến Độ Cửa Hàng</th>
                                     <th>Phản Hồi ASM / HR</th>
+                                    <th class="text-center th-asm-actions hidden">Thao Tác ASM</th>
                                 </tr>
                             </thead>
                             <tbody id="hr-tickets-table-body" class="divide-y divide-gray-100">
-                                <tr><td colspan="8" class="text-center py-6 text-gray-400">Đang tải lịch sử sự vụ...</td></tr>
+                                <tr><td colspan="9" class="text-center py-6 text-gray-400">Đang tải lịch sử sự vụ...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -5281,12 +5311,91 @@
             }).join('');
         }
 
-        // Render HR Tickets Table
+        let currentHRTickets = [];
+        let hrTicketStatusFilter = 'ALL';
+
+        function filterHRTicketsByStatus(status) {
+            hrTicketStatusFilter = status;
+            document.querySelectorAll('.hr-status-filter-btn').forEach(btn => {
+                if ((btn.textContent.includes('Tất Cả') && status === 'ALL') ||
+                    (btn.textContent.includes('Chờ') && status === 'PENDING') ||
+                    (btn.textContent.includes('Hoàn Tất') && status === 'APPROVED') ||
+                    (btn.textContent.includes('Từ Chối') && status === 'REJECTED')) {
+                    btn.className = 'hr-status-filter-btn px-2.5 py-1 rounded-md font-bold bg-brand-navy text-white transition-all shadow-sm';
+                } else {
+                    btn.className = 'hr-status-filter-btn px-2.5 py-1 rounded-md font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 transition-all';
+                }
+            });
+            filterHRTickets();
+        }
+
+        function filterHRTickets() {
+            if (!currentHRTickets) return;
+            const evtVal = document.getElementById('hr-ticket-filter-event')?.value || 'ALL';
+            const searchVal = (document.getElementById('hr-ticket-search-input')?.value || '').toLowerCase().trim();
+
+            let filtered = currentHRTickets.filter(t => {
+                // Status Filter
+                if (hrTicketStatusFilter === 'PENDING') {
+                    if (t.status === 'APPROVED' || t.status === 'REJECTED' || t.status === 'Hoàn tất' || t.status === 'Từ chối') return false;
+                } else if (hrTicketStatusFilter === 'APPROVED') {
+                    if (t.status !== 'APPROVED' && t.status !== 'Hoàn tất') return false;
+                } else if (hrTicketStatusFilter === 'REJECTED') {
+                    if (t.status !== 'REJECTED' && t.status !== 'Từ chối') return false;
+                }
+
+                // Event Type Filter
+                if (evtVal !== 'ALL') {
+                    if (!(t.event_type || '').includes(evtVal)) return false;
+                }
+
+                // Search Filter
+                if (searchVal) {
+                    const matchName = (t.employee_name || '').toLowerCase().includes(searchVal);
+                    const matchCode = (t.employee_code || '').toLowerCase().includes(searchVal);
+                    const matchTk = (t.ticket_code || '').toLowerCase().includes(searchVal);
+                    const matchSt = (t.store_code || '').toLowerCase().includes(searchVal);
+                    if (!matchName && !matchCode && !matchTk && !matchSt) return false;
+                }
+                return true;
+            });
+
+            renderFilteredHRTickets(filtered);
+        }
+
         function renderHRTicketsTable(tickets) {
+            currentHRTickets = tickets || [];
+            
+            // Show ASM/Admin cleanup & sync buttons if role is ASM or Admin
+            const role = (userRole || 'store').toLowerCase();
+            const btnCleanup = document.getElementById('btn-cleanup-hr-tickets');
+            const btnSync = document.getElementById('btn-sync-baseline-json');
+            if (btnCleanup) {
+                if (role === 'asm' || role === 'admin') btnCleanup.classList.remove('hidden');
+                else btnCleanup.classList.add('hidden');
+            }
+            if (btnSync) {
+                if (role === 'admin') btnSync.classList.remove('hidden');
+                else btnSync.classList.add('hidden');
+            }
+            
+            filterHRTickets();
+        }
+
+        function renderFilteredHRTickets(tickets) {
             const tbody = document.getElementById('hr-tickets-table-body');
             if (!tbody) return;
+            
+            const role = (userRole || 'store').toLowerCase();
+            const isAsmAdmin = (role === 'asm' || role === 'admin');
+            
+            document.querySelectorAll('.th-asm-actions').forEach(el => {
+                if (isAsmAdmin) el.classList.remove('hidden');
+                else el.classList.add('hidden');
+            });
+
             if (!tickets || tickets.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-gray-400">Chưa có ticket sự vụ nhân sự nào.</td></tr>';
+                tbody.innerHTML = `<tr><td colspan="${isAsmAdmin ? 9 : 8}" class="text-center py-6 text-gray-400">Không tìm thấy ticket sự vụ phù hợp.</td></tr>`;
                 return;
             }
 
@@ -5301,13 +5410,23 @@
                 }
 
                 let evtBadge = '<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-800 text-[11px] font-bold">' + (t.event_type || 'Sự vụ') + '</span>';
-                if (t.event_type === 'Nghỉ việc' || t.event_type === 'Thôi việc') {
+                if (t.event_type === 'Nghỉ việc' || t.event_type === 'Thôi việc' || t.event_type === 'RESIGNED') {
                     evtBadge = '<span class="px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[11px] font-bold">🔴 Nghỉ việc</span>';
                 } else if (t.event_type === 'Tuyển mới' || t.event_type === 'Bổ sung') {
                     evtBadge = '<span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold">🟢 Tuyển mới</span>';
-                } else if (t.event_type === 'Điều chuyển') {
+                } else if ((t.event_type || '').includes('Chuyển')) {
                     evtBadge = '<span class="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[11px] font-bold">🔄 Điều chuyển</span>';
                 }
+
+                const actionsHtml = isAsmAdmin ? `
+                    <td class="py-2.5 px-2 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <button onclick="processHRTicketDirect('${t.ticket_code}', 'APPROVE')" title="Duyệt Ticket" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold transition-all text-[11px]">🟢 Duyệt</button>
+                            <button onclick="processHRTicketDirect('${t.ticket_code}', 'REJECT')" title="Từ Chối Ticket" class="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded font-bold transition-all text-[11px]">🔴 Từ Chối</button>
+                            <button onclick="processHRTicketDirect('${t.ticket_code}', 'DELETE')" title="Xóa Ticket Rác" class="px-2 py-1 bg-slate-200 hover:bg-rose-100 text-rose-700 rounded font-bold transition-all text-[11px]">🗑️ Xóa</button>
+                        </div>
+                    </td>
+                ` : '';
 
                 return `
                     <tr class="border-b border-gray-100 hover:bg-slate-50 transition-all text-xs">
@@ -5318,10 +5437,74 @@
                         <td class="py-2.5 px-3 font-semibold text-gray-800">${t.effective_date || '-'}</td>
                         <td class="py-2.5 px-3 text-center">${statusBadge}</td>
                         <td class="py-2.5 px-3 text-gray-600">${t.handover_status || t.reason_note || '-'}</td>
-                        <td class="py-2.5 px-3 text-brand-navy italic">${t.asm_note || t.hr_note || '—'}</td>
+                        <td class="py-2.5 px-3 text-brand-navy italic">${t.asm_note || t.asm_hr_note || t.hr_note || '—'}</td>
+                        ${actionsHtml}
                     </tr>
                 `;
             }).join('');
+        }
+
+        // Action Functions for HR Tickets
+        async function processHRTicketDirect(ticketCode, action) {
+            let note = '';
+            if (action === 'REJECT') {
+                note = prompt('Nhập lý do từ chối ticket sự vụ này:');
+                if (note === null) return;
+            } else if (action === 'DELETE') {
+                if (!confirm(`Xác nhận xóa ticket rác ${ticketCode}?`)) return;
+            } else if (action === 'APPROVE') {
+                if (!confirm(`Xác nhận PHÊ DUYỆT ticket ${ticketCode}? Hệ thống sẽ tự động thực thi điều chuyển / nghỉ việc.`)) return;
+            }
+
+            try {
+                const res = await fetch('/api/admin/process_hr_ticket', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ticket_code: ticketCode, action: action, asm_hr_note: note })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    alert(data.message);
+                    if (typeof fetchHRTickets === 'function') fetchHRTickets();
+                    else if (typeof fetchOperationalHistory === 'function') fetchOperationalHistory();
+                } else {
+                    alert('Lỗi: ' + (data.error || 'Không thể xử lý ticket'));
+                }
+            } catch (err) {
+                alert('Lỗi kết nối máy chủ: ' + err.message);
+            }
+        }
+
+        async function cleanupDuplicateHRTickets() {
+            if (!confirm('Xác nhận quét và dọn dẹp các ticket lặp rác do người dùng submit trùng nhiều lần?')) return;
+            try {
+                const res = await fetch('/api/admin/cleanup_duplicate_hr_tickets', { method: 'POST' });
+                const data = await res.json();
+                if (data.ok) {
+                    alert(data.message);
+                    if (typeof fetchHRTickets === 'function') fetchHRTickets();
+                    else if (typeof fetchOperationalHistory === 'function') fetchOperationalHistory();
+                } else {
+                    alert('Lỗi dọn rác: ' + (data.error || 'Không thể thực thi'));
+                }
+            } catch (err) {
+                alert('Lỗi kết nối: ' + err.message);
+            }
+        }
+
+        async function syncBaselineJSON() {
+            if (!confirm('Xác nhận đồng bộ toàn bộ 1,090+ nhân sự hiện tại từ Database Cloud về file seed_employees_baseline.json?')) return;
+            try {
+                const res = await fetch('/api/admin/sync_baseline_json', { method: 'POST' });
+                const data = await res.json();
+                if (data.ok) {
+                    alert(data.message);
+                } else {
+                    alert('Lỗi đồng bộ: ' + (data.error || 'Không thể thực thi'));
+                }
+            } catch (err) {
+                alert('Lỗi kết nối: ' + err.message);
+            }
         }
 
         // Offboarding & Transfer Confirmation Logic
