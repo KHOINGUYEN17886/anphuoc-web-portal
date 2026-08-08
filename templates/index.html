@@ -3807,33 +3807,31 @@
             return clean.includes('khôi') || clean.includes('khoi');
         }
 
-        // Excel Export listener
-        btnExportExcel.addEventListener('click', () => {
-            const dateVal = (statusReportDate && statusReportDate.value) ? statusReportDate.value : (qrDateFilter ? qrDateFilter.value : '');
-            if (!dateVal) {
-                showToast("⚠️ Cảnh báo", "Vui lòng chọn ngày báo cáo cần xuất.", "⚠️");
-                return;
-            }
-            
-            const isKhoi = isASMKhôi();
-            const role = currentStore ? currentStore.role : 'store';
-            const pin = currentStore ? currentStore.pin : '';
-            const storeCode = (role === 'store' && currentStore) ? currentStore.code : '';
-            
-            let asmVal = 'ALL';
-            if (role === 'admin') {
-                asmVal = (adminAsmFilter && adminAsmFilter.value) ? adminAsmFilter.value : 'ALL';
-            } else if (role === 'asm') {
-                if (isKhoi) {
-                    const filterVal = (adminAsmFilter && adminAsmFilter.value) ? adminAsmFilter.value : '';
-                    asmVal = filterVal || currentStore.asm;
-                } else {
+        // Excel Export listener - 100% Synchronized with active selected ASM filter
+        if (btnExportExcel) {
+            btnExportExcel.addEventListener('click', () => {
+                const dateVal = (statusReportDate && statusReportDate.value) ? statusReportDate.value : (qrDateFilter ? qrDateFilter.value : '');
+                if (!dateVal) {
+                    showToast("⚠️ Cảnh báo", "Vui lòng chọn ngày báo cáo cần xuất.", "⚠️");
+                    return;
+                }
+                
+                const role = currentStore ? currentStore.role : 'store';
+                const pin = currentStore ? (currentStore.pin || localStorage.getItem('ap_pin') || '') : '';
+                const storeCode = (role === 'store' && currentStore) ? currentStore.code : '';
+                
+                // Prioritize active ASM filter selection on screen across all roles
+                const selectedAsm = (adminAsmFilter && adminAsmFilter.value) ? adminAsmFilter.value : (document.getElementById('comp-filter-asm')?.value || '');
+                let asmVal = 'ALL';
+                if (selectedAsm && selectedAsm !== '') {
+                    asmVal = selectedAsm;
+                } else if (currentStore && currentStore.asm) {
                     asmVal = currentStore.asm;
                 }
-            }
-            
-            window.location.href = `/api/export_excel?report_date=${dateVal}&asm=${encodeURIComponent(asmVal)}&store_code=${encodeURIComponent(storeCode)}&role=${role}&pin=${encodeURIComponent(pin)}`;
-        });
+                
+                window.location.href = `/api/export_excel?report_date=${dateVal}&asm=${encodeURIComponent(asmVal)}&store_code=${encodeURIComponent(storeCode)}&role=${role}&pin=${encodeURIComponent(pin)}`;
+            });
+        }
 
         // Passcode modal listeners
         btnShowChangePin.addEventListener('click', () => {
