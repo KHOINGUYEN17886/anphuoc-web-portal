@@ -7117,7 +7117,8 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
                         canvas.toBlob(blob => {
-                            resolve(blob);
+                            if (blob) resolve(blob);
+                            else reject(new Error('Không thể nén ảnh (định dạng không hỗ trợ)'));
                         }, 'image/jpeg', quality);
                     };
                     img.onerror = error => reject(error);
@@ -7125,6 +7126,75 @@
                 reader.onerror = error => reject(error);
             });
         }
+
+        // ─── NÉN ẢNH NHÂN SỰ BẮT BUỘC (mục tiêu ≤ 80KB, giảm dần kích thước/chất lượng) ───
+        function blobToDataUri(blob) {
+            return new Promise((resolve, reject) => {
+                const r = new FileReader();
+                r.onload = () => resolve(r.result);
+                r.onerror = reject;
+                r.readAsDataURL(blob);
+            });
+        }
+
+        async function compressAvatarImage(file) {
+            if (!file.type.startsWith('image/')) {
+                throw new Error('File không phải là ảnh. Vui lòng chọn file JPG/PNG.');
+            }
+            const attempts = [
+                { size: 512, quality: 0.72 },
+                { size: 384, quality: 0.62 },
+                { size: 288, quality: 0.5 }
+            ];
+            let blob = null;
+            for (const a of attempts) {
+                blob = await compressImageCanvas(file, a.size, a.size, a.quality);
+                if (blob.size <= 80 * 1024) break;
+            }
+            const dataUri = await blobToDataUri(blob);
+            return { dataUri, sizeKB: Math.round(blob.size / 1024) };
+        }
+
+        // Up ảnh trực tiếp từ điện thoại/máy tính cho từng dòng nhân sự (nút 📸 trên avatar)
+        window.handlePhotoUpload = async function(event, empCode) {
+            const input = event.target;
+            const file = input.files && input.files[0];
+            if (!file) return;
+            const tr = input.closest('tr.emp-row');
+            try {
+                showToast("⏳ Đang nén ảnh...", `Ảnh gốc ${Math.round(file.size / 1024)}KB đang được nén tự động trước khi lưu.`, "⏳");
+                const { dataUri, sizeKB } = await compressAvatarImage(file);
+                if (tr) {
+                    tr.dataset.avatar = dataUri;
+                    const preview = tr.querySelector('.img-avatar-preview');
+                    if (preview) preview.src = dataUri;
+                }
+                showToast("📸 Đã Nhận Ảnh", `Ảnh nhân sự ${empCode} đã nén còn ${sizeKB}KB. Bấm '💾 Lưu Hồ Sơ' để lưu chính thức lên hệ thống.`, "📸");
+            } catch (err) {
+                console.error('Lỗi nén ảnh nhân sự:', err);
+                showToast("❌ Lỗi Ảnh", (err && err.message) ? err.message : "Không đọc được ảnh. Vui lòng chọn ảnh JPG/PNG khác (ảnh iPhone HEIC hãy đổi sang JPG).", "❌");
+            } finally {
+                input.value = '';
+            }
+        };
+
+        // Up ảnh trong modal "Thêm Nhân Viên Mới" (bind inline vì modal parse sau script)
+        window.handleAddEmpAvatarChange = async function(event) {
+            const input = event.target;
+            const file = input.files && input.files[0];
+            if (!file) return;
+            try {
+                showToast("⏳ Đang nén ảnh...", `Ảnh gốc ${Math.round(file.size / 1024)}KB đang được nén tự động.`, "⏳");
+                const { dataUri, sizeKB } = await compressAvatarImage(file);
+                const preview = document.getElementById('add-emp-avatar-preview');
+                if (preview) preview.src = dataUri;
+                showToast("📸 Đã Nhận Ảnh", `Ảnh đã nén còn ${sizeKB}KB và sẽ được gắn khi bấm 'Bổ Sung Nhân Viên Mới'.`, "📸");
+            } catch (err) {
+                console.error('Lỗi nén ảnh nhân viên mới:', err);
+                showToast("❌ Lỗi Ảnh", (err && err.message) ? err.message : "Không đọc được ảnh. Vui lòng chọn ảnh JPG/PNG khác.", "❌");
+                input.value = '';
+            }
+        };
 
         async function submitStoreExplain() {
             const ticketCode = document.getElementById('comp-store-ticket-code').value;
@@ -7512,10 +7582,10 @@
                     <input type="date" id="add-emp-start-date" class="input-field font-semibold">
                 </div>
                 <div class="col-span-full">
-                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Ảnh Đồng Phục (Auto nén Canvas <80KB)</label>
+                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Ảnh Đồng Phục — chụp/chọn từ điện thoại hoặc máy tính (tự động nén ≤ 80KB)</label>
                     <div class="flex items-center gap-3">
                         <img id="add-emp-avatar-preview" src="https://ui-avatars.com/api/?name=NV+Moi&background=1B2A4A&color=fff" class="w-12 h-14 object-cover border rounded-lg shadow-xs">
-                        <input type="file" id="add-emp-avatar-file" accept="image/*" class="input-field text-xs">
+                        <input type="file" id="add-emp-avatar-file" accept="image/*" class="input-field text-xs" onchange="handleAddEmpAvatarChange(event)">
                     </div>
                 </div>
             </div>
