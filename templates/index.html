@@ -607,6 +607,10 @@
                                 <div class="text-[10px] text-gray-400 font-bold uppercase">Thực Tế Quầy</div>
                                 <div id="hr-actual-hc" class="text-base font-black text-brand-navy">0</div>
                             </div>
+                            <div class="bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-center" title="Bảo vệ biên chế riêng — không tính vào định biên quầy">
+                                <div class="text-[10px] text-gray-400 font-bold uppercase">🛡 Bảo Vệ</div>
+                                <div id="hr-guard-hc" class="text-base font-black text-gray-600">0</div>
+                            </div>
                             <div id="hr-surplus-badge" class="px-3 py-1.5 rounded-xl text-center bg-emerald-50 text-emerald-700 border border-emerald-200 font-extrabold text-xs">
                                 CHỦNG LẠI: 0
                             </div>
@@ -4942,6 +4946,42 @@
             return res.join(' ');
         }
 
+        // Badge Thừa/Thiếu định biên (dùng chung cho load từ server & recount tại chỗ)
+        function renderHrSurplusBadge(diff) {
+            const badge = document.getElementById('hr-surplus-badge');
+            if (!badge) return;
+            if (diff < 0) {
+                badge.className = "px-3 py-1.5 rounded-xl text-center bg-rose-50 text-rose-700 border border-rose-200 font-extrabold text-xs";
+                badge.innerText = `THIẾU: ${Math.abs(diff)} NV`;
+            } else if (diff > 0) {
+                badge.className = "px-3 py-1.5 rounded-xl text-center bg-blue-50 text-blue-700 border border-blue-200 font-extrabold text-xs";
+                badge.innerText = `THỪA: +${diff} NV`;
+            } else {
+                badge.className = "px-3 py-1.5 rounded-xl text-center bg-emerald-50 text-emerald-700 border border-emerald-200 font-extrabold text-xs";
+                badge.innerText = `ĐẠT ĐỊNH BIÊN (0)`;
+            }
+        }
+
+        // Đếm lại Thực Tế Quầy / Bảo Vệ / Thừa-Thiếu ngay từ bảng trên màn hình
+        // (gọi mỗi khi thêm / xóa / đổi chức danh — số liệu theo sát thực tế CH
+        //  không cần chờ Lưu Hồ Sơ; Bảo vệ biên chế riêng, không tính định biên)
+        function recalcStoreHeadcountFromTable() {
+            const rows = document.querySelectorAll('#store-employee-table-body .emp-row');
+            let counter = 0, guards = 0;
+            rows.forEach(tr => {
+                const posInp = tr.querySelector('.emp-position');
+                const pos = canonicalPosition(posInp ? posInp.value : '');
+                if (pos === 'Bảo vệ') guards++;
+                else counter++;
+            });
+            const actualEl = document.getElementById('hr-actual-hc');
+            if (actualEl) actualEl.innerText = counter;
+            const guardEl = document.getElementById('hr-guard-hc');
+            if (guardEl) guardEl.innerText = guards;
+            const target = parseInt(document.getElementById('hr-target-hc').innerText, 10) || 0;
+            renderHrSurplusBadge(counter - target);
+        }
+
         // Load Store HR Data
         async function loadStoreHRData() {
             if (!currentStore || !currentStore.code) return;
@@ -4960,19 +5000,10 @@
                 
                 document.getElementById('hr-target-hc').innerText = data.target_headcount || 0;
                 document.getElementById('hr-actual-hc').innerText = data.actual_headcount || 0;
-                
-                const badge = document.getElementById('hr-surplus-badge');
-                const diff = data.surplus_deficit || 0;
-                if (diff < 0) {
-                    badge.className = "px-3 py-1.5 rounded-xl text-center bg-rose-50 text-rose-700 border border-rose-200 font-extrabold text-xs";
-                    badge.innerText = `THIẾU: ${Math.abs(diff)} NV`;
-                } else if (diff > 0) {
-                    badge.className = "px-3 py-1.5 rounded-xl text-center bg-blue-50 text-blue-700 border border-blue-200 font-extrabold text-xs";
-                    badge.innerText = `THỪA: +${diff} NV`;
-                } else {
-                    badge.className = "px-3 py-1.5 rounded-xl text-center bg-emerald-50 text-emerald-700 border border-emerald-200 font-extrabold text-xs";
-                    badge.innerText = `ĐẠT ĐỊNH BIÊN (0)`;
-                }
+                const guardEl = document.getElementById('hr-guard-hc');
+                if (guardEl) guardEl.innerText = data.guard_headcount || 0;
+
+                renderHrSurplusBadge(data.surplus_deficit || 0);
                 
                 if (data.shift_config) {
                     document.getElementById('hr-shift-display').innerText = `Ca 1: ${data.shift_config.shift_1_hours} | Ca 2: ${data.shift_config.shift_2_hours}`;
@@ -5342,10 +5373,10 @@
                 const note = document.getElementById('del-emp-note').value.trim();
                 
                 if (reason === 'TRANSFER' && !targetStore) {
-                    alert("⚠️ Vui lòng chọn Cửa Hàng Chuyển Đến!");
+                    showToast("⚠️ Thiếu Thông Tin", "Vui lòng chọn Cửa Hàng Chuyển Đến!", "⚠️");
                     return;
                 }
-                
+
                 pendingOffboardActions.push({
                     employee_code: empCode,
                     reason: reason,
@@ -5354,6 +5385,7 @@
                 });
                 
                 pendingDeleteRow.remove();
+                recalcStoreHeadcountFromTable();
                 closeDeleteEmployeeModal();
                 showToast("✅ Đã Xác Nhận", "Đã ghi nhận yêu cầu xóa/điều chuyển. Nhớ bấm 'Lưu Hồ Sơ' bên dưới để hoàn tất.", "✅");
             });
@@ -5459,6 +5491,7 @@
                     appointment_date: startDate,
                     avatar_url: avatar
                 }));
+                recalcStoreHeadcountFromTable();
                 
                 if (pos === 'Nhân viên thử việc') {
                     const probContainer = document.getElementById('probation-list-container');
@@ -7380,6 +7413,7 @@
             const tenureDisp = tr.querySelector('.tenure-badge');
             if (tenureDisp) tenureDisp.innerText = calculateTenure(appd);
 
+            recalcStoreHeadcountFromTable();
             closeEmpDetailPopup();
             showToast("📝 Đã Cập Nhật", `Thông tin ${name} đã cập nhật trên bảng. Bấm '💾 Lưu Hồ Sơ' để lưu chính thức lên hệ thống.`, "📝");
         };

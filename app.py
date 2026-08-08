@@ -51,6 +51,11 @@ def _default_pin_allowed(pin) -> bool:
     return ALLOW_DEFAULT_PIN and str(pin) == '1234'
 
 
+def _is_guard_position(pos):
+    """Bảo vệ được biên chế riêng — không tính vào định biên nhân sự quầy."""
+    return 'bảo vệ' in str(pos or '').lower()
+
+
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
 # SQLite absolute path helper
@@ -2988,8 +2993,10 @@ def get_store_hr():
         raw_date = emp.get('appointment_date') or emp.get('created_at') or ''
         emp['appointment_date'] = format_excel_date_py(raw_date)
         emp['tenure'] = calculate_tenure_py(emp['appointment_date'])
-        
-    actual_hc = len(employees)
+
+    # Định biên chỉ tính nhân sự quầy — Bảo vệ được biên chế riêng, tách khỏi actual_hc
+    guard_hc = sum(1 for e in employees if _is_guard_position(e.get('position')))
+    actual_hc = len(employees) - guard_hc
     surplus_deficit = actual_hc - target_hc
     
     # Auto-ensure employees with position 'Nhân viên thử việc' have a probation record
@@ -3030,6 +3037,7 @@ def get_store_hr():
         'store_code': store_code,
         'target_headcount': target_hc,
         'actual_headcount': actual_hc,
+        'guard_headcount': guard_hc,
         'surplus_deficit': surplus_deficit,
         'cht_name': cht_name,
         'employees': employees,
@@ -3449,8 +3457,11 @@ def get_hr_analytics():
     
     employees_out = []
     for e in all_employees:
-        emp_count_map[e['store_code']] += 1
         pos = e.get('position', 'Nhân viên bán hàng') or 'Nhân viên bán hàng'
+        # Bảo vệ không tính vào định biên quầy (biên chế riêng) — vẫn giữ trong
+        # danh sách nhân sự & phân bố chức danh
+        if not _is_guard_position(pos):
+            emp_count_map[e['store_code']] += 1
         position_dist[pos] += 1
         
         # Tenure bucket
