@@ -198,6 +198,7 @@ def safe_migrate_db():
             position VARCHAR(50) NOT NULL,
             appointment_date VARCHAR(20) DEFAULT '',
             avatar_url TEXT DEFAULT '',
+            hr_notes TEXT DEFAULT '',
             status VARCHAR(30) DEFAULT 'ACTIVE',
             created_at VARCHAR(30) DEFAULT '',
             updated_at VARCHAR(30) DEFAULT ''
@@ -391,6 +392,7 @@ def safe_migrate_db():
             'position': "VARCHAR(50) DEFAULT 'Nhân viên bán hàng'",
             'appointment_date': "VARCHAR(20) DEFAULT ''",
             'avatar_url': "TEXT DEFAULT ''",
+            'hr_notes': "TEXT DEFAULT ''",
             'status': "VARCHAR(30) DEFAULT 'ACTIVE'",
             'created_at': "VARCHAR(30) DEFAULT ''",
             'updated_at': "VARCHAR(30) DEFAULT ''",
@@ -3105,20 +3107,21 @@ def save_store_hr():
         position = emp.get('position', 'Nhân viên bán hàng')
         app_date = emp.get('appointment_date', '')
         avatar = emp.get('avatar_url', '')
+        hr_notes = emp.get('hr_notes', '')
         status = emp.get('status', 'ACTIVE')
-        
+
         existing = query_db("SELECT id FROM tb_store_employees WHERE employee_code = ?", (emp_code,), one=True)
         if existing:
             execute_db("""
                 UPDATE tb_store_employees
-                SET store_code=?, full_name=?, gender=?, dob=?, phone_number=?, position=?, appointment_date=?, avatar_url=?, status=?, updated_at=CURRENT_TIMESTAMP
+                SET store_code=?, full_name=?, gender=?, dob=?, phone_number=?, position=?, appointment_date=?, avatar_url=?, hr_notes=?, status=?, updated_at=CURRENT_TIMESTAMP
                 WHERE employee_code=?
-            """, (store_code, full_name, gender, dob, phone, position, app_date, avatar, status, emp_code))
+            """, (store_code, full_name, gender, dob, phone, position, app_date, avatar, hr_notes, status, emp_code))
         else:
             execute_db("""
-                INSERT INTO tb_store_employees (employee_code, store_code, full_name, gender, dob, phone_number, position, appointment_date, avatar_url, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (emp_code, store_code, full_name, gender, dob, phone, position, app_date, avatar, status))
+                INSERT INTO tb_store_employees (employee_code, store_code, full_name, gender, dob, phone_number, position, appointment_date, avatar_url, hr_notes, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (emp_code, store_code, full_name, gender, dob, phone, position, app_date, avatar, hr_notes, status))
             
         # Probation auto-link if position is 'Nhân viên thử việc'
         if position == 'Nhân viên thử việc':
