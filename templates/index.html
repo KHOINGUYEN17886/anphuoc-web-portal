@@ -128,6 +128,9 @@
                 </div>
             </div>
             <div class="flex items-center gap-2">
+                <button id="btn-open-user-guide-modal" onclick="openUserGuideModal()" class="text-xs text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer">
+                    📖 Hướng Dẫn & Release Notes
+                </button>
                 <a href="/map" target="_blank" class="gis-map-nav-btn hidden text-xs text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 shadow-sm">
                     🗺️ Bản Đồ GIS
                 </a>
@@ -8291,5 +8294,185 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal Hướng Dẫn Sử Dụng & Thông Báo Cập Nhật System (v2026.8.8) -->
+    <div id="modal-user-guide-system" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-[9999] hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-4xl w-full overflow-hidden my-8 transform transition-all">
+            <!-- Header -->
+            <div class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between border-b border-slate-800">
+                <div class="flex items-center gap-3">
+                    <img src="/static/LogoAP.png" class="h-8 w-auto bg-white p-1 rounded-md shadow-sm">
+                    <div>
+                        <h3 class="text-base font-extrabold flex items-center gap-2">
+                            🚀 RETAIL COMMANDER WEB PORTAL
+                            <span class="text-[10px] bg-emerald-500 text-slate-950 px-2 py-0.5 rounded-full font-extrabold">v2026.8.8</span>
+                        </h3>
+                        <p class="text-xs text-slate-300">Nhật Ký Cập Nhật Tính Năng Mới & Hướng Dẫn Sử Dụng Chi Tiết</p>
+                    </div>
+                </div>
+                <button onclick="closeUserGuideModal()" class="text-slate-400 hover:text-white text-2xl font-bold p-1 rounded-lg transition-colors">&times;</button>
+            </div>
+
+            <!-- Navigation Sub-Tabs inside Modal -->
+            <div class="bg-slate-100 border-b border-slate-200 px-6 py-2 flex items-center gap-2">
+                <button id="guide-tab-release" onclick="switchGuideTab('release')" class="px-4 py-2 text-xs font-bold rounded-lg bg-slate-900 text-white transition-all shadow-sm">
+                    🚀 Tính Năng Mới (Release Notes v2026.8.8)
+                </button>
+                <button id="guide-tab-quick" onclick="switchGuideTab('quick')" class="px-4 py-2 text-xs font-bold rounded-lg text-slate-600 hover:bg-slate-200 transition-all">
+                    📖 Hướng Dẫn Nhanh Trực Tuyến
+                </button>
+                <button id="guide-tab-download" onclick="switchGuideTab('download')" class="px-4 py-2 text-xs font-bold rounded-lg text-slate-600 hover:bg-slate-200 transition-all">
+                    📄 Tải File Word (DOCX Full Guide)
+                </button>
+            </div>
+
+            <!-- Body Content Area -->
+            <div class="p-6 max-h-[65vh] overflow-y-auto text-slate-800 text-sm space-y-4">
+                <!-- TAB 1: RELEASE NOTES -->
+                <div id="guide-sec-release" class="space-y-4">
+                    <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-xl">
+                        <h4 class="font-bold text-amber-900 text-sm flex items-center gap-1.5">
+                            <span>📢</span> THÔNG BÁO CẬP NHẬT HỆ THỐNG MỚI NHẤT (Tháng 08/2026)
+                        </h4>
+                        <p class="text-xs text-amber-800 mt-1">
+                            Hệ thống Web Portal đã được nâng cấp toàn diện về hiệu năng, giao diện và tính năng theo chỉ đạo của Ban Giám Đốc. Dưới đây là các tính năng mới cần lưu ý:
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                            <h5 class="font-bold text-blue-900 text-xs flex items-center gap-1.5">
+                                <span>🚦</span> LƯU TRAFFIC & SOFT WARNING CR > 100%
+                            </h5>
+                            <p class="text-xs text-slate-600 leading-relaxed">
+                                • Không bị alert chặn cứng việc nộp số liệu.<br>
+                                • Hiển thị <b>In-Page Banner</b> chi tiết các ngày Bill > Khách.<br>
+                                • Bấm <b>[Xác Nhận Lưu]</b> để lưu 100% thành công lên Cloud.<br>
+                                • Tự động hiển thị popup alert xác nhận kết quả lưu.
+                            </p>
+                        </div>
+
+                        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                            <h5 class="font-bold text-blue-900 text-xs flex items-center gap-1.5">
+                                <span>⚖️</span> P.QLQT SỰ VỤ TUÂN THỦ & TỜ TRÌNH
+                            </h5>
+                            <p class="text-xs text-slate-600 leading-relaxed">
+                                • Cửa Hàng giải trình & đính kèm Tờ trình (PDF/DOCX/PNG).<br>
+                                • File lưu trực tiếp vào Database Cloud dưới dạng Base64 (bền 100%).<br>
+                                • ASM xem/tải Tờ trình trực tiếp trên Web Portal.<br>
+                                • Nút bấm đổi màu động: Emerald (Hoàn tất) / Amber (Yêu cầu lại).
+                            </p>
+                        </div>
+
+                        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                            <h5 class="font-bold text-blue-900 text-xs flex items-center gap-1.5">
+                                <span>👥</span> QUẢN LÝ NHÂN SỰ 6 CỘT & ẢNH NÉN 1/4
+                            </h5>
+                            <p class="text-xs text-slate-600 leading-relaxed">
+                                • Sắp xếp ưu tiên: CHT ➔ CHP ➔ NVBH ➔ Thử việc ➔ Thâm niên.<br>
+                                • Bấm tên nhân viên mở Profile Popup ảnh chân dung 1/4.<br>
+                                • Tự động nén ảnh nạp từ điện thoại siêu nhẹ.<br>
+                                • <b>Tự động loại trừ Bảo vệ</b> khỏi định biên bán hàng.
+                            </p>
+                        </div>
+
+                        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                            <h5 class="font-bold text-blue-900 text-xs flex items-center gap-1.5">
+                                <span>🗺️</span> BẢN ĐỒ GIS & EXCEL MÀU NAVY
+                            </h5>
+                            <p class="text-xs text-slate-600 leading-relaxed">
+                                • Bản đồ GIS Vận Hành (`/map`) tích hợp chỉ số realtime.<br>
+                                • Đổi ASM quản lý cửa hàng động (Admin Only).<br>
+                                • Xuất báo cáo Excel 11 Sheets chuẩn màu Navy sang trọng.<br>
+                                • Tên file xuất động theo Scope (Cửa Hàng, ASM, Toàn Quốc).
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: QUICK GUIDE -->
+                <div id="guide-sec-quick" class="hidden space-y-4">
+                    <div class="space-y-3">
+                        <div class="border-b border-slate-200 pb-2">
+                            <h4 class="font-bold text-blue-950 text-sm">1. Đăng Nhập & Phân Quyền</h4>
+                            <p class="text-xs text-slate-600 mt-1">Cửa Hàng chọn ASM ➔ chọn tên CH ➔ nhập 4 số PIN. ASM chọn dòng [ASM] ➔ nhập 9999. Admin nhập 8888.</p>
+                        </div>
+                        <div class="border-b border-slate-200 pb-2">
+                            <h4 class="font-bold text-blue-950 text-sm">2. Nhập Traffic Hàng Ngày</h4>
+                            <p class="text-xs text-slate-600 mt-1">Điền Lượt Khách, Bill POS, Bill Online C.ty & Bill Online CH. Tỷ lệ CR % = (Bill POS - Bill OL C.ty) / Khách x 100%.</p>
+                        </div>
+                        <div class="border-b border-slate-200 pb-2">
+                            <h4 class="font-bold text-blue-950 text-sm">3. Nộp Giải Trình & Đính Kèm Tờ Trình P.QLQT</h4>
+                            <p class="text-xs text-slate-600 mt-1">Mở Tab 3, xem danh sách vi phạm, nhập nội dung giải trình và chọn file Tờ Trình đính kèm rồi bấm Nộp Giải Trình.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: DOWNLOAD DOCX -->
+                <div id="guide-sec-download" class="hidden text-center py-6 space-y-4">
+                    <div class="max-w-md mx-auto p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-3 shadow-sm">
+                        <div class="text-4xl">📄</div>
+                        <h4 class="font-extrabold text-slate-900 text-base">Tải File Hướng Dẫn Sử Dụng DOCX Complete</h4>
+                        <p class="text-xs text-slate-500 leading-relaxed">
+                            Tài liệu Word được biên soạn công phu với đầy đủ sơ đồ đồ họa 300 DPI, ma trận phân quyền, công thức tính và bảng xử lý sự cố FAQ.
+                        </p>
+                        <a href="/api/download_user_guide" download class="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-extrabold rounded-xl shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5">
+                            <span>📥</span> Tải Về File HUONG_DAN_SU_DUNG_WEB_PORTAL.docx
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="bg-slate-50 px-6 py-3 border-t border-slate-200 flex items-center justify-between">
+                <span class="text-xs text-slate-500">© 2026 An Phước Retail Commander — All Rights Reserved.</span>
+                <button onclick="dismissUserGuideModal()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold rounded-xl shadow transition-all">
+                    ✅ Đã Hiểu - Đóng Thông Báo
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openUserGuideModal() {
+            const m = document.getElementById('modal-user-guide-system');
+            if (m) m.classList.remove('hidden');
+        }
+
+        function closeUserGuideModal() {
+            const m = document.getElementById('modal-user-guide-system');
+            if (m) m.classList.add('hidden');
+        }
+
+        function dismissUserGuideModal() {
+            localStorage.setItem('ap_portal_v2026_8_8_seen', 'true');
+            closeUserGuideModal();
+        }
+
+        function switchGuideTab(tabName) {
+            const tabs = ['release', 'quick', 'download'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`guide-tab-${t}`);
+                const sec = document.getElementById(`guide-sec-${t}`);
+                if (btn && sec) {
+                    if (t === tabName) {
+                        btn.className = 'px-4 py-2 text-xs font-bold rounded-lg bg-slate-900 text-white transition-all shadow-sm';
+                        sec.classList.remove('hidden');
+                    } else {
+                        btn.className = 'px-4 py-2 text-xs font-bold rounded-lg text-slate-600 hover:bg-slate-200 transition-all';
+                        sec.classList.add('hidden');
+                    }
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!localStorage.getItem('ap_portal_v2026_8_8_seen')) {
+                setTimeout(() => {
+                    openUserGuideModal();
+                }, 1200);
+            }
+        });
+    </script>
 </body>
 </html>

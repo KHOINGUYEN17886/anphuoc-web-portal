@@ -2596,6 +2596,20 @@ def compliance_analytics():
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
 
+@app.route('/api/download_user_guide', methods=['GET'])
+def download_user_guide():
+    """API cho phép người dùng xem hoặc tải trực tiếp file tài liệu Hướng Dẫn Sử Dụng DOCX"""
+    try:
+        from flask import send_file
+        guide_path = os.path.join(app.root_path, 'HUONG_DAN_SU_DUNG_WEB_PORTAL.docx')
+        if not os.path.exists(guide_path):
+            guide_path = r'C:\All_Report\8_RETAIL_COMMANDER\Retail_Commander_OS\10_PUBLICATION\HDSD_Retail_Commander_Web_Portal.docx'
+        if os.path.exists(guide_path):
+            return send_file(guide_path, as_attachment=True, download_name='HUONG_DAN_SU_DUNG_WEB_PORTAL.docx')
+        return jsonify({'ok': False, 'error': 'File tài liệu chưa sẵn sàng trên máy chủ'}), 404
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
 @app.route('/api/export_compliance_excel', methods=['GET'])
 def export_compliance_excel():
     """API xuất file Excel báo cáo kiểm soát nội bộ P.QLQT (điền đầy đủ thông tin giải trình & % trừ thưởng)"""
@@ -3734,13 +3748,13 @@ def style_sheet(ws, title, subtitle, date_range_str, role_str):
     ws.row_dimensions[4].height = 12
     
     # Table Header Row 5
-    header_fill = PatternFill(start_color="2F5597", end_color="2F5597", fill_type="solid")
+    header_fill = PatternFill(start_color="1B365D", end_color="1B365D", fill_type="solid")
     header_font = Font(name="Segoe UI", size=10, bold=True, color="FFFFFF")
     thin_border = Border(
-        left=Side(style='thin', color='D3D3D3'),
-        right=Side(style='thin', color='D3D3D3'),
-        top=Side(style='thin', color='D3D3D3'),
-        bottom=Side(style='thin', color='D3D3D3')
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
     )
     
     # Format Headers & Cache Header Names + Widths
@@ -3759,7 +3773,7 @@ def style_sheet(ws, title, subtitle, date_range_str, role_str):
     
     # Format Data Rows (Row 6 onwards)
     data_font = Font(name="Segoe UI", size=10)
-    zebra_fill = PatternFill(start_color="F2F4F7", end_color="F2F4F7", fill_type="solid")
+    zebra_fill = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
     white_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
     
     max_row = ws.max_row
