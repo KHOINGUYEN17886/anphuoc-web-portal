@@ -2932,14 +2932,14 @@
                                     crBadge.innerText = cr.toFixed(1) + '%';
                                     
                                     if (cr > 100) {
-                                        crBadge.className = 'text-[9px] font-bold cr-badge px-1 py-0.5 rounded bg-rose-500/20 text-rose-400';
-                                        card.className = "p-3 border rounded-xl flex flex-col justify-between gap-1.5 transition-all bg-rose-500/5 border-rose-500/40";
+                                        crBadge.className = 'text-[9px] font-extrabold cr-badge px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 border border-rose-200';
+                                        card.className = "p-3 border rounded-xl flex flex-col justify-between gap-1.5 transition-all bg-rose-50/50 border-rose-200 shadow-xs";
                                     } else if (cr < 50 || cr >= 90) {
-                                        crBadge.className = 'text-[9px] font-bold cr-badge px-1 py-0.5 rounded bg-amber-500/20 text-amber-400';
+                                        crBadge.className = 'text-[9px] font-bold cr-badge px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200';
                                     } else if (cr >= 80 && cr <= 87) {
-                                        crBadge.className = 'text-[9px] font-bold cr-badge px-1 py-0.5 rounded bg-emerald-500/20 text-emerald-400';
+                                        crBadge.className = 'text-[9px] font-bold cr-badge px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200';
                                     } else {
-                                        crBadge.className = 'text-[9px] font-bold cr-badge px-1 py-0.5 rounded bg-slate-800 text-slate-400';
+                                        crBadge.className = 'text-[9px] font-bold cr-badge px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200';
                                     }
                                 }
                             } else {
@@ -3022,11 +3022,13 @@
                         const billForCR = bVal - coVal;
                         
                         if (tVal === 0 && billForCR > 0) {
-                            hasError = true;
+                            hasWarning = true;
+                            warningDates.push(`${dateStr.split('-')[2]}/${dateStr.split('-')[1]} (Lượt khách = 0, Số bill = ${bVal})`);
                         } else {
                             const cr = tVal > 0 ? (billForCR / tVal) * 100 : 0;
                             if (cr > 100) {
-                                hasError = true;
+                                hasWarning = true;
+                                warningDates.push(`${dateStr.split('-')[2]}/${dateStr.split('-')[1]} (CR: ${cr.toFixed(1)}% - ${bVal} bill / ${tVal} khách)`);
                             } else if (cr < 50 || cr >= 90) {
                                 hasWarning = true;
                                 warningDates.push(`${dateStr.split('-')[2]}/${dateStr.split('-')[1]} (CR: ${cr.toFixed(1)}% - C.ty online: ${coVal})`);
@@ -3048,12 +3050,11 @@
             });
             
             if (hasError) {
-                alert("❌ Lỗi dữ liệu: Số bill không thể lớn hơn lượt khách. Vui lòng sửa lại các ô có CR > 100%.");
                 return;
             }
             
             if (hasWarning) {
-                const confirmSave = confirm(`⚠️ Cảnh báo Tỷ lệ Chuyển đổi (CR) bất thường vào các ngày:\n- ${warningDates.join('\n- ')}\n\nBạn có chắc chắn muốn lưu số liệu này?`);
+                const confirmSave = confirm(`⚠️ Cảnh báo Tỷ lệ Chuyển đổi (CR) bất thường (>100% hoặc lệch chuẩn) vào các ngày:\n- ${warningDates.join('\n- ')}\n\nBạn có chắc chắn muốn lưu số liệu này?`);
                 if (!confirmSave) return;
             }
             
@@ -3254,14 +3255,12 @@
                 const cr = tVal > 0 ? (billForCR / tVal) * 100 : 0;
                 
                 if (tVal === 0 && billForCR > 0) {
-                    alert("❌ Lỗi: Lượt khách bằng 0 nhưng vẫn có bill bán tại quầy/tự bán.");
-                    return;
-                }
-                if (cr > 100) {
-                    alert("❌ Lỗi: Số bill bán lẻ (sau khi loại trừ bill online Công ty) không thể lớn hơn lượt khách.");
-                    return;
-                }
-                if (cr < 50 || cr >= 90) {
+                    const confirmSave = confirm(`⚠️ Cảnh báo: Lượt khách bằng 0 nhưng vẫn có ${billForCR} bill bán tại quầy/tự bán. Bạn có chắc chắn muốn nộp báo cáo này?`);
+                    if (!confirmSave) return;
+                } else if (cr > 100) {
+                    const confirmSave = confirm(`⚠️ Cảnh báo: Tỷ lệ chuyển đổi (CR) tuần này là ${cr.toFixed(1)}% (${bVal} bill / ${tVal} khách). Bạn có chắc chắn muốn nộp báo cáo này?`);
+                    if (!confirmSave) return;
+                } else if (cr < 50 || cr >= 90) {
                     const confirmSave = confirm(`⚠️ Cảnh báo: Tỷ lệ chuyển đổi (CR) thực tế tuần này là ${cr.toFixed(1)}% (loại trừ ${coVal} đơn Công ty), lệch nhiều so với mức chuẩn (80-87%). Bạn có chắc chắn muốn nộp báo cáo này?`);
                     if (!confirmSave) return;
                 }
