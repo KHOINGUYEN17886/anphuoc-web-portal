@@ -206,6 +206,34 @@ Quản lý danh sách 1,089 nhân sự trên toàn bộ hệ thống.
 | `deadline` | TEXT | | Thời hạn mong muốn hoàn thành |
 | `person_in_charge` | TEXT | DEFAULT 'QLKD / ASM'| Bộ phận / Người chịu trách nhiệm xử lý |
 
+### 3.12. Bảng `tb_compliance_audits` (Sự Vụ Tuân Thủ P.QLQT)
+Quản lý các đợt kiểm tra tuân thủ, mức phạt chức danh và quá trình giải trình 3 bên (CH ↔ ASM ↔ P.QLQT).
+| Tên Cột | Kiểu Dữ Liệu | Ràng Buộc | Mô Tả |
+| :--- | :--- | :--- | :--- |
+| `id` | SERIAL / INT | PRIMARY KEY | Khóa chính tự tăng |
+| `ticket_code` | TEXT | NOT NULL | Mã ticket sự vụ duy nhất |
+| `store_code` | TEXT | NOT NULL | Mã cửa hàng bị kiểm tra |
+| `store_name` | TEXT | | Tên cửa hàng |
+| `asm_name` | TEXT | | Tên ASM phụ trách |
+| `audit_date` | TEXT | NOT NULL | Ngày kiểm tra phát sinh sự vụ |
+| `violation_content`| TEXT | NOT NULL | Nội dung vi phạm quy định P.QLQT |
+| `penalty_percent`  | REAL | DEFAULT 0.0 | % Tỷ lệ phạt trừ thưởng |
+| `penalty_amount`   | REAL | DEFAULT 0.0 | Số tiền khấu trừ thưởng (VNĐ) |
+| `store_explanation`| TEXT | | Nội dung Cửa hàng giải trình |
+| `attachment_filename`| TEXT| | Tên file tờ trình đính kèm của Cửa hàng |
+| `asm_assessment`   | TEXT | | Đánh giá & nhận xét của ASM |
+| `status`           | TEXT | DEFAULT 'Yêu cầu giải trình' | Trạng thái (`Yêu cầu giải trình`, `CH đã giải trình`, `Hoàn tất`, `Yêu cầu giải trình lại`) |
+| `created_at`       | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | |
+
+### 3.13. Bảng `tb_compliance_attachments` (Lưu Trữ Tờ Trình Đính Kèm Trong DB Cloud)
+| Tên Cột | Kiểu Dữ Liệu | Ràng Buộc | Mô Tả |
+| :--- | :--- | :--- | :--- |
+| `id` | SERIAL / INT | PRIMARY KEY | Khóa chính tự tăng |
+| `filename` | TEXT | UNIQUE INDEX | Tên file đính kèm duy nhất |
+| `file_data_b64` | TEXT | NOT NULL | Dữ liệu nhị phân file được mã hóa Base64 |
+| `mime_type` | TEXT | DEFAULT 'application/pdf' | Loại MIME header file (`application/pdf`, `image/png`, etc.) |
+| `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | |
+
 ---
 
 ## 4. MA TRẬN PHÂN QUYỀN & BẢO MẬT (SECURITY & AUTHORIZATION MATRIX)
