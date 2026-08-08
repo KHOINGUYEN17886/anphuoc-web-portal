@@ -89,17 +89,20 @@ Quản lý danh sách 1,089 nhân sự trên toàn bộ hệ thống.
 | `dob` | TEXT | | Ngày sinh (YYYY-MM-DD) |
 | `phone_number` | TEXT | | Số điện thoại liên hệ |
 | `appointment_date` | TEXT | | Ngày nhận chức / Ngày vào làm (Tính thâm niên) |
-| `avatar_url` | TEXT | | Đường dẫn ảnh đại diện |
+| `avatar_url` | TEXT | | Đường dẫn / Data Base64 nén của ảnh chân dung nhân viên |
+| `notes` | TEXT | | Ghi chú nhân viên (Lịch sử điều chuyển, kỷ luật, kỹ năng, đánh giá) |
 | `status` | TEXT | DEFAULT 'ACTIVE' | Trạng thái công tác (`ACTIVE` / `RESIGNED` / `LEAVE`) |
 | `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Ngày tạo bản ghi |
 
-> **LƯU Ý QUAN TRỌNG**: Bảng `tb_store_employees` bắt buộc phải tạo `UNIQUE INDEX` trên `employee_code` để các lệnh batch upsert (`ON CONFLICT (employee_code) DO UPDATE`) trên Postgres chạy tức thì (dưới 1s) mà không gây lock hay timeout.
+> **LƯU Ý QUAN TRỌNG VỀ NHÂN SỰ & ĐỊNH BIÊN**: 
+> 1. Bảng `tb_store_employees` bắt buộc phải tạo `UNIQUE INDEX` trên `employee_code` để các lệnh batch upsert (`ON CONFLICT (employee_code) DO UPDATE`) trên Postgres chạy tức thì (dưới 1s) mà không gây lock hay timeout.
+> 2. **Quy tắc tính Định Biên Headcount**: Nhân sự có chức danh `Bảo vệ` tự động được **loại trừ khỏi chỉ tiêu định biên bán hàng** để phản ánh chính xác số lượng lực lượng bán lẻ thực tế tại cửa hàng.
 
 ### 3.4. Bảng `tb_store_headcount_targets` (Chỉ Tiêu Định Biên Nhân Sự)
 | Tên Cột | Kiểu Dữ Liệu | Ràng Buộc | Mô Tả |
 | :--- | :--- | :--- | :--- |
 | `store_code` | TEXT | PRIMARY KEY, FK `tb_stores` | Mã cửa hàng |
-| `target_headcount` | INTEGER | DEFAULT 0 | Số lượng định biên nhân sự chuẩn được giao |
+| `target_headcount` | INTEGER | DEFAULT 0 | Số lượng định biên nhân sự chuẩn được giao (đã trừ Bảo vệ) |
 | `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Ngày cập nhật chỉ tiêu |
 
 ### 3.5. Bảng `tb_employee_probation` (Theo Dõi Đào Tạo & Thử Việc)

@@ -1,6 +1,6 @@
 # Hướng Dẫn Sử Dụng Web Portal Nhập Liệu & Báo Cáo Vận Hành QLKD (Cập Nhật 08/2026)
 
-Tài liệu này hướng dẫn chi tiết quy trình đăng nhập, nhập liệu traffic, nộp báo cáo vận hành tuần, quản lý sự vụ tuân thủ P.QLQT, theo dõi định biên nhân sự và sử dụng các tính năng cao cấp trên hệ thống **An Phước Retail Commander Web Portal**.
+Tài liệu này hướng dẫn chi tiết quy trình đăng nhập, nhập liệu traffic, nộp báo cáo vận hành tuần, quản lý sự vụ tuân thủ P.QLQT, theo dõi định biên nhân sự và sử dụng các tính năng mới được đồng nghiệp phát triển trên hệ thống **An Phước Retail Commander Web Portal**.
 
 ---
 
@@ -44,11 +44,11 @@ Cửa hàng nên nhập số liệu hàng ngày tại **Tab 2: Nhập Traffic H�
    * **Màu Xanh (80% - 87%):** Đạt chuẩn quy định.
    * **Màu Vàng (<50% hoặc >=90%):** Cảnh báo lệch chuẩn.
    * **Màu Đỏ (>100%):** Số bill lớn hơn lượt khách.
-4. **Quy tắc Lưu Số Liệu Mới (Không Chặn Cứng CR > 100%)**:
-   * Khi cửa hàng bấm **`💾 LƯU SỐ LIỆU TRAFFIC CẢ THÁNG`**:
-     - Nếu có ngày bị lệch chuẩn hoặc CR > 100% (do camera đếm thiếu hoặc khách mua nhiều bill), hệ thống hiển thị **Hộp Thoại Xác Nhận Cảnh Báo (Soft Warning Confirmation)** liệt kê danh sách các ngày bất thường.
-     - Cửa hàng chỉ cần bấm **OK / Xác nhận**, dữ liệu lập tức được lưu thành công 100% lên máy chủ Database.
-     - Hệ thống sẽ hiển thị thông báo popup khẳng định: `✅ ĐÃ LƯU THÀNH CÔNG SỐ LIỆU TRAFFIC THÁNG!`.
+4. **Quy tắc Lưu Số Liệu Mới (In-Page Banner & Modal Phản Hồi 100%)**:
+   * Khi bấm **`💾 LƯU SỐ LIỆU TRAFFIC CẢ THÁNG`**:
+     - Nếu có ngày CR > 100% (do camera đếm thiếu hoặc khách mua nhiều bill), hệ thống hiển thị **In-Page Banner Cảnh Báo & Modal Xác Nhận** thông minh, không bị trình duyệt chặn popup.
+     - Cửa hàng chỉ cần bấm **Xác Nhận Lưu**, dữ liệu lập tức được gửi và lưu 100% lên Database.
+     - Đèn trạng thái hiển thị banner xanh khẳng định: `✅ ĐÃ LƯU THÀNH CÔNG SỐ LIỆU TRAFFIC THÁNG!`.
 5. **Ghi Nhận Lý Do Khách Không Mua**:
    * Bấm nút `🏷️ Lý do` tại từng ngày để tích chọn nguyên nhân chính (📏 Đứt size, 🎨 Mẫu mã, 💵 Giá/KM, 👔 Chỉ xem, 🏬 Hàng mới, ⏳ Phục vụ) và nhập Ghi chú chi tiết.
 
@@ -63,7 +63,7 @@ Báo cáo tuần chốt số liệu vào cuối ngày Thứ Sáu hàng tuần:
 5. **Phần 4.5 (Yêu Cầu Hỗ Trợ / Sự Cố Vận Hành):**
    * Bấm **+ Thêm Yêu Cầu Hỗ Trợ** nếu có sự cố CNTT, POS, thiết bị, cơ sở vật chất.
    * Chọn phân loại, mức độ ưu tiên (Khẩn cấp, Cao, Trung bình, Thấp) và hạn xử lý.
-   * Khi nộp báo cáo, sự cố tự động đồng bộ lên hệ thống 8 cột tương tác và gửi thông báo trực tiếp đến ASM.
+   * Hệ thống quản lý tương tác 8 cột cho phép ASM & Kỹ thuật xem và cập nhật tiến độ xử lý trực tiếp.
 6. Bấm **Nộp Báo Cáo Vận Hành Tuần** để hoàn tất.
 
 ---
@@ -94,26 +94,33 @@ Hệ thống tích hợp quy trình kiểm soát sự vụ tuân thủ và giả
 
 ---
 
-## 4. Module Định Biên & Báo Cáo Nhân Sự Cụm (Tab 4)
+## 4. Module Định Biên & Báo Cáo Nhân Sự Nâng Cấp (Tab 4)
 
-1. **Theo Dõi Định Biên Nhân Sự**:
-   * Quản lý danh sách 1,089 nhân sự trên toàn hệ thống với mã nhân viên, họ tên, chức danh, ngày vào làm và thâm niên chính xác (Tính theo năm/tháng).
-   * So sánh Định biên chuẩn được giao vs Thực tế nhân sự tại từng cửa hàng.
-2. **Quản Lý Thử Việc & Đào Tạo 5 Bài Học**:
-   * Theo dõi tiến độ đào tạo 5 bài học của nhân viên thử việc.
-   * Đánh giá kết quả thử việc (`Đang thử việc`, `Đạt - Ký HDLD`, `Không đạt - Cho nghỉ`).
-3. **Nhật Ký Biến Động & Bàn Giao Nhân Sự**:
-   * Tạo ticket sự vụ nhân sự (Tuyển mới, Nghỉ việc, Thai sản, Điều chuyển).
-   * Cập nhật trạng thái bàn giao công việc (`Chưa bàn giao`, `Đang bàn giao`, `Đã bàn giao hoàn tất`).
-4. **Nút Báo Cáo Nhanh (`📊 Xem Báo Cáo Nhanh`)**:
-   * Hiển thị nổi bật tại Admin Control Bar, Header ASM Dashboard và Tab Nhân Sự.
-   * Cho phép ASM và Admin mở ngay báo cáo tổng quan định biên & thâm niên bất cứ lúc nào.
+Hệ thống tích hợp các tính năng quản lý nhân sự nâng cao được phát triển mới:
+
+### 4.1. Bảng Hồ Sơ Nhân Sự 6 Cột Cân Đối & Sắp Xếp Tự Động
+* Bảng hiển thị 6 cột: Mã NV, Ảnh chân dung, Họ tên, Chức danh, Thâm niên, Trạng thái/Ghi chú.
+* **Thuật toán sắp xếp thông minh**: Tự động đưa Chức danh chủ chốt lên đầu (Cửa hàng trưởng ➔ Cửa hàng phó ➔ Nhân viên bán hàng ➔ Nhân viên thử việc), sau đó ưu tiên theo Thâm niên công tác.
+
+### 4.2. Xây Dựng Profile Chi Tiết & Tải Ảnh Trực Tiếp Từ Điện Thoại / Máy Tính
+* **Xem Profile Đầy Đủ**: Bấm vào Họ tên nhân viên bất kỳ để mở **Popup Hồ Sơ Nhân Viên**.
+* **Ảnh Chân Dung Lớn (1/4 Popup)**: Popup hiển thị ảnh chân dung rõ nét chiếm 1/4 diện tích khung hình.
+* **Tải Ảnh Trực Tiếp & Nén Tự Động**: Hỗ trợ chọn ảnh từ điện thoại/máy tính để tải lên. Hệ thống tự động nạp công cụ nén ảnh (Client-side compression) giúp giảm dung lượng ảnh mà vẫn giữ độ nét cao, tiết kiệm băng thông.
+* **Lịch Sử Điều Chuyển & Ghi Chú Nâng Cao**: Xem và cập nhật chi tiết lịch sử chuyển cửa hàng, quá trình khen thưởng, kỷ luật, kỹ năng và đánh giá năng lực nhân viên.
+
+### 4.3. Quy Tắc Định Biên Headcount Mới (Tự Động Loại Trừ Bảo Vệ)
+* **Quy tắc trừ Bảo vệ**: Nhân sự có chức danh **Bảo vệ** sẽ tự động được **loại trừ khỏi chỉ tiêu định biên bán hàng** (Headcount quota) của cửa hàng, giúp tính toán chính xác số lượng nhân viên bán hàng thực tế thiếu/đủ.
+* **Live Update Summary Chips**: Các thẻ thống kê tổng quan (Tổng nhân sự, Thiếu/Đủ định biên, Số thử việc) tự động cập nhật thời gian thực khi có thay đổi.
+
+### 4.4. Quản Lý Thử Việc 5 Bài Học & Biến Động Nhân Sự
+* **Đào tạo thử việc**: Đánh giá 5 bài học đào tạo và cập nhật kết quả (`Đang thử việc`, `Đạt - Ký HDLD`, `Không đạt - Cho nghỉ`).
+* **Sự vụ biến động**: Tạo và duyệt ticket Tuyển mới, Nghỉ việc, Thai sản, Điều chuyển kèm trạng thái bàn giao công việc.
 
 ---
 
 ## 5. Chức Năng Dành Cho ASM & Admin (Dashboard & System Controls)
 
-### 5.1. Dashboard ASM
+### 5.1. Dashboard ASM & Dynamic Store Dropdown
 * **Trạng Thái Nộp Tuần:** Danh sách 184 cửa hàng với trạng thái **Đã nộp (Xanh)** hoặc **Chưa nộp (Đỏ)** cho kỳ báo cáo Thứ 6 được chọn.
 * **Lọc Theo Cụm ASM Tự Động:** ASM chỉ thấy danh sách cửa hàng thuộc cụm mình phụ trách (Riêng Admin và ASM Khôi được xem toàn quốc hoặc chọn lọc từng ASM).
 * **Đăng Xuất An Toàn:** Bấm nút **Quay Lại / Đăng Xuất** ở góc trên màn hình để xóa phiên làm việc khỏi thiết bị.
@@ -141,9 +148,9 @@ Hệ thống tích hợp quy trình kiểm soát sự vụ tuân thủ và giả
 
 | Tình Huống | Nguyên Nhân | Cách Xử Lý |
 | :--- | :--- | :--- |
-| **Bấm "Lưu Số Liệu Traffic" mà bị hiện thông báo Cảnh Báo CR > 100%** | Số bill vượt lượt khách (do camera đếm thiếu hoặc khách mua nhiều bill) | Đọc danh sách các ngày cảnh báo trong popup, bấm **OK / Xác nhận** để lưu dữ liệu 100% thành công lên máy chủ. |
-| **Quên mã PIN Cửa Hàng hoặc PIN ASM** | Chưa có PIN mới | Liên hệ ASM cụm hoặc Admin hệ thống để cấp lại PIN. Mã PIN mặc định ban đầu là `1234` (Store) và `9999` (ASM). |
-| **Không chọn được Cửa Hàng sau khi chọn ASM** | Tên ASM hoặc danh sách chưa đồng bộ | Kiểm tra đã chọn đúng tên ASM trong dropdown 1, danh sách cửa hàng dropdown 2 sẽ tự động lọc theo ASM đó. |
+| **Bấm "Lưu Số Liệu Traffic" hiện banner Cảnh Báo CR > 100%** | Số bill vượt lượt khách (do camera đếm thiếu hoặc khách mua nhiều bill) | Đọc danh sách các ngày cảnh báo trong banner/modal, bấm **Xác Nhận Lưu** để lưu dữ liệu 100% thành công lên máy chủ. |
+| **Bảo vệ có tính vào định biên headcount không?** | Quy tắc hệ thống mới | Bảo vệ tự động được loại trừ khỏi chỉ tiêu định biên bán hàng để tính đúng lực lượng bán lẻ thực tế. |
+| **Ảnh chân dung nhân viên tải lên bị mờ hoặc nặng** | Ảnh gốc từ camera điện thoại | Hệ thống tự động nén dung lượng client-side giúp ảnh load nhanh và giữ nét 100%. |
 | **Không tải được file Tờ Trình đính kèm** | File vừa được tải lên hoặc đường truyền chậm | Bấm lại nút `👁️ Xem / Tải Tờ Trình`. Tờ trình đã lưu trữ vĩnh viễn trong Database Cloud. |
 | **Tài khoản Cửa Hàng không thấy nút Đánh Giá ASM** | Phân quyền bảo mật (RBAC) | Quyền Đánh giá sự vụ tuân thủ chỉ dành riêng cho ASM và Admin. Cửa hàng chỉ thực hiện Giải trình và Đính kèm Tờ trình. |
 
