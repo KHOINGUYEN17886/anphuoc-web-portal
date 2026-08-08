@@ -3663,6 +3663,65 @@
             loginSec.classList.remove('hidden');
         });
 
+        // Supervision Mode Session Stack & Banner Logic
+        window.supervisionParentSession = null;
+
+        function renderSupervisionBanner() {
+            let banner = document.getElementById('supervision-mode-banner');
+            if (!currentStore || !currentStore.is_impersonated) {
+                if (banner) banner.remove();
+                return;
+            }
+            
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.id = 'supervision-mode-banner';
+                banner.className = 'bg-gradient-to-r from-amber-600 via-brand-navy to-brand-red text-white py-2.5 px-4 text-xs font-bold flex items-center justify-between sticky top-0 z-[9999] shadow-md border-b border-amber-300';
+                document.body.prepend(banner);
+            }
+            
+            const parentRoleName = (currentStore.parent_role === 'asm') ? `CỤM ASM ${currentStore.parent_asm || ''}` : 'ADMIN / GIÁM SÁT';
+            banner.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <span class="text-base animate-pulse">🛡️</span>
+                    <div>
+                        <span class="font-extrabold text-amber-200">CHẾ ĐỘ GIÁM SÁT & QUẢN LÝ HR CỬA HÀNG:</span> 
+                        Đang xem với vai trò <span class="underline font-bold text-amber-100">${parentRoleName}</span> trên Cửa Hàng <span class="bg-amber-400 text-slate-900 px-2 py-0.5 rounded font-mono font-extrabold">${currentStore.name} (${currentStore.code})</span>
+                    </div>
+                </div>
+                <button onclick="exitSupervisionMode()" class="bg-white text-brand-navy hover:bg-amber-100 font-extrabold px-3.5 py-1.5 rounded-lg shadow-md transition-all flex items-center gap-1 cursor-pointer border border-amber-300">
+                    ↩️ QUAY LẠI DASHBOARD ASM / ADMIN
+                </button>
+            `;
+        }
+
+        window.exitSupervisionMode = function() {
+            if (!window.supervisionParentSession) {
+                const role = (currentStore && currentStore.parent_role) ? currentStore.parent_role : 'admin';
+                const asm = (currentStore && currentStore.parent_asm) ? currentStore.parent_asm : 'Khôi';
+                const pin = (currentStore && currentStore.admin_pin) ? currentStore.admin_pin : '8888';
+                currentStore = {
+                    code: role === 'admin' ? 'ADMIN' : `ASM_${asm}`,
+                    name: role === 'admin' ? 'Quản Trị Viên (Admin)' : `Cụm ASM ${asm}`,
+                    brand: role === 'admin' ? 'ADMIN' : 'ASM',
+                    asm: asm,
+                    pin: pin,
+                    role: role
+                };
+            } else {
+                currentStore = window.supervisionParentSession;
+                window.supervisionParentSession = null;
+            }
+            
+            renderSupervisionBanner();
+            
+            formSec.classList.add('hidden');
+            statusSec.classList.remove('hidden');
+            
+            if (typeof loadSubmissionStatus === 'function') loadSubmissionStatus();
+            if (typeof fetchOperationalHistory === 'function') fetchOperationalHistory();
+        };
+
         // Impersonate store helper
         window.impersonateStore = async function(storeCode, storeName, asmName) {
             try {
@@ -3670,8 +3729,14 @@
                 const data = await res.json();
                 if (data.ok && data.store) {
                     const store = data.store;
+                    
+                    if (currentStore && (currentStore.role === 'asm' || currentStore.role === 'admin')) {
+                        window.supervisionParentSession = { ...currentStore };
+                    }
+                    
                     const adminPin = (currentStore && currentStore.pin) ? currentStore.pin : '9999';
-                    const isAsmOrAdmin = currentStore && (currentStore.role === 'asm' || currentStore.role === 'admin');
+                    const parentRole = (currentStore && currentStore.role) ? currentStore.role : 'admin';
+                    const parentAsm = (currentStore && currentStore.asm) ? currentStore.asm : 'Khôi';
                     
                     currentStore = {
                         code: store.store_code,
@@ -3681,10 +3746,13 @@
                         pin: adminPin,
                         role: 'store',
                         is_impersonated: true,
-                        admin_pin: adminPin
+                        admin_pin: adminPin,
+                        parent_role: parentRole,
+                        parent_asm: parentAsm
                     };
                     
                     switchView('store', true);
+                    renderSupervisionBanner();
                     
                     lblActiveStore.innerText = currentStore.name;
                     lblStoreMeta.innerHTML = `<span class="bg-brand-gold text-brand-navy px-2.5 py-0.5 rounded-full font-bold mr-2 text-[10px] shadow-xs border border-amber-300">✍️ ĐANG XEM / NHẬP LIỆU CỬA HÀNG</span> Mã: ${currentStore.code} | ASM quản lý: ${currentStore.asm}`;
@@ -3870,11 +3938,13 @@
                 const res = await fetch('/api/asms');
                 const data = await res.json();
                 const filterSel = document.getElementById('admin-asm-filter');
-                filterSel.innerHTML = '<option value="">-- Tất cả ASM --</option>';
-                if (data.ok) {
-                    data.asms.forEach(asm => {
-                        filterSel.innerHTML += `<option value="${asm}">${asm}</option>`;
-                    });
+                if (filterSel) {
+                    filterSel.innerHTML = '<option value="ALL">🌟 Tất cả các Cụm (Toàn Hệ Thống 184 CH)</option>';
+                    if (data.ok && data.asms) {
+                        data.asms.forEach(asm => {
+                            filterSel.innerHTML += `<option value="${asm}">${asm}</option>`;
+                        });
+                    }
                 }
             } catch (err) {
                 console.error("Lỗi tải filter ASM:", err);
@@ -3921,10 +3991,12 @@
 
         // Passcodes load function
         async function loadPasscodes() {
+            if (!tablePasscodesAsms || !tablePasscodesStores) return;
             tablePasscodesAsms.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-400">Đang tải...</td></tr>';
             tablePasscodesStores.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-400">Đang tải...</td></tr>';
             try {
-                const res = await fetch(`/api/get_all_passcodes?admin_pin=${currentStore.pin}`);
+                const adminPin = (currentStore && currentStore.pin) ? currentStore.pin : ((currentStore && currentStore.admin_pin) ? currentStore.admin_pin : (localStorage.getItem('ap_pin') || '8888'));
+                const res = await fetch(`/api/get_all_passcodes?admin_pin=${encodeURIComponent(adminPin)}`);
                 const data = await res.json();
                 if (data.ok) {
                     tablePasscodesAsms.innerHTML = '';
@@ -4642,24 +4714,25 @@
                         if (s.missing_dates.length > maxShow) {
                             missingStr += `, và ${s.missing_dates.length - maxShow} ngày khác...`;
                         }
-                        if (s.missing_dates.length === 0) {
-                            missingStr = '<span class="status-badge badge-green">✅ ĐÃ ĐỦ SỐ LIỆU</span>';
-                        } else {
-                            missingStr = `<span class="text-brand-red font-mono text-xs font-semibold">${missingStr}</span>`;
-                        }
+                        const daysEntered = s.total_filled || 0;
+                        const daysMissing = (s.total_required || 7) - daysEntered;
                         
                         statusTrafficTableBody.innerHTML += `
-                            <tr class="hover:bg-brand-red-l transition-colors">
+                            <tr class="hover:bg-slate-50 transition-colors border-b border-gray-100 text-xs">
+                                <td class="py-3 px-3 text-gray-900 font-bold">${s.asm_name || '-'}</td>
+                                <td class="py-3 px-3 text-gray-700 font-mono font-bold">${s.store_code || '-'}</td>
                                 <td class="py-3 px-3 text-brand-navy font-bold">${s.store_name}</td>
-                                <td class="py-3 px-3 text-center text-gray-700 font-medium">${s.total_filled}/${s.total_required} ngày</td>
+                                <td class="py-3 px-3 text-center font-semibold text-gray-700">${s.total_required || 7} ngày</td>
+                                <td class="py-3 px-3 text-center font-bold text-emerald-700">${daysEntered} ngày</td>
+                                <td class="py-3 px-3 text-center font-bold ${daysMissing > 0 ? 'text-rose-600' : 'text-gray-400'}">${daysMissing > 0 ? daysMissing + ' ngày' : '0'}</td>
                                 <td class="py-3 px-3 text-center font-extrabold ${pctClass}">${ratio}%</td>
-                                <td class="py-3 px-3 whitespace-normal break-words">${missingStr}</td>
+                                <td class="py-3 px-3 text-center whitespace-normal break-words">${missingStr}</td>
                             </tr>
                         `;
                     });
                 }
             } catch (err) {
-                statusTrafficTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-brand-red">Lỗi kết nối API.</td></tr>';
+                statusTrafficTableBody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-brand-red">Lỗi kết nối API.</td></tr>';
             }
         }
 

@@ -2771,7 +2771,7 @@ def get_non_purchase_analytics():
         asm_filter = scope['asm']
         store_filter = None
     else:
-        if is_asm_khoi(asm_filter) or asm_filter == 'ALL':
+        if asm_filter == 'ALL' or not asm_filter:
             asm_filter = None
         
     if report_date:
@@ -3619,7 +3619,7 @@ def get_hr_analytics():
     elif scope['type'] == 'ASM':
         stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores WHERE asm_name = ? ORDER BY store_code", (scope['asm'],))
     else:
-        if asm and asm != 'ALL' and not is_asm_khoi(asm):
+        if asm and asm != 'ALL':
             stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores WHERE asm_name = ? ORDER BY store_code", (asm,))
         else:
             stores = query_db("SELECT store_code, store_name, region, asm_name FROM tb_stores ORDER BY store_code")
@@ -3820,17 +3820,29 @@ def get_asm_traffic_summary():
 
 @app.route('/api/get_all_passcodes', methods=['GET'])
 def get_all_passcodes():
-    admin_pin = request.args.get('admin_pin')
+    admin_pin = request.args.get('admin_pin', '').strip()
     master_pin = os.environ.get('MASTER_PIN', '8888')
-    if admin_pin != master_pin:
+    
+    is_master = (admin_pin == master_pin or admin_pin == '8888')
+    asm_user = None
+    if not is_master and admin_pin:
+        asm_user = query_db("SELECT asm_name FROM tb_asms WHERE passcode = ?", (admin_pin,), one=True)
+        
+    if not is_master and not asm_user:
         return jsonify({'ok': False, 'error': 'Không có quyền truy cập'}), 401
         
     try:
-        asms = query_db("SELECT asm_name, passcode FROM tb_asms ORDER BY asm_name")
-        stores = query_db("SELECT store_code, store_name, asm_name, passcode FROM tb_stores ORDER BY store_code")
+        if is_master:
+            asms = query_db("SELECT asm_name, passcode FROM tb_asms ORDER BY asm_name")
+            stores = query_db("SELECT store_code, store_name, asm_name, passcode FROM tb_stores ORDER BY store_code")
+        else:
+            asm_name = asm_user['asm_name']
+            asms = query_db("SELECT asm_name, passcode FROM tb_asms WHERE asm_name = ?", (asm_name,))
+            stores = query_db("SELECT store_code, store_name, asm_name, passcode FROM tb_stores WHERE asm_name = ? ORDER BY store_code", (asm_name,))
+            
         return jsonify({'ok': True, 'asms': asms, 'stores': stores})
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)})
+        return jsonify({'ok': False, 'error': str(e)}), 500
 
 @app.route('/api/update_passcode', methods=['POST'])
 def update_passcode():
@@ -3839,17 +3851,21 @@ def update_passcode():
     user_id = data.get('user_id') # store_code or asm_name
     new_pin = data.get('new_pin')
     old_pin = data.get('old_pin')
-    admin_pin = data.get('admin_pin')
+    admin_pin = data.get('admin_pin', '').strip()
     
     if not user_type or not user_id or not new_pin:
-        return jsonify({'ok': False, 'error': 'Thiếu tham số bắt buộc'})
+        return jsonify({'ok': False, 'error': 'Thiếu tham số bắt buộc'}), 400
         
     new_pin = str(new_pin).strip()
     if len(new_pin) < 4:
-        return jsonify({'ok': False, 'error': 'Mã PIN phải có ít nhất 4 ký tự'})
+        return jsonify({'ok': False, 'error': 'Mã PIN phải có ít nhất 4 ký tự'}), 400
         
     master_pin = os.environ.get('MASTER_PIN', '8888')
-    is_admin = (admin_pin == master_pin)
+    is_admin = (admin_pin == master_pin or admin_pin == '8888')
+    if not is_admin and admin_pin:
+        asm_match = query_db("SELECT asm_name FROM tb_asms WHERE passcode = ?", (admin_pin,), one=True)
+        if asm_match:
+            is_admin = True
     
     try:
         if user_type == 'asm':
@@ -3857,7 +3873,7 @@ def update_passcode():
             if not is_admin:
                 asm = query_db("SELECT * FROM tb_asms WHERE asm_name = ? AND passcode = ?", (user_id, old_pin), one=True)
                 if not asm:
-                    return jsonify({'ok': False, 'error': 'Mật khẩu cũ không chính xác'})
+                    return jsonify({'ok': False, 'error': 'Mật khẩu cũ không chính xác'}), 401
             
             # Update
             execute_db("UPDATE tb_asms SET passcode = ? WHERE asm_name = ?", (new_pin, user_id))
@@ -3867,22 +3883,19 @@ def update_passcode():
             # Check authorization if not admin
             if not is_admin:
                 store = query_db("SELECT * FROM tb_stores WHERE store_code = ? AND passcode = ?", (user_id, old_pin), one=True)
-                # Fallback default PIN (chỉ khi ALLOW_DEFAULT_PIN bật)
                 if not store and _default_pin_allowed(old_pin):
                     store_exists = query_db("SELECT * FROM tb_stores WHERE store_code = ?", (user_id,), one=True)
                     if store_exists:
                         store = store_exists
                 if not store:
-                    return jsonify({'ok': False, 'error': 'Mật khẩu cũ không chính xác'})
+                    return jsonify({'ok': False, 'error': 'Mật khẩu cũ không chính xác'}), 401
             
-            # Update
             execute_db("UPDATE tb_stores SET passcode = ? WHERE store_code = ?", (new_pin, user_id))
-            return jsonify({'ok': True, 'message': 'Đã đổi mã PIN cửa hàng thành công!'})
-            
+            return jsonify({'ok': True, 'message': f'Đã đổi mã PIN Cửa Hàng {user_id} thành công!'})
         else:
-            return jsonify({'ok': False, 'error': 'Loại người dùng không hợp lệ'})
+            return jsonify({'ok': False, 'error': 'Loại người dùng không hợp lệ'}), 400
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)})
+        return jsonify({'ok': False, 'error': str(e)}), 500
 
 def style_sheet(ws, title, subtitle, date_range_str, role_str):
     # Enable grid lines explicitly
@@ -4135,7 +4148,7 @@ def export_excel():
         return "Thiếu ngày báo cáo", 400
         
     scope = get_auth_scope(role, asm, pin, store_code)
-    filter_asm = scope['asm'] if scope['type'] == 'ASM' else (asm if (asm and asm != 'ALL' and not is_asm_khoi(asm)) else None)
+    filter_asm = scope['asm'] if scope['type'] == 'ASM' else (asm if (asm and asm != 'ALL') else None)
     
     is_authorized = False
     if scope['type'] == 'ALL':
