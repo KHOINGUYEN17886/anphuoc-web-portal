@@ -1225,11 +1225,13 @@ def get_daily_traffic():
         return jsonify({'ok': False, 'error': 'Thiếu tham số bắt buộc'})
         
     try:
-        # Validate PIN
-        store = query_db("SELECT * FROM tb_stores WHERE store_code = ? AND passcode = ?", (store_code, pin), one=True)
-        if not store and not _default_pin_allowed(pin):
-            return jsonify({'ok': False, 'error': 'Mã PIN không đúng'})
-            
+        # Validate PIN (chấp nhận master PIN như validate_pin & submit_daily_traffic)
+        master_pin = os.environ.get('MASTER_PIN', '8888')
+        if pin != master_pin:
+            store = query_db("SELECT * FROM tb_stores WHERE store_code = ? AND passcode = ?", (store_code, pin), one=True)
+            if not store and not _default_pin_allowed(pin):
+                return jsonify({'ok': False, 'error': 'Mã PIN không đúng'})
+
         # Query daily traffic and bills for this store and month
         prefix = f"{year}-{int(month):02d}-%"
         rows = query_db("SELECT traffic_date, traffic_val, bills_val, company_online_bills, store_online_bills, data_source, non_purchase_reasons FROM tb_traffic WHERE store_code = ? AND traffic_date LIKE ?", (store_code, prefix))

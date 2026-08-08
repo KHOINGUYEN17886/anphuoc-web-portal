@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>An Phước — Web Portal Thu Thập Số Liệu Vận Hành</title>
+    <meta name="description" content="Cổng nhập liệu báo cáo vận hành nội bộ chuỗi cửa hàng An Phước / Pierre Cardin: traffic hàng ngày, báo cáo tuần, nhân sự và tuân thủ. Đăng nhập bằng mã PIN cửa hàng.">
+    <meta name="robots" content="noindex, nofollow">
+    <meta property="og:title" content="An Phước — Web Portal Thu Thập Số Liệu Vận Hành">
+    <meta property="og:description" content="Cổng nhập liệu báo cáo vận hành nội bộ chuỗi cửa hàng An Phước / Pierre Cardin.">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="/static/LogoAP.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Tailwind CSS CDN -->
@@ -571,7 +577,8 @@
                         <!-- Dynamic day inputs will be generated here -->
                     </div>
 
-                    <div class="pt-5 border-t border-gray-100 mt-5">
+                    <div class="pt-5 border-t border-gray-100 mt-5 space-y-3">
+                        <div id="daily-traffic-status" class="hidden"></div>
                         <button id="btn-save-daily-traffic" class="btn-primary w-full py-3.5 text-sm tracking-wide">
                             💾 LƯU SỐ LIỆU TRAFFIC CẢ THÁNG
                         </button>
@@ -1363,6 +1370,22 @@
             <button id="btn-toast-close" class="btn-primary px-6 py-2 text-xs">
                 Đóng
             </button>
+        </div>
+    </div>
+    <!-- In-page Confirm Modal (thay window.confirm — không bị trình duyệt chặn hộp thoại) -->
+    <div id="app-confirm-modal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm hidden">
+        <div class="bg-white border border-gray-200 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-start gap-3">
+                <div id="app-confirm-icon" class="text-3xl">⚠️</div>
+                <div class="flex-1 min-w-0">
+                    <h3 id="app-confirm-title" class="text-base font-extrabold text-brand-navy">Xác nhận</h3>
+                    <div id="app-confirm-message" class="text-xs text-gray-600 mt-2 max-h-52 overflow-y-auto whitespace-pre-line leading-relaxed"></div>
+                </div>
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button id="app-confirm-cancel" class="flex-1 py-2.5 text-xs font-bold rounded-xl border border-gray-300 text-gray-600 hover:bg-gray-50">Hủy bỏ</button>
+                <button id="app-confirm-ok" class="flex-1 btn-primary py-2.5 text-xs">Xác nhận lưu</button>
+            </div>
         </div>
     </div>
     <!-- CHANGE PIN MODAL -->
@@ -2977,9 +3000,11 @@
                         coInp.addEventListener('input', updateCR);
                         soInp.addEventListener('input', updateCR);
                     });
+                } else {
+                    dailyTrafficGrid.innerHTML = `<div class="col-span-full text-center py-6 text-rose-500 font-bold">⚠️ Không tải được lịch sử traffic: ${data.error || 'Lỗi không xác định'}<br><button type="button" class="mt-2 text-xs underline text-brand-navy" onclick="generateDailyTrafficInputs()">🔄 Thử lại</button></div>`;
                 }
             } catch (err) {
-                dailyTrafficGrid.innerHTML = '<div class="col-span-full text-center py-6 text-rose-400">Không thể tải dữ liệu.</div>';
+                dailyTrafficGrid.innerHTML = '<div class="col-span-full text-center py-6 text-rose-400 font-bold">❌ Không thể tải dữ liệu (lỗi mạng hoặc máy chủ).<br><button type="button" class="mt-2 text-xs underline text-brand-navy" onclick="generateDailyTrafficInputs()">🔄 Thử lại</button></div>';
             }
         }
 
@@ -2988,25 +3013,26 @@
 
         // SAVE DAILY TRAFFIC IN BULK
         btnSaveDailyTraffic.addEventListener('click', async () => {
+            try {
+            setDailyTrafficStatus(null);
             const storeCtx = getCurrentStoreContext();
             if (!storeCtx || !storeCtx.code) {
+                setDailyTrafficStatus('error', '⚠️ Không xác định được cửa hàng. Vui lòng chọn cửa hàng hoặc đăng nhập lại trước khi lưu!');
                 showToast("⚠️ Chưa đăng nhập", "Không xác định được mã cửa hàng. Vui lòng đăng nhập lại.", "⚠️");
-                alert("⚠️ Không xác định được cửa hàng. Vui lòng chọn cửa hàng hoặc đăng nhập lại trước khi lưu!");
                 return;
             }
-            
+
             const cards = dailyTrafficGrid.querySelectorAll('[data-card-date]');
             if (!cards || cards.length === 0) {
+                setDailyTrafficStatus('error', '⚠️ Không có khung nhập liệu traffic nào trên màn hình. Vui lòng chọn lại Tháng/Năm để tải lại lưới nhập liệu.');
                 showToast("⚠️ Cảnh báo", "Không có khung nhập liệu traffic nào trên màn hình.", "⚠️");
-                alert("⚠️ Không có khung nhập liệu traffic nào trên màn hình.");
                 return;
             }
 
             const traffic_data = {};
-            let hasError = false;
-            let hasWarning = false;
+            let errorDates = [];
             let warningDates = [];
-            
+
             cards.forEach(card => {
                 const dateStr = card.getAttribute('data-card-date');
                 const trfInp = card.querySelector('[data-type="traffic"]');
@@ -3026,6 +3052,8 @@
                 const noteInput = card.querySelector('.reason-note-input');
                 const customNote = noteInput ? noteInput.value.trim() : '';
 
+                const dayLabel = `${dateStr.split('-')[2]}/${dateStr.split('-')[1]}`;
+
                 // Capture data if any field has value
                 if (trf !== '' || bill !== '' || co !== '' || so !== '' || selectedReasons.length > 0 || customNote !== '') {
                     if (trf !== '' && bill !== '') {
@@ -3033,27 +3061,24 @@
                         const bVal = Number(bill);
                         const coVal = Number(co) || 0;
                         const soVal = Number(so) || 0;
-                        
+
                         if (coVal < 0 || soVal < 0) {
-                            alert(`❌ Lỗi ngày ${dateStr.split('-')[2]}/${dateStr.split('-')[1]}: Số bill online không thể âm.`);
-                            hasError = true;
+                            errorDates.push(`Ngày ${dayLabel}: Số bill online không thể âm.`);
                         } else if (coVal + soVal > bVal) {
-                            alert(`❌ Lỗi ngày ${dateStr.split('-')[2]}/${dateStr.split('-')[1]}: Tổng số bill online (${coVal + soVal}) lớn hơn tổng số bill (${bVal}).`);
-                            hasError = true;
+                            errorDates.push(`Ngày ${dayLabel}: Tổng bill online (${coVal + soVal}) lớn hơn tổng số bill (${bVal}).`);
                         } else {
                             const billForCR = bVal - coVal;
-                            
-                            if (tVal === 0 && billForCR > 0) {
-                                hasWarning = true;
-                                warningDates.push(`${dateStr.split('-')[2]}/${dateStr.split('-')[1]} (Lượt khách = 0, Số bill = ${bVal})`);
+
+                            if (bVal > tVal) {
+                                warningDates.push(`Ngày ${dayLabel}: Số bill (${bVal}) LỚN HƠN số khách (${tVal}) — CR ${tVal > 0 ? ((billForCR / tVal) * 100).toFixed(1) : '>100'}%`);
+                            } else if (tVal === 0 && billForCR > 0) {
+                                warningDates.push(`Ngày ${dayLabel}: Lượt khách = 0 nhưng Số bill = ${bVal}`);
                             } else {
                                 const cr = tVal > 0 ? (billForCR / tVal) * 100 : 0;
                                 if (cr > 100) {
-                                    hasWarning = true;
-                                    warningDates.push(`${dateStr.split('-')[2]}/${dateStr.split('-')[1]} (CR: ${cr.toFixed(1)}% - ${bVal} bill / ${tVal} khách)`);
+                                    warningDates.push(`Ngày ${dayLabel}: CR ${cr.toFixed(1)}% (${bVal} bill / ${tVal} khách)`);
                                 } else if (cr < 50 || cr >= 90) {
-                                    hasWarning = true;
-                                    warningDates.push(`${dateStr.split('-')[2]}/${dateStr.split('-')[1]} (CR: ${cr.toFixed(1)}% - C.ty online: ${coVal})`);
+                                    warningDates.push(`Ngày ${dayLabel}: CR ${cr.toFixed(1)}% lệch chuẩn (C.ty online: ${coVal})`);
                                 }
                             }
                         }
@@ -3071,25 +3096,35 @@
                     };
                 }
             });
-            
-            if (hasError) {
+
+            if (errorDates.length > 0) {
+                setDailyTrafficStatus('error', '❌ KHÔNG THỂ LƯU — dữ liệu không hợp lệ:\n• ' + errorDates.join('\n• '));
+                showToast("❌ Dữ liệu không hợp lệ", "Vui lòng kiểm tra các ngày báo đỏ bên dưới nút Lưu.", "❌");
                 return;
             }
 
             if (Object.keys(traffic_data).length === 0) {
+                setDailyTrafficStatus('info', 'ℹ️ Vui lòng điền số Lượt khách và Số bill tại ít nhất 1 ngày trước khi bấm Lưu.');
                 showToast("ℹ️ Thông Báo", "Không có số liệu ngày nào được nhập để lưu.", "ℹ️");
-                alert("ℹ️ Vui lòng điền số Lượt khách và Số bill tại ít nhất 1 ngày trước khi bấm Lưu!");
                 return;
             }
-            
-            if (hasWarning) {
-                const confirmSave = confirm(`⚠️ Cảnh báo Tỷ lệ Chuyển đổi (CR) bất thường (>100% hoặc lệch chuẩn) vào các ngày:\n- ${warningDates.join('\n- ')}\n\nBạn có chắc chắn muốn lưu số liệu này?`);
-                if (!confirmSave) return;
+
+            if (warningDates.length > 0) {
+                setDailyTrafficStatus('warning', '⚠️ Số liệu bất thường cần xác nhận:\n• ' + warningDates.join('\n• '));
+                const confirmSave = await showConfirmModal(
+                    'Cảnh báo số liệu bất thường',
+                    `Phát hiện Tỷ lệ Chuyển đổi (CR) bất thường (Bill > Khách hoặc CR lệch chuẩn) vào các ngày:\n\n• ${warningDates.join('\n• ')}\n\nBạn có chắc chắn muốn lưu số liệu này?`,
+                    '✔ Vẫn lưu số liệu'
+                );
+                if (!confirmSave) {
+                    setDailyTrafficStatus('info', '⏸ Đã hủy lưu. Vui lòng sửa lại số liệu các ngày cảnh báo rồi bấm Lưu lại.');
+                    return;
+                }
             }
-            
+
             btnSaveDailyTraffic.disabled = true;
             btnSaveDailyTraffic.innerText = "⌛ ĐANG LƯU DỮ LIỆU...";
-            
+
             try {
                 const res = await fetch('/api/submit_daily_traffic', {
                     method: 'POST',
@@ -3101,19 +3136,24 @@
                     })
                 });
                 const data = await res.json();
-                
+
                 if (data.ok) {
                     showToast("✅ Thành Công!", "Lịch sử traffic tháng đã được cập nhật.", "✅");
-                    alert("✅ ĐÃ LƯU THÀNH CÔNG SỐ LIỆU TRAFFIC THÁNG!");
                     await generateDailyTrafficInputs();
+                    setDailyTrafficStatus('success', `✅ ĐÃ LƯU THÀNH CÔNG số liệu traffic của ${Object.keys(traffic_data).length} ngày!`);
                 } else {
+                    setDailyTrafficStatus('error', '❌ Máy chủ từ chối lưu: ' + (data.error || 'Không thể lưu.'));
                     showToast("❌ Thất Bại", data.error || "Có lỗi xảy ra.", "❌");
-                    alert("❌ Lỗi lưu dữ liệu từ máy chủ: " + (data.error || "Không thể lưu."));
                 }
             } catch (err) {
+                setDailyTrafficStatus('error', '❌ Lỗi mạng: Không thể kết nối đến máy chủ. Vui lòng kiểm tra Internet rồi thử lại.');
                 showToast("❌ Lỗi Mạng", "Không thể kết nối đến máy chủ.", "❌");
-                alert("❌ Lỗi mạng: Không thể kết nối đến máy chủ server.");
             } finally {
+                btnSaveDailyTraffic.disabled = false;
+                btnSaveDailyTraffic.innerText = "💾 LƯU SỐ LIỆU TRAFFIC CẢ THÁNG";
+            }
+            } catch (unexpectedErr) {
+                setDailyTrafficStatus('error', '❌ Lỗi hệ thống khi lưu: ' + (unexpectedErr && unexpectedErr.message ? unexpectedErr.message : unexpectedErr));
                 btnSaveDailyTraffic.disabled = false;
                 btnSaveDailyTraffic.innerText = "💾 LƯU SỐ LIỆU TRAFFIC CẢ THÁNG";
             }
@@ -3959,6 +3999,54 @@
         btnToastClose.addEventListener('click', () => {
             toastModal.classList.add('hidden');
         });
+
+        // ─── In-page confirm (thay window.confirm vì trình duyệt có thể chặn hộp thoại native) ───
+        const appConfirmModal = document.getElementById('app-confirm-modal');
+        const appConfirmTitle = document.getElementById('app-confirm-title');
+        const appConfirmMessage = document.getElementById('app-confirm-message');
+        const appConfirmIcon = document.getElementById('app-confirm-icon');
+        const appConfirmOk = document.getElementById('app-confirm-ok');
+        const appConfirmCancel = document.getElementById('app-confirm-cancel');
+
+        function showConfirmModal(title, message, okLabel = 'Xác nhận lưu', icon = '⚠️') {
+            return new Promise(resolve => {
+                appConfirmTitle.innerText = title;
+                appConfirmMessage.innerText = message;
+                appConfirmIcon.innerText = icon;
+                appConfirmOk.innerText = okLabel;
+                appConfirmModal.classList.remove('hidden');
+                const done = (val) => {
+                    appConfirmModal.classList.add('hidden');
+                    appConfirmOk.removeEventListener('click', onOk);
+                    appConfirmCancel.removeEventListener('click', onCancel);
+                    resolve(val);
+                };
+                const onOk = () => done(true);
+                const onCancel = () => done(false);
+                appConfirmOk.addEventListener('click', onOk);
+                appConfirmCancel.addEventListener('click', onCancel);
+            });
+        }
+
+        // ─── Banner trạng thái cố định trên nút Lưu Traffic (phản hồi luôn hiển thị) ───
+        const dailyTrafficStatus = document.getElementById('daily-traffic-status');
+        function setDailyTrafficStatus(kind, message) {
+            if (!dailyTrafficStatus) return;
+            if (!message) {
+                dailyTrafficStatus.className = 'hidden';
+                dailyTrafficStatus.innerText = '';
+                return;
+            }
+            const styles = {
+                error:   'bg-rose-50 text-rose-700 border border-rose-200',
+                warning: 'bg-amber-50 text-amber-800 border border-amber-200',
+                success: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+                info:    'bg-slate-50 text-slate-600 border border-slate-200'
+            };
+            dailyTrafficStatus.className = 'text-xs font-bold rounded-xl px-4 py-3 leading-relaxed whitespace-pre-line ' + (styles[kind] || styles.info);
+            dailyTrafficStatus.innerText = message;
+            dailyTrafficStatus.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
 
         // ASM DASHBOARD CONTROLS
         btnStatusView.addEventListener('click', async () => {
