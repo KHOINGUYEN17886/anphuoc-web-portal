@@ -2748,9 +2748,33 @@
             document.getElementById('market-other-feedback').value = '';
         }
 
+        function getCurrentStoreContext() {
+            if (typeof currentStore !== 'undefined' && currentStore && (currentStore.code || currentStore.store_code)) {
+                return currentStore;
+            }
+            const savedCode = localStorage.getItem('ap_store_code') || document.getElementById('select-store')?.value || '';
+            const savedAsm = localStorage.getItem('ap_asm') || 'Admin';
+            const savedPin = localStorage.getItem('ap_pin') || '8888';
+            if (savedCode) {
+                return {
+                    code: savedCode,
+                    store_code: savedCode,
+                    name: savedCode,
+                    asm: savedAsm,
+                    pin: savedPin,
+                    role: 'store'
+                };
+            }
+            return null;
+        }
+
         // GENERATE DAILY TRAFFIC GRID
         async function generateDailyTrafficInputs() {
-            if (!currentStore) return;
+            const storeCtx = getCurrentStoreContext();
+            if (!storeCtx || !storeCtx.code) {
+                dailyTrafficGrid.innerHTML = '<div class="col-span-full text-center py-6 text-rose-500 font-bold">⚠️ Chưa chọn cửa hàng hoặc chưa đăng nhập. Vui lòng đăng nhập lại.</div>';
+                return;
+            }
             
             const month = Number(selectTrafficMonth.value);
             const year = Number(selectTrafficYear.value);
@@ -2758,7 +2782,7 @@
             dailyTrafficGrid.innerHTML = '<div class="col-span-full text-center py-6 text-gray-400">Đang tải lịch sử traffic...</div>';
             
             try {
-                const res = await fetch(`/api/get_daily_traffic?store_code=${currentStore.code}&year=${year}&month=${month}&pin=${currentStore.pin}`);
+                const res = await fetch(`/api/get_daily_traffic?store_code=${encodeURIComponent(storeCtx.code)}&year=${year}&month=${month}&pin=${encodeURIComponent(storeCtx.pin || '8888')}`);
                 const data = await res.json();
                 
                 if (data.ok) {
@@ -2964,9 +2988,20 @@
 
         // SAVE DAILY TRAFFIC IN BULK
         btnSaveDailyTraffic.addEventListener('click', async () => {
-            if (!currentStore) return;
+            const storeCtx = getCurrentStoreContext();
+            if (!storeCtx || !storeCtx.code) {
+                showToast("⚠️ Chưa đăng nhập", "Không xác định được mã cửa hàng. Vui lòng đăng nhập lại.", "⚠️");
+                alert("⚠️ Không xác định được cửa hàng. Vui lòng chọn cửa hàng hoặc đăng nhập lại trước khi lưu!");
+                return;
+            }
             
             const cards = dailyTrafficGrid.querySelectorAll('[data-card-date]');
+            if (!cards || cards.length === 0) {
+                showToast("⚠️ Cảnh báo", "Không có khung nhập liệu traffic nào trên màn hình.", "⚠️");
+                alert("⚠️ Không có khung nhập liệu traffic nào trên màn hình.");
+                return;
+            }
+
             const traffic_data = {};
             let hasError = false;
             let hasWarning = false;
@@ -2979,77 +3014,71 @@
                 const coInp = card.querySelector('[data-type="company_online_bills"]');
                 const soInp = card.querySelector('[data-type="store_online_bills"]');
 
+                if (!trfInp || !billInp) return;
+
                 const trf = trfInp.value.trim();
                 const bill = billInp.value.trim();
-                const co = coInp.value.trim();
-                const so = soInp.value.trim();
+                const co = coInp ? coInp.value.trim() : '';
+                const so = soInp ? soInp.value.trim() : '';
 
-                // Dirty-check: bỏ qua ngày KHÔNG bị sửa so với lúc tải lên. Quan trọng với ngày
-                // đang là 'synthetic_backfill' (số suy diễn) — nếu không sửa gì mà vẫn gửi lên,
-                // backend sẽ tưởng cửa hàng vừa xác nhận số này là thật và xoá mất cờ suy diễn.
                 const reasonCbs = card.querySelectorAll('.reason-cb:checked');
                 const selectedReasons = Array.from(reasonCbs).map(cb => cb.value);
                 const noteInput = card.querySelector('.reason-note-input');
                 const customNote = noteInput ? noteInput.value.trim() : '';
 
-                let original = {};
-                try { original = JSON.parse(card.getAttribute('data-original') || '{}'); } catch (e) { original = {}; }
-                const origReasons = JSON.stringify(original.reasons || []);
-                const currReasons = JSON.stringify(selectedReasons);
-                const origNote = String(original.note ?? '');
-
-                const unchanged = String(original.traffic ?? '') === trf &&
-                                   String(original.bills ?? '') === bill &&
-                                   String(original.company_online_bills ?? '') === co &&
-                                   String(original.store_online_bills ?? '') === so &&
-                                   origReasons === currReasons &&
-                                   origNote === customNote;
-                if (unchanged) return;
-
-                if (trf !== '' && bill !== '') {
-                    const tVal = Number(trf);
-                    const bVal = Number(bill);
-                    const coVal = Number(co) || 0;
-                    const soVal = Number(so) || 0;
-                    
-                    if (coVal < 0 || soVal < 0) {
-                        alert(`❌ Lỗi ngày ${dateStr.split('-')[2]}/${dateStr.split('-')[1]}: Số bill online không thể âm.`);
-                        hasError = true;
-                    } else if (coVal + soVal > bVal) {
-                        alert(`❌ Lỗi ngày ${dateStr.split('-')[2]}/${dateStr.split('-')[1]}: Tổng số bill online (${coVal + soVal}) lớn hơn tổng số bill (${bVal}).`);
-                        hasError = true;
-                    } else {
-                        const billForCR = bVal - coVal;
+                // Capture data if any field has value
+                if (trf !== '' || bill !== '' || co !== '' || so !== '' || selectedReasons.length > 0 || customNote !== '') {
+                    if (trf !== '' && bill !== '') {
+                        const tVal = Number(trf);
+                        const bVal = Number(bill);
+                        const coVal = Number(co) || 0;
+                        const soVal = Number(so) || 0;
                         
-                        if (tVal === 0 && billForCR > 0) {
-                            hasWarning = true;
-                            warningDates.push(`${dateStr.split('-')[2]}/${dateStr.split('-')[1]} (Lượt khách = 0, Số bill = ${bVal})`);
+                        if (coVal < 0 || soVal < 0) {
+                            alert(`❌ Lỗi ngày ${dateStr.split('-')[2]}/${dateStr.split('-')[1]}: Số bill online không thể âm.`);
+                            hasError = true;
+                        } else if (coVal + soVal > bVal) {
+                            alert(`❌ Lỗi ngày ${dateStr.split('-')[2]}/${dateStr.split('-')[1]}: Tổng số bill online (${coVal + soVal}) lớn hơn tổng số bill (${bVal}).`);
+                            hasError = true;
                         } else {
-                            const cr = tVal > 0 ? (billForCR / tVal) * 100 : 0;
-                            if (cr > 100) {
+                            const billForCR = bVal - coVal;
+                            
+                            if (tVal === 0 && billForCR > 0) {
                                 hasWarning = true;
-                                warningDates.push(`${dateStr.split('-')[2]}/${dateStr.split('-')[1]} (CR: ${cr.toFixed(1)}% - ${bVal} bill / ${tVal} khách)`);
-                            } else if (cr < 50 || cr >= 90) {
-                                hasWarning = true;
-                                warningDates.push(`${dateStr.split('-')[2]}/${dateStr.split('-')[1]} (CR: ${cr.toFixed(1)}% - C.ty online: ${coVal})`);
+                                warningDates.push(`${dateStr.split('-')[2]}/${dateStr.split('-')[1]} (Lượt khách = 0, Số bill = ${bVal})`);
+                            } else {
+                                const cr = tVal > 0 ? (billForCR / tVal) * 100 : 0;
+                                if (cr > 100) {
+                                    hasWarning = true;
+                                    warningDates.push(`${dateStr.split('-')[2]}/${dateStr.split('-')[1]} (CR: ${cr.toFixed(1)}% - ${bVal} bill / ${tVal} khách)`);
+                                } else if (cr < 50 || cr >= 90) {
+                                    hasWarning = true;
+                                    warningDates.push(`${dateStr.split('-')[2]}/${dateStr.split('-')[1]} (CR: ${cr.toFixed(1)}% - C.ty online: ${coVal})`);
+                                }
                             }
                         }
                     }
+
+                    traffic_data[dateStr] = {
+                        traffic: trf,
+                        bills: bill,
+                        company_online_bills: co,
+                        store_online_bills: so,
+                        non_purchase_reasons: {
+                            reasons: selectedReasons,
+                            note: customNote
+                        }
+                    };
                 }
-                
-                traffic_data[dateStr] = {
-                    traffic: trf,
-                    bills: bill,
-                    company_online_bills: co,
-                    store_online_bills: so,
-                    non_purchase_reasons: {
-                        reasons: selectedReasons,
-                        note: customNote
-                    }
-                };
             });
             
             if (hasError) {
+                return;
+            }
+
+            if (Object.keys(traffic_data).length === 0) {
+                showToast("ℹ️ Thông Báo", "Không có số liệu ngày nào được nhập để lưu.", "ℹ️");
+                alert("ℹ️ Vui lòng điền số Lượt khách và Số bill tại ít nhất 1 ngày trước khi bấm Lưu!");
                 return;
             }
             
@@ -3066,8 +3095,8 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        store_code: currentStore.code,
-                        pin: currentStore.pin,
+                        store_code: storeCtx.code,
+                        pin: storeCtx.pin || '8888',
                         traffic_data: traffic_data
                     })
                 });
@@ -3075,12 +3104,15 @@
                 
                 if (data.ok) {
                     showToast("✅ Thành Công!", "Lịch sử traffic tháng đã được cập nhật.", "✅");
+                    alert("✅ ĐÃ LƯU THÀNH CÔNG SỐ LIỆU TRAFFIC THÁNG!");
                     await generateDailyTrafficInputs();
                 } else {
                     showToast("❌ Thất Bại", data.error || "Có lỗi xảy ra.", "❌");
+                    alert("❌ Lỗi lưu dữ liệu từ máy chủ: " + (data.error || "Không thể lưu."));
                 }
             } catch (err) {
                 showToast("❌ Lỗi Mạng", "Không thể kết nối đến máy chủ.", "❌");
+                alert("❌ Lỗi mạng: Không thể kết nối đến máy chủ server.");
             } finally {
                 btnSaveDailyTraffic.disabled = false;
                 btnSaveDailyTraffic.innerText = "💾 LƯU SỐ LIỆU TRAFFIC CẢ THÁNG";
