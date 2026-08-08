@@ -3779,19 +3779,26 @@
             }
         };
 
-        // Admin ASM filter listener
-        adminAsmFilter.addEventListener('change', () => {
-            loadSubmissionStatus();
-            if (statusTabDailyContent && !statusTabDailyContent.classList.contains('hidden')) {
-                loadDailyTrafficSummary();
-            }
-            if (statusTabSupportContent && !statusTabSupportContent.classList.contains('hidden')) {
-                loadSupportRequests();
-            }
-            if (statusTabHrContent && !statusTabHrContent.classList.contains('hidden')) {
-                loadHRAnalytics();
-            }
-        });
+        // Admin ASM filter listener with full 100% portal synchronization
+        if (adminAsmFilter) {
+            adminAsmFilter.addEventListener('change', () => {
+                const selectedAsm = adminAsmFilter.value;
+                
+                // Synchronize other ASM filter dropdowns across tabs
+                const compFilterAsm = document.getElementById('comp-filter-asm');
+                if (compFilterAsm) compFilterAsm.value = selectedAsm;
+                const qrAsmFilter = document.getElementById('qr-asm-filter');
+                if (qrAsmFilter) qrAsmFilter.value = selectedAsm;
+                
+                loadSubmissionStatus();
+                if (typeof loadDailyTrafficSummary === 'function') loadDailyTrafficSummary();
+                if (typeof loadSupportRequests === 'function') loadSupportRequests();
+                if (typeof loadHRAnalytics === 'function') loadHRAnalytics();
+                if (typeof fetchOperationalHistory === 'function') fetchOperationalHistory();
+                if (typeof loadComplianceAudits === 'function') loadComplianceAudits();
+                if (typeof filterHRTickets === 'function') filterHRTickets();
+            });
+        }
 
         function isASMKhôi() {
             if (!currentStore) return false;
@@ -6272,8 +6279,8 @@
             const isKhoi = isASMKhôi();
             const role = currentStore ? currentStore.role : 'store';
             const pin = currentStore ? currentStore.pin : '';
-            const storeCode = (role === 'store' && currentStore) ? currentStore.code : '';
-            const asmVal = (role === 'asm' && !isKhoi) ? currentStore.asm : (qrAsmFilter ? qrAsmFilter.value : 'ALL');
+            const selectedAsm = document.getElementById('admin-asm-filter')?.value || document.getElementById('qr-asm-filter')?.value || '';
+            const asmVal = (selectedAsm && selectedAsm !== '') ? selectedAsm : ((currentStore && currentStore.asm) ? currentStore.asm : 'ALL');
 
             // Show loading state
             document.getElementById('qr-hr-tot-stores').innerText = '…';
