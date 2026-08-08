@@ -662,24 +662,21 @@
                         </button>
                     </div>
 
+                    <p class="text-[11px] text-gray-400 -mt-2">💡 Bấm vào <b>tên nhân viên</b> để xem &amp; chỉnh sửa hồ sơ đầy đủ (kèm ảnh). Danh sách xếp theo <b>chức vụ → thâm niên</b>.</p>
                     <div class="overflow-x-auto">
                         <table class="tbl w-full rounded-xl overflow-hidden text-xs">
                             <thead>
                                 <tr>
-                                    <th class="w-12 text-center">Ảnh</th>
-                                    <th>Mã NV</th>
+                                    <th class="w-14 text-center">Ảnh</th>
+                                    <th class="w-24">Mã NV</th>
                                     <th>Họ và Tên</th>
-                                    <th>Giới Tính</th>
-                                    <th>Ngày Sinh</th>
-                                    <th>Số Điện Thoại</th>
-                                    <th>Chức Danh</th>
-                                    <th>Ngày Vào Làm / Nhận Chức</th>
-                                    <th class="text-center">Thâm Niên</th>
-                                    <th class="text-center">Thao Tác</th>
+                                    <th class="w-36">Chức Danh</th>
+                                    <th class="w-24 text-center">Thâm Niên</th>
+                                    <th class="w-16 text-center">Thao Tác</th>
                                 </tr>
                             </thead>
                             <tbody id="store-employee-table-body" class="divide-y divide-gray-100">
-                                <tr><td colspan="10" class="text-center py-6 text-gray-400">Đang tải danh sách nhân sự...</td></tr>
+                                <tr><td colspan="6" class="text-center py-6 text-gray-400">Đang tải danh sách nhân sự...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -1386,6 +1383,66 @@
                 <button id="app-confirm-cancel" class="flex-1 py-2.5 text-xs font-bold rounded-xl border border-gray-300 text-gray-600 hover:bg-gray-50">Hủy bỏ</button>
                 <button id="app-confirm-ok" class="flex-1 btn-primary py-2.5 text-xs">Xác nhận lưu</button>
             </div>
+        </div>
+    </div>
+    <!-- EMPLOYEE DETAIL POPUP (bấm tên nhân viên trong bảng nhân sự) -->
+    <div id="emp-detail-modal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm hidden">
+        <div class="bg-white border border-gray-200 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+            <div class="flex items-start gap-4 border-b border-gray-100 pb-4">
+                <div class="relative group w-24 h-28 flex-shrink-0">
+                    <img id="emp-detail-avatar" src="" class="w-24 h-28 rounded-xl object-cover border-2 border-brand-navy/20 shadow-md">
+                    <label class="absolute inset-0 bg-black/45 rounded-xl flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 cursor-pointer transition-all text-center">
+                        <span class="text-xl">📸</span>
+                        <span class="text-[9px] font-bold leading-tight">Đổi ảnh<br>(tự nén ≤80KB)</span>
+                        <input type="file" accept="image/*" class="hidden" onchange="handleEmpDetailAvatarChange(event)">
+                    </label>
+                </div>
+                <div class="flex-1 min-w-0 space-y-1">
+                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Hồ sơ nhân sự</div>
+                    <input type="text" id="emp-detail-name" class="input-field w-full text-base font-extrabold text-brand-navy" placeholder="Họ và Tên">
+                    <div class="text-xs text-gray-500">Mã NV: <span id="emp-detail-code" class="font-mono font-bold text-gray-800">—</span></div>
+                    <div class="text-xs text-gray-500">Thâm niên: <span id="emp-detail-tenure" class="inline-block px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-extrabold text-[11px]">—</span></div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Giới Tính</label>
+                    <select id="emp-detail-gender" class="input-field text-xs w-full">
+                        <option value="Nữ">Nữ</option>
+                        <option value="Nam">Nam</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Ngày Sinh</label>
+                    <input type="text" id="emp-detail-dob" class="input-field text-xs w-full" placeholder="DD/MM/YYYY hoặc 1994">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Số Điện Thoại</label>
+                    <input type="text" id="emp-detail-phone" class="input-field text-xs w-full" placeholder="090...">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Chức Danh</label>
+                    <select id="emp-detail-position" class="input-field text-xs w-full font-bold text-brand-navy">
+                        <option value="Cửa hàng trưởng">Cửa hàng trưởng</option>
+                        <option value="Cửa hàng phó">Cửa hàng phó</option>
+                        <option value="Nhân viên bán hàng">Nhân viên bán hàng</option>
+                        <option value="Nhân viên thử việc">🎓 Nhân viên thử việc</option>
+                        <option value="Nhân viên giao nhận">Nhân viên giao nhận</option>
+                        <option value="Bảo vệ">Bảo vệ</option>
+                    </select>
+                </div>
+                <div class="col-span-2">
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Ngày Vào Làm / Nhận Chức</label>
+                    <input type="text" id="emp-detail-appdate" class="input-field text-xs w-full font-semibold" placeholder="YYYY-MM-DD" oninput="updateEmpDetailTenure()">
+                </div>
+            </div>
+
+            <div class="flex gap-3 pt-3 border-t border-gray-100">
+                <button type="button" onclick="closeEmpDetailPopup()" class="flex-1 py-2.5 text-xs font-bold rounded-xl border border-gray-300 text-gray-600 hover:bg-gray-50">Đóng</button>
+                <button type="button" onclick="applyEmpDetailChanges()" class="flex-1 btn-primary py-2.5 text-xs">✔ Áp Dụng Thay Đổi</button>
+            </div>
+            <p class="text-[10px] text-gray-400 text-center -mt-1">Thay đổi chỉ lưu chính thức khi bấm <b>💾 Lưu Hồ Sơ</b> ở cuối trang.</p>
         </div>
     </div>
     <!-- CHANGE PIN MODAL -->
@@ -4937,67 +4994,131 @@
             }
         }
 
-        // Render Employee Table
-        function renderStoreEmployeesTable(employees) {
-            const tbody = document.getElementById('store-employee-table-body');
-            if (!employees || employees.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10" class="text-center py-6 text-gray-400">Cửa hàng chưa có danh sách nhân sự. Nhấn "Thêm Nhân Viên Mới" để tạo.</td></tr>';
-                return;
+        // ─── Thứ tự chức vụ & màu badge (dùng cho sắp xếp + hiển thị bảng nhân sự) ───
+        const POSITION_RANK = {
+            'Cửa hàng trưởng': 1,
+            'Cửa hàng phó': 2,
+            'Nhân viên bán hàng': 3,
+            'Nhân viên thử việc': 4,
+            'Nhân viên giao nhận': 5,
+            'Bảo vệ': 6
+        };
+        const POSITION_BADGE = {
+            'Cửa hàng trưởng':    'bg-amber-50 text-amber-800 border-amber-300',
+            'Cửa hàng phó':       'bg-blue-50 text-blue-800 border-blue-200',
+            'Nhân viên bán hàng': 'bg-slate-50 text-slate-700 border-slate-200',
+            'Nhân viên thử việc': 'bg-purple-50 text-purple-700 border-purple-200',
+            'Nhân viên giao nhận':'bg-teal-50 text-teal-700 border-teal-200',
+            'Bảo vệ':             'bg-gray-100 text-gray-600 border-gray-300'
+        };
+        const POSITION_OPTIONS = ['Cửa hàng trưởng', 'Cửa hàng phó', 'Nhân viên bán hàng', 'Nhân viên thử việc', 'Nhân viên giao nhận', 'Bảo vệ'];
+
+        // Chuẩn hóa biến thể chức danh trong DB ("CH Trưởng", "CHT"...) về 6 nhóm chuẩn
+        function canonicalPosition(raw) {
+            const p = String(raw || '').toLowerCase();
+            if (!p) return 'Nhân viên bán hàng';
+            if ((p.includes('trưởng') || p.includes('cht')) && !p.includes('phó')) return 'Cửa hàng trưởng';
+            if (p.includes('phó') || p.includes('chp')) return 'Cửa hàng phó';
+            if (p.includes('thử việc')) return 'Nhân viên thử việc';
+            if (p.includes('giao nhận')) return 'Nhân viên giao nhận';
+            if (p.includes('bảo vệ')) return 'Bảo vệ';
+            if (p.includes('bán hàng') || p.includes('nhân viên')) return 'Nhân viên bán hàng';
+            return String(raw);
+        }
+
+        function _empSortDateVal(raw) {
+            const val = parseExcelSerialDate(raw || '');
+            if (!val) return Infinity;
+            let d;
+            if (val.includes('/')) {
+                const p = val.split('/');
+                if (p.length === 3) d = new Date(p[2], p[1] - 1, p[0]);
+            } else {
+                d = new Date(val);
             }
-            
-            tbody.innerHTML = employees.map((emp, idx) => {
-                const tenureStr = emp.tenure || calculateTenure(emp.appointment_date || emp.created_at);
-                return `
-                <tr class="emp-row border-b border-gray-100 hover:bg-slate-50 transition-all" data-code="${emp.employee_code}">
+            return (d && !isNaN(d.getTime())) ? d.getTime() : Infinity;
+        }
+
+        // Sắp xếp: chức vụ (CHT → CHP → NV...) rồi thâm niên (vào làm sớm nhất đứng trước)
+        function sortEmployeesForDisplay(list) {
+            return [...list].sort((a, b) => {
+                const ra = POSITION_RANK[canonicalPosition(a.position)] || 9;
+                const rb = POSITION_RANK[canonicalPosition(b.position)] || 9;
+                if (ra !== rb) return ra - rb;
+                return _empSortDateVal(a.appointment_date || a.start_date || a.created_at)
+                     - _empSortDateVal(b.appointment_date || b.start_date || b.created_at);
+            });
+        }
+
+        // Dựng 1 dòng nhân sự: 6 cột hiển thị gọn + 1 td ẩn chứa input .emp-* để
+        // executeSaveStoreHR thu thập dữ liệu như cũ (chỉnh sửa qua popup chi tiết).
+        function buildEmpRowHtml(emp) {
+            const code = emp.employee_code;
+            const name = emp.full_name || '';
+            const gender = emp.gender || 'Nữ';
+            const dob = emp.dob || '';
+            const phone = emp.phone_number || '';
+            const position = canonicalPosition(emp.position || 'Nhân viên bán hàng');
+            const appDate = parseExcelSerialDate(emp.appointment_date || emp.start_date || emp.created_at || '');
+            const tenureStr = emp.tenure || calculateTenure(appDate);
+            const avatar = emp.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'NV')}&background=1B2A4A&color=fff`;
+            const posCls = POSITION_BADGE[position] || POSITION_BADGE['Nhân viên bán hàng'];
+            const posList = POSITION_OPTIONS.includes(position) ? POSITION_OPTIONS : [position, ...POSITION_OPTIONS];
+            const optsPos = posList.map(p => `<option value="${p}" ${position === p ? 'selected' : ''}>${p}</option>`).join('');
+            const subParts = [gender];
+            if (dob) subParts.push(dob);
+            if (phone) subParts.push('📞 ' + phone);
+            return `
+                <tr class="emp-row border-b border-gray-100 hover:bg-slate-50 transition-all" data-code="${code}">
                     <td class="py-2 px-2 text-center">
-                        <div class="relative group w-9 h-9 mx-auto">
-                            <img src="${emp.avatar_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(emp.full_name) + '&background=1B2A4A&color=fff'}" 
-                                 class="w-9 h-9 rounded-full object-cover border border-gray-200 shadow-xs img-avatar-preview">
+                        <div class="relative group w-10 h-10 mx-auto">
+                            <img src="${avatar}" class="w-10 h-10 rounded-full object-cover border border-gray-200 shadow-xs img-avatar-preview">
                             <label class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center text-[10px] text-white opacity-0 group-hover:opacity-100 cursor-pointer transition-all">
                                 📸
-                                <input type="file" accept="image/*" class="hidden input-avatar-file" onchange="handlePhotoUpload(event, '${emp.employee_code}')">
+                                <input type="file" accept="image/*" class="hidden input-avatar-file" onchange="handlePhotoUpload(event, '${code}')">
                             </label>
                         </div>
                     </td>
-                    <td class="py-2 px-2 font-mono font-bold text-gray-900">${emp.employee_code}</td>
+                    <td class="py-2 px-2 font-mono font-bold text-gray-900 whitespace-nowrap">${code}</td>
                     <td class="py-2 px-2">
-                        <input type="text" class="input-field text-xs font-bold text-brand-navy emp-name" value="${emp.full_name}">
+                        <button type="button" onclick="openEmpDetailPopup(this)" class="text-left group cursor-pointer" title="Bấm để xem hồ sơ đầy đủ">
+                            <span class="emp-name-display block font-extrabold text-brand-navy text-[13px] group-hover:text-brand-red group-hover:underline transition-colors">${name}</span>
+                            <span class="emp-sub-display block text-[10px] text-gray-400 font-medium mt-0.5">${subParts.join(' · ')}</span>
+                        </button>
                     </td>
                     <td class="py-2 px-2">
-                        <select class="input-field text-xs emp-gender">
-                            <option value="Nữ" ${emp.gender === 'Nữ' ? 'selected' : ''}>Nữ</option>
-                            <option value="Nam" ${emp.gender === 'Nam' ? 'selected' : ''}>Nam</option>
-                        </select>
-                    </td>
-                    <td class="py-2 px-2">
-                        <input type="text" class="input-field text-xs emp-dob" placeholder="DD/MM/YYYY" value="${emp.dob || ''}">
-                    </td>
-                    <td class="py-2 px-2">
-                        <input type="text" class="input-field text-xs emp-phone" placeholder="090..." value="${emp.phone_number || ''}">
-                    </td>
-                    <td class="py-2 px-2">
-                        <select class="input-field text-xs emp-position font-bold text-brand-navy">
-                            <option value="Cửa hàng trưởng" ${emp.position === 'Cửa hàng trưởng' ? 'selected' : ''}>Cửa hàng trưởng</option>
-                            <option value="Cửa hàng phó" ${emp.position === 'Cửa hàng phó' ? 'selected' : ''}>Cửa hàng phó</option>
-                            <option value="Nhân viên bán hàng" ${emp.position === 'Nhân viên bán hàng' ? 'selected' : ''}>Nhân viên bán hàng</option>
-                            <option value="Nhân viên thử việc" ${emp.position === 'Nhân viên thử việc' ? 'selected' : ''}>🎓 Nhân viên thử việc</option>
-                            <option value="Nhân viên giao nhận" ${emp.position === 'Nhân viên giao nhận' ? 'selected' : ''}>Nhân viên giao nhận</option>
-                            <option value="Bảo vệ" ${emp.position === 'Bảo vệ' ? 'selected' : ''}>Bảo vệ</option>
-                        </select>
-                    </td>
-                    <td class="py-2 px-2">
-                        <input type="text" class="input-field text-xs emp-app-date font-semibold" placeholder="YYYY-MM-DD" value="${parseExcelSerialDate(emp.appointment_date || emp.start_date || emp.created_at || '')}" oninput="updateTenureLive(this)">
+                        <span class="emp-pos-display inline-block px-2 py-1 rounded-lg border font-bold text-[11px] whitespace-nowrap ${posCls}">${position}</span>
                     </td>
                     <td class="py-2 px-2 text-center">
-                        <span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-extrabold text-[11px] tenure-badge">${tenureStr}</span>
+                        <span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-extrabold text-[11px] tenure-badge whitespace-nowrap">${tenureStr}</span>
                     </td>
                     <td class="py-2 px-2 text-center">
                         <button type="button" onclick="removeEmployeeRow(this)" class="text-rose-500 hover:text-rose-700 font-bold text-xs px-2 py-1">
                             &times; Xóa
                         </button>
                     </td>
-                </tr>
-            `}).join('');
+                    <td class="hidden">
+                        <input type="text" class="emp-name" value="${name}">
+                        <select class="emp-gender">
+                            <option value="Nữ" ${gender === 'Nữ' ? 'selected' : ''}>Nữ</option>
+                            <option value="Nam" ${gender === 'Nam' ? 'selected' : ''}>Nam</option>
+                        </select>
+                        <input type="text" class="emp-dob" value="${dob}">
+                        <input type="text" class="emp-phone" value="${phone}">
+                        <select class="emp-position">${optsPos}</select>
+                        <input type="text" class="emp-app-date" value="${appDate}">
+                    </td>
+                </tr>`;
+        }
+
+        // Render Employee Table (sắp xếp theo chức vụ → thâm niên)
+        function renderStoreEmployeesTable(employees) {
+            const tbody = document.getElementById('store-employee-table-body');
+            if (!employees || employees.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-gray-400">Cửa hàng chưa có danh sách nhân sự. Nhấn "Thêm Nhân Viên Mới" để tạo.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = sortEmployeesForDisplay(employees).map(emp => buildEmpRowHtml(emp)).join('');
         }
 
         // Render Support Staff Table
@@ -5309,73 +5430,28 @@
                 const code = document.getElementById('add-emp-code').value.trim() || ('NV' + Math.floor(100000 + Math.random() * 900000));
                 const name = document.getElementById('add-emp-name').value.trim();
                 if (!name) {
-                    alert("⚠️ Vui lòng nhập Họ và Tên nhân viên!");
+                    showToast("⚠️ Thiếu Thông Tin", "Vui lòng nhập Họ và Tên nhân viên!", "⚠️");
                     return;
                 }
-                
+
                 const gender = document.getElementById('add-emp-gender').value;
                 const pos = document.getElementById('add-emp-position').value;
                 const startDate = document.getElementById('add-emp-start-date').value;
                 const avatar = document.getElementById('add-emp-avatar-preview').src;
-                
+
                 const tbody = document.getElementById('store-employee-table-body');
                 if (tbody.children.length === 1 && tbody.children[0].cells.length <= 1) {
                     tbody.innerHTML = '';
                 }
-                
-                const tr = document.createElement('tr');
-                tr.className = "emp-row border-b border-gray-100 hover:bg-slate-50 transition-all";
-                tr.dataset.code = code;
-                tr.dataset.avatar = avatar;
-                tr.innerHTML = `
-                    <td class="py-2 px-2 text-center">
-                        <div class="relative group w-9 h-9 mx-auto">
-                            <img src="${avatar}" class="w-9 h-9 rounded-full object-cover border border-gray-200 shadow-xs img-avatar-preview">
-                            <label class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center text-[10px] text-white opacity-0 group-hover:opacity-100 cursor-pointer transition-all">
-                                📸
-                                <input type="file" accept="image/*" class="hidden input-avatar-file" onchange="handlePhotoUpload(event, '${code}')">
-                            </label>
-                        </div>
-                    </td>
-                    <td class="py-2 px-2 font-mono font-bold text-gray-900">${code}</td>
-                    <td class="py-2 px-2">
-                        <input type="text" class="input-field text-xs font-bold text-brand-navy emp-name" value="${name}">
-                    </td>
-                    <td class="py-2 px-2">
-                        <select class="input-field text-xs emp-gender">
-                            <option value="Nữ" ${gender === 'Nữ' ? 'selected' : ''}>Nữ</option>
-                            <option value="Nam" ${gender === 'Nam' ? 'selected' : ''}>Nam</option>
-                        </select>
-                    </td>
-                    <td class="py-2 px-2">
-                        <input type="text" class="input-field text-xs emp-dob" placeholder="DD/MM/YYYY">
-                    </td>
-                    <td class="py-2 px-2">
-                        <input type="text" class="input-field text-xs emp-phone" placeholder="090...">
-                    </td>
-                    <td class="py-2 px-2">
-                        <select class="input-field text-xs emp-position font-bold text-brand-navy">
-                            <option value="Nhân viên bán hàng" ${pos === 'Nhân viên bán hàng' ? 'selected' : ''}>Nhân viên bán hàng</option>
-                            <option value="Cửa hàng trưởng" ${pos === 'Cửa hàng trưởng' ? 'selected' : ''}>Cửa hàng trưởng</option>
-                            <option value="Cửa hàng phó" ${pos === 'Cửa hàng phó' ? 'selected' : ''}>Cửa hàng phó</option>
-                            <option value="Nhân viên thử việc" ${pos === 'Nhân viên thử việc' ? 'selected' : ''}>🎓 Nhân viên thử việc</option>
-                            <option value="Nhân viên giao nhận" ${pos === 'Nhân viên giao nhận' ? 'selected' : ''}>Nhân viên giao nhận</option>
-                            <option value="Bảo vệ" ${pos === 'Bảo vệ' ? 'selected' : ''}>Bảo vệ</option>
-                        </select>
-                    </td>
-                    <td class="py-2 px-2">
-                        <input type="text" class="input-field text-xs emp-app-date font-semibold" value="${startDate}" oninput="updateTenureLive(this)">
-                    </td>
-                    <td class="py-2 px-2 text-center">
-                        <span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-extrabold text-[11px] tenure-badge">${calculateTenure(startDate)}</span>
-                    </td>
-                    <td class="py-2 px-2 text-center">
-                        <button type="button" onclick="removeEmployeeRow(this)" class="text-rose-500 hover:text-rose-700 font-bold text-xs px-2 py-1">
-                            &times; Xóa
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
+
+                tbody.insertAdjacentHTML('beforeend', buildEmpRowHtml({
+                    employee_code: code,
+                    full_name: name,
+                    gender: gender,
+                    position: pos,
+                    appointment_date: startDate,
+                    avatar_url: avatar
+                }));
                 
                 if (pos === 'Nhân viên thử việc') {
                     const probContainer = document.getElementById('probation-list-container');
@@ -7194,6 +7270,105 @@
                 showToast("❌ Lỗi Ảnh", (err && err.message) ? err.message : "Không đọc được ảnh. Vui lòng chọn ảnh JPG/PNG khác.", "❌");
                 input.value = '';
             }
+        };
+
+        // ─── POPUP HỒ SƠ NHÂN SỰ ĐẦY ĐỦ (bấm tên nhân viên trong bảng) ───
+        let __empDetailRow = null;
+
+        window.openEmpDetailPopup = function(el) {
+            const tr = el.closest('tr.emp-row');
+            if (!tr) return;
+            __empDetailRow = tr;
+            const g = sel => { const i = tr.querySelector(sel); return i ? i.value : ''; };
+            document.getElementById('emp-detail-code').innerText = tr.dataset.code || '—';
+            const rowImg = tr.querySelector('.img-avatar-preview');
+            document.getElementById('emp-detail-avatar').src = tr.dataset.avatar || (rowImg ? rowImg.src : '');
+            document.getElementById('emp-detail-name').value = g('.emp-name');
+            document.getElementById('emp-detail-gender').value = g('.emp-gender') || 'Nữ';
+            document.getElementById('emp-detail-dob').value = g('.emp-dob');
+            document.getElementById('emp-detail-phone').value = g('.emp-phone');
+            const posSel = document.getElementById('emp-detail-position');
+            const posVal = g('.emp-position') || 'Nhân viên bán hàng';
+            if (![...posSel.options].some(o => o.value === posVal)) {
+                posSel.insertAdjacentHTML('afterbegin', `<option value="${posVal}">${posVal}</option>`);
+            }
+            posSel.value = posVal;
+            document.getElementById('emp-detail-appdate').value = g('.emp-app-date');
+            updateEmpDetailTenure();
+            document.getElementById('emp-detail-modal').classList.remove('hidden');
+        };
+
+        window.closeEmpDetailPopup = function() {
+            document.getElementById('emp-detail-modal').classList.add('hidden');
+            __empDetailRow = null;
+        };
+
+        window.updateEmpDetailTenure = function() {
+            const v = document.getElementById('emp-detail-appdate').value.trim();
+            document.getElementById('emp-detail-tenure').innerText = calculateTenure(v);
+        };
+
+        window.handleEmpDetailAvatarChange = async function(event) {
+            const input = event.target;
+            const file = input.files && input.files[0];
+            if (!file) return;
+            try {
+                showToast("⏳ Đang nén ảnh...", `Ảnh gốc ${Math.round(file.size / 1024)}KB đang được nén tự động.`, "⏳");
+                const { dataUri, sizeKB } = await compressAvatarImage(file);
+                document.getElementById('emp-detail-avatar').src = dataUri;
+                if (__empDetailRow) {
+                    __empDetailRow.dataset.avatar = dataUri;
+                    const p = __empDetailRow.querySelector('.img-avatar-preview');
+                    if (p) p.src = dataUri;
+                }
+                showToast("📸 Đã Nhận Ảnh", `Ảnh đã nén còn ${sizeKB}KB. Bấm '💾 Lưu Hồ Sơ' để lưu chính thức lên hệ thống.`, "📸");
+            } catch (err) {
+                console.error('Lỗi nén ảnh hồ sơ nhân sự:', err);
+                showToast("❌ Lỗi Ảnh", (err && err.message) ? err.message : "Không đọc được ảnh. Vui lòng chọn ảnh JPG/PNG khác.", "❌");
+            } finally {
+                input.value = '';
+            }
+        };
+
+        window.applyEmpDetailChanges = function() {
+            if (!__empDetailRow) { closeEmpDetailPopup(); return; }
+            const tr = __empDetailRow;
+            const name = document.getElementById('emp-detail-name').value.trim();
+            if (!name) {
+                showToast("⚠️ Thiếu Tên", "Họ và Tên không được để trống.", "⚠️");
+                return;
+            }
+            const gender = document.getElementById('emp-detail-gender').value;
+            const dob = document.getElementById('emp-detail-dob').value.trim();
+            const phone = document.getElementById('emp-detail-phone').value.trim();
+            const pos = document.getElementById('emp-detail-position').value;
+            const appd = document.getElementById('emp-detail-appdate').value.trim();
+
+            const s = (sel, v) => { const i = tr.querySelector(sel); if (i) i.value = v; };
+            s('.emp-name', name);
+            s('.emp-gender', gender);
+            s('.emp-dob', dob);
+            s('.emp-phone', phone);
+            s('.emp-position', pos);
+            s('.emp-app-date', appd);
+
+            const nameDisp = tr.querySelector('.emp-name-display');
+            if (nameDisp) nameDisp.innerText = name;
+            const subParts = [gender];
+            if (dob) subParts.push(dob);
+            if (phone) subParts.push('📞 ' + phone);
+            const subDisp = tr.querySelector('.emp-sub-display');
+            if (subDisp) subDisp.innerText = subParts.join(' · ');
+            const posDisp = tr.querySelector('.emp-pos-display');
+            if (posDisp) {
+                posDisp.innerText = pos;
+                posDisp.className = 'emp-pos-display inline-block px-2 py-1 rounded-lg border font-bold text-[11px] whitespace-nowrap ' + (POSITION_BADGE[pos] || POSITION_BADGE['Nhân viên bán hàng']);
+            }
+            const tenureDisp = tr.querySelector('.tenure-badge');
+            if (tenureDisp) tenureDisp.innerText = calculateTenure(appd);
+
+            closeEmpDetailPopup();
+            showToast("📝 Đã Cập Nhật", `Thông tin ${name} đã cập nhật trên bảng. Bấm '💾 Lưu Hồ Sơ' để lưu chính thức lên hệ thống.`, "📝");
         };
 
         async function submitStoreExplain() {
